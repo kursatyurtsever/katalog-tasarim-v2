@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Katalog / ürün slot */
+  --product-bg: #e8e8f2;
+  --price-bg: #e60000;
+  --font-main: "Arial", sans-serif;
+  --border-color: #cbd5e1;
+  --border-width: 1px;
+  --product-name-font-size: 8cqw;
+
+  --r-tl: 0;
+  --r-tr: 0;
+  --r-br: 0;
+  --r-bl: 0;
+
+  --f-family: "Inter", sans-serif;
+  --f-weight: 400;
+  --f-base-cqw: 8;
+  --f-size: calc(var(--f-base-cqw) * 1cqw);
+  --f-leading: 1.15;
+  --f-tracking: 0px;
+  --f-align: left;
+  --f-valign: flex-end;
+  --f-align-items: flex-start;
+  --f-justify: flex-start;
+  --f-color: #1e293b;
+
+  --p-bg: #e8e8f2;
+  --p-bg-effective: #e8e8f2;
+  --p-border-width: 1px;
+  --p-border-color: #cbd5e1;
+  --p-opacity: 1;
+
+  --pr-r-tl: 0;
+  --pr-r-tr: 0;
+  --pr-r-br: 0;
+  --pr-r-bl: 0;
+  --pr-f-family: "Inter", sans-serif;
+  --pr-f-weight: 400;
+  --pr-f-base-cqw: 15;
+  --pr-f-size: calc(var(--pr-f-base-cqw) * 1cqw);
+  --pr-f-leading: 1;
+  --pr-f-tracking: -1px;
+  --pr-f-align: center;
+  --pr-f-justify: center;
+  --pr-f-valign: center;
+  --pr-f-color: #ffffff;
+  --pr-f-frac-size: 0.65em;
+  --pr-bg: #e60000;
+  --pr-bg-effective: #e60000;
+  --pr-border-width: 0px;
+  --pr-border-color: #cbd5e1;
+  --pr-opacity: 1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-main);
+}
+
+/* Slot: container query (cqw) için */
+.product-slot {
+  container-type: inline-size;
+}
+
+/* Fiziksel sayfa + canvas: kutu modeli, taşma yok */
+.physical-page,
+.canvas-container,
+.canvas-wrapper {
+  box-sizing: border-box;
+}
+
+.canvas-container {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+}
+
+@media print {
+  .physical-page {
+    box-shadow: none;
+    border: none;
+  }
+}
