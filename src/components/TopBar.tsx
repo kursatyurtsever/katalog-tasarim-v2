@@ -1,72 +1,88 @@
 "use client";
 
 import { useCatalogStore } from "@/store/useCatalogStore";
+import { useEffect } from "react";
 
-/**
- * Eski HTML'deki #top-bar: Dış Sayfalar / İç Sayfalar sekmeleri ve Zoom butonu.
- */
 export function TopBar() {
   const activeTab = useCatalogStore((state) => state.activeTab);
-  const isZoomed = useCatalogStore((state) => state.isZoomed);
   const setActiveTab = useCatalogStore((state) => state.setActiveTab);
   const toggleZoom = useCatalogStore((state) => state.toggleZoom);
-  const template = useCatalogStore((state) => state.activeTemplate);
-  const half = Math.ceil(template.pages.length / 2);
-  const hasInner = template.pages.length > half;
+  const isZoomed = useCatalogStore((state) => state.isZoomed);
+  
+  // Geri - İleri state'leri
+  const undo = useCatalogStore((state) => state.undo);
+  const redo = useCatalogStore((state) => state.redo);
+  const pastPages = useCatalogStore((state) => state.pastPages || []);
+  const futurePages = useCatalogStore((state) => state.futurePages || []);
+
+  // Klavye Kısayolları Dinleyicisi (Ctrl+Z ve Ctrl+Shift+Z)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) { e.preventDefault(); redo(); } 
+        else { e.preventDefault(); undo(); }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   return (
-    <div
-      id="top-bar"
-      className="flex w-full shrink-0 items-center justify-between border-b border-slate-700 bg-slate-900 px-4 pt-4"
-    >
-      <div className="flex gap-2">
+    <div className="h-14 bg-white border-b flex items-center justify-between px-4 shrink-0 shadow-sm relative z-50">
+      <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
         <button
-          type="button"
           onClick={() => setActiveTab("outer")}
-          className={`rounded-t-lg px-6 py-2 font-semibold transition-colors ${
-            activeTab === "outer"
-              ? "bg-blue-600 text-white hover:bg-blue-700"
-              : "bg-slate-300 text-slate-700 hover:bg-slate-400"
+          className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${
+            activeTab === "outer" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           }`}
         >
-          Dış Sayfalar
+          Dış Sayfalar (1, 5, 6)
         </button>
-        {hasInner && (
-          <button
-            type="button"
-            onClick={() => setActiveTab("inner")}
-            className={`rounded-t-lg px-6 py-2 font-semibold transition-colors ${
-              activeTab === "inner"
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "bg-slate-300 text-slate-700 hover:bg-slate-400"
-            }`}
-          >
-            İç Sayfalar
-          </button>
-        )}
+        <button
+          onClick={() => setActiveTab("inner")}
+          className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${
+            activeTab === "inner" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          İç Sayfalar (2, 3, 4)
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={toggleZoom}
-        className="zoom-btn mb-2 flex items-center gap-2 rounded border border-slate-600 bg-slate-700 px-4 py-1.5 text-sm font-semibold text-slate-200 shadow-sm transition-colors hover:bg-slate-600"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-          className="h-4 w-4"
+      <div className="flex items-center gap-4">
+        {/* GERİ / İLERİ BUTONLARI */}
+        <div className="flex items-center gap-1 mr-2 border-r pr-4 border-slate-200">
+          <button 
+            onClick={undo} 
+            disabled={pastPages.length === 0} 
+            className={`px-3 py-1.5 rounded flex items-center gap-1 text-sm font-bold transition-all ${pastPages.length === 0 ? "text-slate-300 cursor-not-allowed" : "text-slate-600 hover:bg-slate-200"}`} 
+            title="Geri Al (Ctrl+Z)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+            Geri
+          </button>
+          <button 
+            onClick={redo} 
+            disabled={futurePages.length === 0} 
+            className={`px-3 py-1.5 rounded flex items-center gap-1 text-sm font-bold transition-all ${futurePages.length === 0 ? "text-slate-300 cursor-not-allowed" : "text-slate-600 hover:bg-slate-200"}`} 
+            title="İleri Al (Ctrl+Shift+Z)"
+          >
+            İleri
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+          </button>
+        </div>
+
+        <button
+          onClick={toggleZoom}
+          className={`px-4 py-1.5 rounded-md text-sm font-bold border transition-all flex items-center gap-2 ${
+            isZoomed ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+          }`}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-          />
-        </svg>
-        <span id="zoom-text">{isZoomed ? "Orijinal Boyut" : "Ekrana Sığdır"}</span>
-      </button>
+          {isZoomed ? "🔍 Uzaklaş" : "🔍 Yakınlaş"}
+        </button>
+        <button className="px-5 py-1.5 bg-[#e60000] hover:bg-red-700 text-white rounded-md text-sm font-bold transition-all shadow-sm">
+          PDF İndir
+        </button>
+      </div>
     </div>
   );
 }

@@ -18,9 +18,6 @@ export function Canvas() {
   const isZoomed = useCatalogStore((state) => state.isZoomed);
   const template = useCatalogStore((state) => state.activeTemplate);
   
-  const setActiveTab = useCatalogStore((state) => state.setActiveTab);
-  const toggleZoom = useCatalogStore((state) => state.toggleZoom);
-  
   const [scale, setScale] = useState(1);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -63,31 +60,6 @@ export function Canvas() {
       ref={wrapperRef}
       className={`flex-1 relative w-full h-full min-w-0 min-h-0 bg-slate-300 ${isZoomed ? "overflow-auto" : "overflow-hidden"}`}
     >
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-lg">
-        <button
-          onClick={() => setActiveTab("outer")}
-          className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${activeTab === "outer" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-        >
-          Dış Sayfalar
-        </button>
-        {hasInner && (
-          <button
-            onClick={() => setActiveTab("inner")}
-            className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${activeTab === "inner" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-          >
-            İç Sayfalar
-          </button>
-        )}
-        <div className="w-px h-5 bg-slate-300 mx-2"></div>
-        <button
-          onClick={toggleZoom}
-          className="px-4 py-1.5 rounded-md text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-        >
-          {isZoomed ? "Ekrana Sığdır" : "Orijinal Boyut"}
-        </button>
-      </div>
-
-      {/* Kaybolan CSS sınıfları ve box-sizing ayarları buraya geri eklendi */}
       <div
         id="canvas"
         className={`canvas flex flex-row items-stretch bg-white shadow-2xl transition-transform duration-200 ${isZoomed ? "relative mx-auto mt-20 mb-8" : "absolute top-1/2 left-1/2 origin-center"}`}
