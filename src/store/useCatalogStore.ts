@@ -35,9 +35,15 @@ export interface CatalogState {
   activeTab: "outer" | "inner";
   activeTemplate: BrochureTemplate;
   pages: CatalogPage[];
-  productPool: ProductInfo[]; // Excel'den gelen yerleştirilecek ürünler
-  masterProductPool: ProductInfo[]; // Otomatik çekilen TÜM ÜRÜNLER havuzu
-  globalSettings: { gridGap: number };
+  productPool: ProductInfo[]; 
+  masterProductPool: ProductInfo[]; 
+  globalSettings: { 
+    gridGap: number;
+    radiusTL: number; radiusTR: number; radiusBR: number; radiusBL: number; linkRadius: boolean;
+    fontFamily: string; fontWeight: string; fontStyle: string; fontSize: number; lineHeight: number; fontColor: string; textAlign: "left" | "center" | "right" | "justify";
+    letterSpacing: number; textVerticalAlign: "top" | "middle" | "bottom";
+    bgColor: string; bgOpacity: number; borderColor: string; borderOpacity: number; borderWidth: number;
+  };
   isZoomed: boolean;
   selectedSlotIds: string[];
   pastPages: CatalogPage[][];
@@ -47,7 +53,7 @@ export interface CatalogState {
 export interface CatalogActions {
   setActiveTab: (tab: "outer" | "inner") => void;
   setActiveTemplate: (templateId: string) => void;
-  setGlobalSettings: (settings: Partial<{ gridGap: number }>) => void;
+  setGlobalSettings: (settings: Partial<CatalogState["globalSettings"]>) => void;
   updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;
   swapSlotContents: (sourcePage: number, sourceIndex: number, targetPage: number, targetIndex: number) => void;
   toggleZoom: () => void;
@@ -94,7 +100,13 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       pages: buildPagesForTemplate(Template1),
       productPool: [],
       masterProductPool: [],
-      globalSettings: { gridGap: 0 },
+      globalSettings: { 
+        gridGap: 0,
+        radiusTL: 0, radiusTR: 0, radiusBR: 0, radiusBL: 0, linkRadius: true,
+        fontFamily: "Inter, sans-serif", fontWeight: "700", fontStyle: "normal", fontSize: 10, lineHeight: 1.2, fontColor: "#1e293b", textAlign: "center",
+        letterSpacing: 0, textVerticalAlign: "bottom",
+        bgColor: "#ffffff", bgOpacity: 100, borderColor: "#e2e8f0", borderOpacity: 100, borderWidth: 1
+      },
       isZoomed: false,
       selectedSlotIds: [],
       pastPages: [],
@@ -179,7 +191,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
         newPages.forEach(p => {
           p.slots.forEach(s => {
-            s.product = null;
+            s.product = null; 
           });
         });
         return {
@@ -190,7 +202,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       }),
 
       resetCatalog: () => set((state) => {
-        const freshPages = buildPagesForTemplate(state.activeTemplate);
+        const freshPages = buildPagesForTemplate(state.activeTemplate); 
         return {
           pages: freshPages,
           selectedSlotIds: [],

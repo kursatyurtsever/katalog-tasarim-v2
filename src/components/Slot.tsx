@@ -19,7 +19,15 @@ const splitPrice = (price: any) => {
   return { main: parts[0] || "0", decimal: parts[1] ? (parts[1].padEnd(2, "0").slice(0, 2)) : "00" };
 };
 
+const hexToRgba = (hex: string, opacity: number) => {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 4) { r = parseInt(hex[1]+hex[1], 16); g = parseInt(hex[2]+hex[2], 16); b = parseInt(hex[3]+hex[3], 16); }
+  else if (hex.length === 7) { r = parseInt(hex.slice(1, 3), 16); g = parseInt(hex.slice(3, 5), 16); b = parseInt(hex.slice(5, 7), 16); }
+  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+};
+
 export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu, gridPosition }: SlotProps) {
+  const globalSettings = useCatalogStore((state) => state.globalSettings);
   const swapSlotContents = useCatalogStore((state) => state.swapSlotContents);
   const selectedSlotIds = useCatalogStore((state) => state.selectedSlotIds);
   const toggleSlotSelection = useCatalogStore((state) => state.toggleSlotSelection);
@@ -51,12 +59,15 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`product-slot relative border transition-all overflow-hidden h-full min-w-0 min-h-0 cursor-pointer ${
-        isSelected ? "ring-4 ring-blue-500 z-30 bg-blue-50/20" : isOver ? "border-blue-500 bg-blue-50/30 scale-[0.98] z-20" : "border-slate-200 bg-white hover:border-blue-300"
+        isSelected ? "ring-4 ring-blue-500 z-30 shadow-lg" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300"
       }`}
       style={{
-        // Hücreyi mutlak koordinatlara çiviler, taşmayı ve kaymayı imkansız kılar
         gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`,
-        gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`
+        gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`,
+        borderRadius: `${globalSettings?.radiusTL ?? 0}px ${globalSettings?.radiusTR ?? 0}px ${globalSettings?.radiusBR ?? 0}px ${globalSettings?.radiusBL ?? 0}px`,
+        backgroundColor: hexToRgba(globalSettings?.bgColor ?? "#ffffff", globalSettings?.bgOpacity ?? 100),
+        borderColor: hexToRgba(globalSettings?.borderColor ?? "#e2e8f0", globalSettings?.borderOpacity ?? 100),
+        borderWidth: `${globalSettings?.borderWidth ?? 1}px`,
       }}
     >
       <div className="absolute top-0 left-0 z-20 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none">
@@ -75,9 +86,25 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
           <div className="flex-1 flex items-center justify-center min-h-0 min-w-0 mb-2 mt-6">
             {slot.product.image ? <img src={slot.product.image} className="max-h-full max-w-full object-contain" /> : <div className="text-[8px] text-slate-300 italic uppercase">Resim Yok</div>}
           </div>
-          <div className="text-[10px] font-bold text-slate-800 leading-tight line-clamp-2 text-center shrink-0">
-            {slot.product.name}
+          
+          <div className="shrink-0 w-full flex flex-col" style={{ 
+            height: "3em", 
+            justifyContent: globalSettings?.textVerticalAlign === "top" ? "flex-start" : globalSettings?.textVerticalAlign === "middle" ? "center" : "flex-end"
+          }}>
+            <div className="line-clamp-2 w-full" style={{ 
+              fontFamily: globalSettings?.fontFamily ?? "inherit",
+              fontWeight: globalSettings?.fontWeight ?? "700",
+              fontStyle: globalSettings?.fontStyle ?? "normal",
+              fontSize: `${globalSettings?.fontSize ?? 10}px`, 
+              lineHeight: globalSettings?.lineHeight ?? 1.2,
+              letterSpacing: `${globalSettings?.letterSpacing ?? 0}px`,
+              color: globalSettings?.fontColor ?? "#1e293b", 
+              textAlign: (globalSettings?.textAlign as any) ?? "center" 
+            }}>
+              {slot.product.name}
+            </div>
           </div>
+
         </div>
       ) : null}
     </div>
