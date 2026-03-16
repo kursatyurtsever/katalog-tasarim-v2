@@ -43,6 +43,12 @@ export interface CatalogState {
     fontFamily: string; fontWeight: string; fontStyle: string; fontSize: number; lineHeight: number; fontColor: string; textAlign: "left" | "center" | "right" | "justify";
     letterSpacing: number; textVerticalAlign: "top" | "middle" | "bottom";
     bgColor: string; bgOpacity: number; borderColor: string; borderOpacity: number; borderWidth: number;
+    priceBgColor: string; priceFontColor: string;
+    priceFontFamily: string; priceFontWeight: string; priceFontSize: number; priceDecimalSize: number;
+    priceRadiusTL: number; priceRadiusTR: number; priceRadiusBR: number; priceRadiusBL: number; linkPriceRadius: boolean;
+    priceTextAlign: "left" | "center" | "right" | "justify";
+    priceTextVerticalAlign: "top" | "middle" | "bottom";
+    priceLetterSpacing: number;
   };
   isZoomed: boolean;
   selectedSlotIds: string[];
@@ -105,7 +111,11 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         radiusTL: 0, radiusTR: 0, radiusBR: 0, radiusBL: 0, linkRadius: true,
         fontFamily: "Inter, sans-serif", fontWeight: "700", fontStyle: "normal", fontSize: 10, lineHeight: 1.2, fontColor: "#1e293b", textAlign: "center",
         letterSpacing: 0, textVerticalAlign: "bottom",
-        bgColor: "#ffffff", bgOpacity: 100, borderColor: "#e2e8f0", borderOpacity: 100, borderWidth: 1
+        bgColor: "#ffffff", bgOpacity: 100, borderColor: "#e2e8f0", borderOpacity: 100, borderWidth: 1,
+        priceBgColor: "#e60000", priceFontColor: "#ffffff",
+        priceFontFamily: "Inter, sans-serif", priceFontWeight: "900", priceFontSize: 20, priceDecimalSize: 11,
+        priceRadiusTL: 0, priceRadiusTR: 0, priceRadiusBR: 0, priceRadiusBL: 4, linkPriceRadius: false,
+        priceTextAlign: "center", priceTextVerticalAlign: "middle", priceLetterSpacing: -1
       },
       isZoomed: false,
       selectedSlotIds: [],

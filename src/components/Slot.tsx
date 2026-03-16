@@ -76,13 +76,29 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
 
       {slot.product ? (
         <div className={`w-full h-full flex flex-col p-2 relative pointer-events-none min-w-0 min-h-0 ${isSelected ? "opacity-75" : "opacity-100"}`}>
-          <div className="absolute top-0 right-0 z-10 flex items-center justify-center bg-[#e60000] text-white shadow-sm"
-            style={{ width: "50%", height: "10mm", borderBottomLeftRadius: "4px" }}>
-            <div className="flex items-start font-black">
-              <span className="text-[20px] leading-[0.8] tracking-tighter">{splitPrice(slot.product.price).main}<span className="scale-110">,</span></span>
-              <span className="text-[11px] leading-[0.8] ml-0.5">{splitPrice(slot.product.price).decimal}</span>
+          <div className="absolute top-0 right-0 z-10 flex shadow-sm transition-all px-1.5 py-1"
+            style={{ 
+              width: "50%", height: "10mm", 
+              backgroundColor: globalSettings?.priceBgColor ?? "#e60000",
+              color: globalSettings?.priceFontColor ?? "#ffffff",
+              borderRadius: `${globalSettings?.priceRadiusTL ?? 0}px ${globalSettings?.priceRadiusTR ?? 0}px ${globalSettings?.priceRadiusBR ?? 0}px ${globalSettings?.priceRadiusBL ?? 4}px`,
+              alignItems: globalSettings?.priceTextVerticalAlign === "top" ? "flex-start" : globalSettings?.priceTextVerticalAlign === "bottom" ? "flex-end" : "center",
+              justifyContent: globalSettings?.priceTextAlign === "left" ? "flex-start" : globalSettings?.priceTextAlign === "right" ? "flex-end" : "center"
+            }}>
+            <div className="flex items-start" style={{ 
+              fontFamily: globalSettings?.priceFontFamily ?? "inherit",
+              fontWeight: globalSettings?.priceFontWeight ?? "900" 
+            }}>
+              <span style={{ fontSize: `${globalSettings?.priceFontSize ?? 20}px`, lineHeight: "0.8", letterSpacing: `${globalSettings?.priceLetterSpacing ?? -1}px` }}>
+                {splitPrice(slot.product.price).main}
+                <span className="scale-110">,</span>
+              </span>
+              <span style={{ fontSize: `${globalSettings?.priceDecimalSize ?? 11}px`, lineHeight: "0.8", marginLeft: "2px" }}>
+                {splitPrice(slot.product.price).decimal}
+              </span>
             </div>
           </div>
+          
           <div className="flex-1 flex items-center justify-center min-h-0 min-w-0 mb-2 mt-6">
             {slot.product.image ? <img src={slot.product.image} className="max-h-full max-w-full object-contain" /> : <div className="text-[8px] text-slate-300 italic uppercase">Resim Yok</div>}
           </div>
