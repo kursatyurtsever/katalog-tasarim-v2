@@ -3,6 +3,7 @@
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { Slot } from "./Slot";
 import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { Slot as SlotType, CatalogPage } from "@/store/useCatalogStore";
 
 export function Page({ pageNumber }: { pageNumber: number }) {
@@ -126,7 +127,7 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
   return (
     <>
-      {contextMenu && (
+      {contextMenu && createPortal(
         <div className="fixed z-[9999] bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-[150px]" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
           {contextMenu.canMerge && (
             <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50" onClick={() => { const res = mergeSelected(pageNumber); if (!res.success) alert(res.error); setContextMenu(null); }}>
@@ -138,7 +139,8 @@ export function Page({ pageNumber }: { pageNumber: number }) {
               Hücreyi Dağıt
             </button>
           )}
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="physical-page relative bg-white shadow-lg shrink-0 overflow-hidden"
