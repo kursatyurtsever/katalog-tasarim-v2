@@ -20,7 +20,6 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
       
       {isOpen && (
         <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-6">
-          {/* --- GLOBAL 1. KENAR VE BOŞLUK --- */}
           <div className="space-y-3">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-1">Kenar ve Boşluk</h4>
             <label className="flex items-center gap-2 text-[10px] font-bold text-slate-600 cursor-pointer bg-white p-2 rounded border border-slate-200">
@@ -30,7 +29,7 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
             {globalSettings.linkRadius ? (
               <div className="flex items-center justify-between gap-2 bg-white p-2 rounded border border-slate-200">
                 <span className="text-[10px] font-medium text-slate-500 w-16">Yarıçap</span>
-                <input type="range" min="0" max="50" value={globalSettings.radiusTL} onChange={(e) => { const v = parseInt(e.target.value); setGlobalSettings({ radiusTL: v, radiusTR: v, radiusBR: v, radiusBL: v }); }} className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                <input type="range" min="0" max="50" value={globalSettings.radiusTL} onChange={(e) => { const v = parseInt(e.target.value); setGlobalSettings({ radiusTL: v, radiusTR: v, radiusBR: v, radiusBL: v }); }} className="flex-1" />
                 <span className="text-[10px] font-bold text-slate-600 w-6 text-right">{globalSettings.radiusTL}</span>
               </div>
             ) : (
@@ -38,19 +37,19 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
                 {['TL', 'TR', 'BL', 'BR'].map((pos) => (
                   <div key={pos} className="flex items-center justify-between gap-1">
                     <span className="text-[9px] font-medium text-slate-400 w-4">{pos}</span>
-                    <input type="range" min="0" max="50" value={(globalSettings as any)[`radius${pos}`]} onChange={(e) => setGlobalSettings({ [`radius${pos}`]: parseInt(e.target.value) })} className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                    <input type="range" min="0" max="50" value={(globalSettings as any)[`radius${pos}`]} onChange={(e) => setGlobalSettings({ [`radius${pos}`]: parseInt(e.target.value) })} className="flex-1" />
+                    <span className="text-[9px] font-bold text-slate-600 w-5 text-right">{Math.floor((globalSettings as any)[`radius${pos}`])}</span>
                   </div>
                 ))}
               </div>
             )}
             <div className="flex items-center justify-between gap-2 bg-white p-2 rounded border border-slate-200">
               <span className="text-[10px] font-bold text-slate-600 w-24">Hücre Boşluğu</span>
-              <input type="range" min="0" max="10" step="0.5" value={globalSettings.gridGap} onChange={(e) => setGlobalSettings({ gridGap: parseFloat(e.target.value) })} className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+              <input type="range" min="0" max="10" step="0.5" value={globalSettings.gridGap} onChange={(e) => setGlobalSettings({ gridGap: parseFloat(e.target.value) })} className="flex-1" />
               <span className="text-[10px] font-black text-blue-600 w-8 text-right">{globalSettings.gridGap}mm</span>
             </div>
           </div>
 
-          {/* --- GLOBAL 2. TİPOGRAFİ --- */}
           <div className="space-y-3">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-1">Tipografi (Ürün İsmi)</h4>
             <div className="grid grid-cols-2 gap-3 bg-white p-2 rounded border border-slate-200">
@@ -77,17 +76,17 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
             <div className="space-y-3 bg-white p-2 rounded border border-slate-200">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] font-medium text-slate-500 w-20">Punto (Size)</span>
-                <input type="range" min="8" max="32" value={globalSettings.fontSize} onChange={(e) => setGlobalSettings({ fontSize: parseInt(e.target.value) })} className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                <input type="range" min="8" max="32" value={globalSettings.fontSize} onChange={(e) => setGlobalSettings({ fontSize: parseInt(e.target.value) })} className="flex-1" />
                 <span className="text-[10px] font-bold text-slate-600 w-6 text-right">{globalSettings.fontSize}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-medium text-slate-500 w-20">Harf Aralığı (VA)</span>
-                <input type="range" min="-5" max="10" step="0.5" value={globalSettings.letterSpacing} onChange={(e) => setGlobalSettings({ letterSpacing: parseFloat(e.target.value) })} className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                <span className="text-[10px] font-medium text-slate-500 w-20">Harf Aralığı</span>
+                <input type="range" min="-5" max="10" step="0.5" value={globalSettings.letterSpacing} onChange={(e) => setGlobalSettings({ letterSpacing: parseFloat(e.target.value) })} className="flex-1" />
                 <span className="text-[10px] font-bold text-slate-600 w-6 text-right">{globalSettings.letterSpacing}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] font-medium text-slate-500 w-20">Satır Aralığı</span>
-                <input type="range" min="0.8" max="2.0" step="0.1" value={globalSettings.lineHeight} onChange={(e) => setGlobalSettings({ lineHeight: parseFloat(e.target.value) })} className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                <input type="range" min="0.8" max="2.0" step="0.1" value={globalSettings.lineHeight} onChange={(e) => setGlobalSettings({ lineHeight: parseFloat(e.target.value) })} className="flex-1" />
                 <span className="text-[10px] font-bold text-slate-600 w-6 text-right">{globalSettings.lineHeight}</span>
               </div>
             </div>
@@ -115,7 +114,6 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
             </div>
           </div>
 
-          {/* --- GLOBAL 3. RENK VE GÖRÜNÜM --- */}
           <div className="space-y-3">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-1">Renk ve Görünüm</h4>
             <div className="bg-white p-2 border border-slate-200 rounded space-y-3">
@@ -125,7 +123,7 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
               </div>
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
                 <span className="text-[9px] font-medium text-slate-400 w-16">Saydamlık</span>
-                <input type="range" min="0" max="100" value={globalSettings.bgOpacity} onChange={(e) => setGlobalSettings({ bgOpacity: parseInt(e.target.value) })} className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                <input type="range" min="0" max="100" value={globalSettings.bgOpacity} onChange={(e) => setGlobalSettings({ bgOpacity: parseInt(e.target.value) })} className="flex-1" />
                 <span className="text-[9px] font-bold text-slate-500 w-8 text-right">%{globalSettings.bgOpacity}</span>
               </div>
             </div>
@@ -136,17 +134,16 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
               </div>
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
                 <span className="text-[9px] font-medium text-slate-400 w-16">Saydamlık</span>
-                <input type="range" min="0" max="100" value={globalSettings.borderOpacity} onChange={(e) => setGlobalSettings({ borderOpacity: parseInt(e.target.value) })} className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                <input type="range" min="0" max="100" value={globalSettings.borderOpacity} onChange={(e) => setGlobalSettings({ borderOpacity: parseInt(e.target.value) })} className="flex-1" />
                 <span className="text-[9px] font-bold text-slate-500 w-8 text-right">%{globalSettings.borderOpacity}</span>
               </div>
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
                 <span className="text-[9px] font-medium text-slate-400 w-16">Kalınlık</span>
-                <input type="range" min="0" max="10" step="0.5" value={globalSettings.borderWidth} onChange={(e) => setGlobalSettings({ borderWidth: parseFloat(e.target.value) })} className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                <input type="range" min="0" max="10" step="0.5" value={globalSettings.borderWidth} onChange={(e) => setGlobalSettings({ borderWidth: parseFloat(e.target.value) })} className="flex-1" />
                 <span className="text-[9px] font-bold text-slate-500 w-8 text-right">{globalSettings.borderWidth}px</span>
               </div>
             </div>
           </div>
-
         </div>
       )}
     </div>

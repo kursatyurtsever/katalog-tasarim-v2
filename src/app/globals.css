@@ -1,7 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Roboto:wght@400;500;700;900&display=swap');
 @import "tailwindcss";
 
-/* VS Code'daki at-rule uyarısını susturmak için Tailwind theme bloğu */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,68 +11,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-
-  /* Katalog / ürün slot */
-  --product-bg: #e8e8f2;
-  --price-bg: #e60000;
-  --font-main: "Arial", sans-serif;
-  --border-color: #cbd5e1;
-  --border-width: 1px;
-  --product-name-font-size: 8cqw;
-
-  --r-tl: 0;
-  --r-tr: 0;
-  --r-br: 0;
-  --r-bl: 0;
-
-  --f-family: "Inter", sans-serif;
-  --f-weight: 400;
-  --f-base-cqw: 8;
-  --f-size: calc(var(--f-base-cqw) * 1cqw);
-  --f-leading: 1.15;
-  --f-tracking: 0px;
-  --f-align: left;
-  --f-valign: flex-end;
-  --f-align-items: flex-start;
-  --f-justify: flex-start;
-  --f-color: #1e293b;
-
-  --p-bg: #e8e8f2;
-  --p-bg-effective: #e8e8f2;
-  --p-border-width: 1px;
-  --p-border-color: #cbd5e1;
-  --p-opacity: 1;
-
-  --pr-r-tl: 0;
-  --pr-r-tr: 0;
-  --pr-r-br: 0;
-  --pr-r-bl: 0;
-  --pr-f-family: "Inter", sans-serif;
-  --pr-f-weight: 400;
-  --pr-f-base-cqw: 15;
-  --pr-f-size: calc(var(--pr-f-base-cqw) * 1cqw);
-  --pr-f-leading: 1;
-  --pr-f-tracking: -1px;
-  --pr-f-align: center;
-  --pr-f-justify: center;
-  --pr-f-valign: center;
-  --pr-f-color: #ffffff;
-  --pr-f-frac-size: 0.65em;
-  --pr-bg: #e60000;
-  --pr-bg-effective: #e60000;
-  --pr-border-width: 0px;
-  --pr-border-color: #cbd5e1;
-  --pr-opacity: 1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* KESİN ÇÖZÜM: HTML ve Body'nin kaydırma çubuğu oluşturmasını tamamen yasaklıyoruz */
+/* Çift kaydırma çubuğunu engellemek için */
 html, body {
   margin: 0;
   padding: 0;
@@ -85,54 +25,46 @@ html, body {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-main);
+  font-family: "Arial", sans-serif;
 }
 
-/* Slot: container query (cqw) için */
-.product-slot {
-  container-type: inline-size;
-}
-
-/* Fiziksel sayfa + canvas: kutu modeli, taşma yok */
-.physical-page,
-.canvas-container,
-.canvas-wrapper {
-  box-sizing: border-box;
-}
-
-.canvas-container {
-  display: flex;
-  flex-direction: row;
-  gap: 0;
-}
-
-@media print {
-  .physical-page {
-    box-shadow: none;
-    border: none;
-  }
-}
-
-/* SADECE PANELDEN GELEN ZARİF KAYDIRMA ÇUBUĞU */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
+/* Range Input (Slider) Thumb Taşma Düzenlemesi */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
   background: transparent;
+  cursor: pointer;
+  width: 100%;
 }
 
-::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
   border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #2563eb;
+  border-radius: 50%;
+  margin-top: -4px; /* Track ortalaması için */
+  border: none;
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #2563eb;
+  border-radius: 50%;
+  border: none;
 }
+
+/* Genel ince scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
