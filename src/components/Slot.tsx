@@ -20,6 +20,7 @@ const splitPrice = (price: any) => {
 };
 
 const hexToRgba = (hex: string, opacity: number) => {
+  if (!hex) return "rgba(0,0,0,0)";
   let r = 0, g = 0, b = 0;
   if (hex.length === 4) { r = parseInt(hex[1]+hex[1], 16); g = parseInt(hex[2]+hex[2], 16); b = parseInt(hex[3]+hex[3], 16); }
   else if (hex.length === 7) { r = parseInt(hex.slice(1, 3), 16); g = parseInt(hex.slice(3, 5), 16); b = parseInt(hex.slice(5, 7), 16); }
@@ -34,6 +35,9 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   const [isOver, setIsOver] = useState(false);
 
   const isSelected = selectedSlotIds.includes(slot.id);
+
+  // EĞER HÜCRE ÖZEL AYARLARI AKTİFSE ONU KULLAN, DEĞİLSE GLOBAL AYARLARI KULLAN
+  const activeSettings = slot.isCustom && slot.customSettings ? slot.customSettings : globalSettings;
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("sourcePage", String(pageNumber));
@@ -64,10 +68,10 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
       style={{
         gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`,
         gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`,
-        borderRadius: `${globalSettings?.radiusTL ?? 0}px ${globalSettings?.radiusTR ?? 0}px ${globalSettings?.radiusBR ?? 0}px ${globalSettings?.radiusBL ?? 0}px`,
-        backgroundColor: hexToRgba(globalSettings?.bgColor ?? "#ffffff", globalSettings?.bgOpacity ?? 100),
-        borderColor: hexToRgba(globalSettings?.borderColor ?? "#e2e8f0", globalSettings?.borderOpacity ?? 100),
-        borderWidth: `${globalSettings?.borderWidth ?? 1}px`,
+        borderRadius: `${activeSettings?.radiusTL ?? 0}px ${activeSettings?.radiusTR ?? 0}px ${activeSettings?.radiusBR ?? 0}px ${activeSettings?.radiusBL ?? 0}px`,
+        backgroundColor: hexToRgba(activeSettings?.bgColor ?? "#ffffff", activeSettings?.bgOpacity ?? 100),
+        borderColor: hexToRgba(activeSettings?.borderColor ?? "#e2e8f0", activeSettings?.borderOpacity ?? 100),
+        borderWidth: `${activeSettings?.borderWidth ?? 1}px`,
       }}
     >
       <div className="absolute top-0 left-0 z-20 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none">
@@ -79,21 +83,21 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
           <div className="absolute top-0 right-0 z-10 flex shadow-sm transition-all px-1.5 py-1"
             style={{ 
               width: "50%", height: "10mm", 
-              backgroundColor: globalSettings?.priceBgColor ?? "#e60000",
-              color: globalSettings?.priceFontColor ?? "#ffffff",
-              borderRadius: `${globalSettings?.priceRadiusTL ?? 0}px ${globalSettings?.priceRadiusTR ?? 0}px ${globalSettings?.priceRadiusBR ?? 0}px ${globalSettings?.priceRadiusBL ?? 4}px`,
-              alignItems: globalSettings?.priceTextVerticalAlign === "top" ? "flex-start" : globalSettings?.priceTextVerticalAlign === "bottom" ? "flex-end" : "center",
-              justifyContent: globalSettings?.priceTextAlign === "left" ? "flex-start" : globalSettings?.priceTextAlign === "right" ? "flex-end" : "center"
+              backgroundColor: activeSettings?.priceBgColor ?? "#e60000",
+              color: activeSettings?.priceFontColor ?? "#ffffff",
+              borderRadius: `${activeSettings?.priceRadiusTL ?? 0}px ${activeSettings?.priceRadiusTR ?? 0}px ${activeSettings?.priceRadiusBR ?? 0}px ${activeSettings?.priceRadiusBL ?? 4}px`,
+              alignItems: activeSettings?.priceTextVerticalAlign === "top" ? "flex-start" : activeSettings?.priceTextVerticalAlign === "bottom" ? "flex-end" : "center",
+              justifyContent: activeSettings?.priceTextAlign === "left" ? "flex-start" : activeSettings?.priceTextAlign === "right" ? "flex-end" : "center"
             }}>
             <div className="flex items-start" style={{ 
-              fontFamily: globalSettings?.priceFontFamily ?? "inherit",
-              fontWeight: globalSettings?.priceFontWeight ?? "900" 
+              fontFamily: activeSettings?.priceFontFamily ?? "inherit",
+              fontWeight: activeSettings?.priceFontWeight ?? "900" 
             }}>
-              <span style={{ fontSize: `${globalSettings?.priceFontSize ?? 20}px`, lineHeight: "0.8", letterSpacing: `${globalSettings?.priceLetterSpacing ?? -1}px` }}>
+              <span style={{ fontSize: `${activeSettings?.priceFontSize ?? 20}px`, lineHeight: "0.8", letterSpacing: `${activeSettings?.priceLetterSpacing ?? -1}px` }}>
                 {splitPrice(slot.product.price).main}
                 <span className="scale-110">,</span>
               </span>
-              <span style={{ fontSize: `${globalSettings?.priceDecimalSize ?? 11}px`, lineHeight: "0.8", marginLeft: "2px" }}>
+              <span style={{ fontSize: `${activeSettings?.priceDecimalSize ?? 11}px`, lineHeight: "0.8", marginLeft: "2px" }}>
                 {splitPrice(slot.product.price).decimal}
               </span>
             </div>
@@ -105,17 +109,17 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
           
           <div className="shrink-0 w-full flex flex-col" style={{ 
             height: "3em", 
-            justifyContent: globalSettings?.textVerticalAlign === "top" ? "flex-start" : globalSettings?.textVerticalAlign === "middle" ? "center" : "flex-end"
+            justifyContent: activeSettings?.textVerticalAlign === "top" ? "flex-start" : activeSettings?.textVerticalAlign === "middle" ? "center" : "flex-end"
           }}>
             <div className="line-clamp-2 w-full" style={{ 
-              fontFamily: globalSettings?.fontFamily ?? "inherit",
-              fontWeight: globalSettings?.fontWeight ?? "700",
-              fontStyle: globalSettings?.fontStyle ?? "normal",
-              fontSize: `${globalSettings?.fontSize ?? 10}px`, 
-              lineHeight: globalSettings?.lineHeight ?? 1.2,
-              letterSpacing: `${globalSettings?.letterSpacing ?? 0}px`,
-              color: globalSettings?.fontColor ?? "#1e293b", 
-              textAlign: (globalSettings?.textAlign as any) ?? "center" 
+              fontFamily: activeSettings?.fontFamily ?? "inherit",
+              fontWeight: activeSettings?.fontWeight ?? "700",
+              fontStyle: activeSettings?.fontStyle ?? "normal",
+              fontSize: `${activeSettings?.fontSize ?? 10}px`, 
+              lineHeight: activeSettings?.lineHeight ?? 1.2,
+              letterSpacing: `${activeSettings?.letterSpacing ?? 0}px`,
+              color: activeSettings?.fontColor ?? "#1e293b", 
+              textAlign: (activeSettings?.textAlign as any) ?? "center" 
             }}>
               {slot.product.name}
             </div>

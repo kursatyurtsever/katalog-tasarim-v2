@@ -21,6 +21,8 @@ export interface Slot {
   product: ProductInfo | null;
   hidden?: boolean;
   mergedInto?: string | null;
+  isCustom?: boolean; // Özel ayarlar aktif mi?
+  customSettings?: Partial<CatalogState["globalSettings"]>; // Bu hücreye özel ayarlar
 }
 
 export interface CatalogPage {
@@ -74,6 +76,10 @@ export interface CatalogActions {
   unmergeSlot: (pageNumber: number, slotId: string) => void;
   undo: () => void;
   redo: () => void;
+  
+  // YENİ: Özel hücre ayarları aksiyonları
+  toggleSlotCustomSettings: (enabled: boolean) => void;
+  updateSlotCustomSettings: (settings: Partial<CatalogState["globalSettings"]>) => void;
 }
 
 function createPageSlots(pageNumber: number, count: number): Slot[] {
@@ -84,6 +90,7 @@ function createPageSlots(pageNumber: number, count: number): Slot[] {
     product: null,
     hidden: false,
     mergedInto: null,
+    isCustom: false,
   }));
 }
 
@@ -396,6 +403,46 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           futurePages: []
         });
       },
+
+      // YENİ EKLENEN FONKSİYONLAR
+      toggleSlotCustomSettings: (enabled) => set((state) => {
+        if (state.selectedSlotIds.length === 0) return state;
+        const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
+        
+        state.selectedSlotIds.forEach(id => {
+          newPages.forEach(p => p.slots.forEach(s => {
+            if (s.id === id) {
+              s.isCustom = enabled;
+              // Eğer özel ayar açıldıysa ve daha önce ayar objesi yoksa, o anki global ayarlarla başlat
+              if (enabled && !s.customSettings) {
+                s.customSettings = { ...state.globalSettings };
+              }
+            }
+          }));
+        });
+        
+        return { 
+          pages: newPages, 
+          pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))], 
+          futurePages: [] 
+        };
+      }),
+
+      updateSlotCustomSettings: (settings) => set((state) => {
+        if (state.selectedSlotIds.length === 0) return state;
+        const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
+        
+        state.selectedSlotIds.forEach(id => {
+          newPages.forEach(p => p.slots.forEach(s => {
+            if (s.id === id && s.isCustom) {
+              s.customSettings = { ...s.customSettings, ...settings };
+            }
+          }));
+        });
+        
+        return { pages: newPages }; // Her ince ayarda geçmişe atmıyoruz, sadece state güncelliyoruz
+      }),
+
     }),
     {
       name: "catalog-storage",
