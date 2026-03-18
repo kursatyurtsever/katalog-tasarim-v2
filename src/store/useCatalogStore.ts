@@ -21,8 +21,8 @@ export interface Slot {
   product: ProductInfo | null;
   hidden?: boolean;
   mergedInto?: string | null;
-  isCustom?: boolean; // Özel ayarlar aktif mi?
-  customSettings?: Partial<CatalogState["globalSettings"]>; // Bu hücreye özel ayarlar
+  isCustom?: boolean; 
+  customSettings?: Partial<CatalogState["globalSettings"]>; 
 }
 
 export interface CatalogPage {
@@ -76,10 +76,12 @@ export interface CatalogActions {
   unmergeSlot: (pageNumber: number, slotId: string) => void;
   undo: () => void;
   redo: () => void;
-  
-  // YENİ: Özel hücre ayarları aksiyonları
   toggleSlotCustomSettings: (enabled: boolean) => void;
   updateSlotCustomSettings: (settings: Partial<CatalogState["globalSettings"]>) => void;
+  clearSlot: (pageNumber: number, slotId: string) => void;
+  
+  // YENİ EKLENEN: Sürüklenen ürünü hücreye yerleştirir
+  setSlotProduct: (pageNumber: number, slotId: string, product: ProductInfo) => void;
 }
 
 function createPageSlots(pageNumber: number, count: number): Slot[] {
@@ -105,6 +107,18 @@ function buildPagesForTemplate(template: BrochureTemplate): CatalogPage[] {
   }));
 }
 
+const initialGlobalSettings: CatalogState["globalSettings"] = {
+  gridGap: 0,
+  radiusTL: 0, radiusTR: 0, radiusBR: 0, radiusBL: 0, linkRadius: true,
+  fontFamily: "Inter, sans-serif", fontWeight: "700", fontStyle: "normal", fontSize: 10, lineHeight: 1.2, fontColor: "#1e293b", textAlign: "center",
+  letterSpacing: 0, textVerticalAlign: "bottom",
+  bgColor: "#ffffff", bgOpacity: 100, borderColor: "#e2e8f0", borderOpacity: 100, borderWidth: 1,
+  priceBgColor: "#e60000", priceFontColor: "#ffffff",
+  priceFontFamily: "Inter, sans-serif", priceFontWeight: "900", priceFontSize: 20, priceDecimalSize: 11,
+  priceRadiusTL: 0, priceRadiusTR: 0, priceRadiusBR: 0, priceRadiusBL: 4, linkPriceRadius: false,
+  priceTextAlign: "center", priceTextVerticalAlign: "middle", priceLetterSpacing: -1
+};
+
 export const useCatalogStore = create<CatalogState & CatalogActions>()(
   persist(
     (set, get) => ({
@@ -113,17 +127,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       pages: buildPagesForTemplate(Template1),
       productPool: [],
       masterProductPool: [],
-      globalSettings: { 
-        gridGap: 0,
-        radiusTL: 0, radiusTR: 0, radiusBR: 0, radiusBL: 0, linkRadius: true,
-        fontFamily: "Inter, sans-serif", fontWeight: "700", fontStyle: "normal", fontSize: 10, lineHeight: 1.2, fontColor: "#1e293b", textAlign: "center",
-        letterSpacing: 0, textVerticalAlign: "bottom",
-        bgColor: "#ffffff", bgOpacity: 100, borderColor: "#e2e8f0", borderOpacity: 100, borderWidth: 1,
-        priceBgColor: "#e60000", priceFontColor: "#ffffff",
-        priceFontFamily: "Inter, sans-serif", priceFontWeight: "900", priceFontSize: 20, priceDecimalSize: 11,
-        priceRadiusTL: 0, priceRadiusTR: 0, priceRadiusBR: 0, priceRadiusBL: 4, linkPriceRadius: false,
-        priceTextAlign: "center", priceTextVerticalAlign: "middle", priceLetterSpacing: -1
-      },
+      globalSettings: initialGlobalSettings, 
       isZoomed: false,
       selectedSlotIds: [],
       pastPages: [],
@@ -218,11 +222,45 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         };
       }),
 
+      clearSlot: (pageNumber, slotId) => set((state) => {
+        const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
+        const page = newPages.find(p => p.pageNumber === pageNumber);
+        if (page) {
+          const slot = page.slots.find(s => s.id === slotId);
+          if (slot) {
+            slot.product = null;
+          }
+        }
+        return {
+          pages: newPages,
+          pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))],
+          futurePages: []
+        };
+      }),
+
+      // YENİ EKLENEN FONKSİYON
+      setSlotProduct: (pageNumber, slotId, product) => set((state) => {
+        const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
+        const page = newPages.find(p => p.pageNumber === pageNumber);
+        if (page) {
+          const slot = page.slots.find(s => s.id === slotId);
+          if (slot) {
+            slot.product = product;
+          }
+        }
+        return {
+          pages: newPages,
+          pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))],
+          futurePages: []
+        };
+      }),
+
       resetCatalog: () => set((state) => {
         const freshPages = buildPagesForTemplate(state.activeTemplate); 
         return {
           pages: freshPages,
           selectedSlotIds: [],
+          globalSettings: initialGlobalSettings, 
           pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))],
           futurePages: []
         };
@@ -404,7 +442,6 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         });
       },
 
-      // YENİ EKLENEN FONKSİYONLAR
       toggleSlotCustomSettings: (enabled) => set((state) => {
         if (state.selectedSlotIds.length === 0) return state;
         const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
@@ -413,7 +450,6 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           newPages.forEach(p => p.slots.forEach(s => {
             if (s.id === id) {
               s.isCustom = enabled;
-              // Eğer özel ayar açıldıysa ve daha önce ayar objesi yoksa, o anki global ayarlarla başlat
               if (enabled && !s.customSettings) {
                 s.customSettings = { ...state.globalSettings };
               }
@@ -440,7 +476,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           }));
         });
         
-        return { pages: newPages }; // Her ince ayarda geçmişe atmıyoruz, sadece state güncelliyoruz
+        return { pages: newPages }; 
       }),
 
     }),

@@ -32,11 +32,13 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   const swapSlotContents = useCatalogStore((state) => state.swapSlotContents);
   const selectedSlotIds = useCatalogStore((state) => state.selectedSlotIds);
   const toggleSlotSelection = useCatalogStore((state) => state.toggleSlotSelection);
+  
+  // Sürüklenen ürünü hücreye eklemek için
+  const setSlotProduct = useCatalogStore((state) => state.setSlotProduct);
+  
   const [isOver, setIsOver] = useState(false);
 
   const isSelected = selectedSlotIds.includes(slot.id);
-
-  // EĞER HÜCRE ÖZEL AYARLARI AKTİFSE ONU KULLAN, DEĞİLSE GLOBAL AYARLARI KULLAN
   const activeSettings = slot.isCustom && slot.customSettings ? slot.customSettings : globalSettings;
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -46,11 +48,30 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsOver(true); };
   const handleDragLeave = () => setIsOver(false);
+  
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault(); setIsOver(false);
-    const sPage = parseInt(e.dataTransfer.getData("sourcePage"));
-    const sIndex = parseInt(e.dataTransfer.getData("sourceIndex"));
-    if (sPage !== pageNumber || sIndex !== slotIndex) swapSlotContents(sPage, sIndex, pageNumber, slotIndex);
+    e.preventDefault(); 
+    setIsOver(false);
+
+    // 1. Durum: Eğer sürüklenen veri yan paneldeki ürün listesinden (havuzdan) geliyorsa
+    const newProductData = e.dataTransfer.getData("newProductFromSidebar");
+    if (newProductData) {
+      const product = JSON.parse(newProductData);
+      setSlotProduct(pageNumber, slot.id, product);
+      return;
+    }
+
+    // 2. Durum: Eğer sürüklenen veri katalog içindeki başka bir hücreden geliyorsa (yer değiştirme)
+    const sPageStr = e.dataTransfer.getData("sourcePage");
+    const sIndexStr = e.dataTransfer.getData("sourceIndex");
+    
+    if (sPageStr && sIndexStr) {
+      const sPage = parseInt(sPageStr);
+      const sIndex = parseInt(sIndexStr);
+      if (sPage !== pageNumber || sIndex !== slotIndex) {
+        swapSlotContents(sPage, sIndex, pageNumber, slotIndex);
+      }
+    }
   };
 
   return (
