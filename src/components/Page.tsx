@@ -2,6 +2,7 @@
 
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { Slot } from "./Slot";
+import { PizzaSection } from "./PizzaSection";
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { Slot as SlotType } from "@/store/useCatalogStore";
@@ -92,7 +93,7 @@ export function Page({ pageNumber }: { pageNumber: number }) {
       <div className="physical-page relative bg-white shadow-lg shrink-0 overflow-hidden" style={{ width: `${pageConfig.widthMm}mm`, height: "297mm", boxSizing: "border-box" }}>
         <div className="safe-zone absolute flex flex-col" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
           {pageNumber === 1 && <div className="absolute top-0 left-0 w-full border-[3px] border-slate-300 rounded-lg bg-slate-50 flex items-center justify-center z-10" style={{ height: `calc((100% / ${totalRows}) - 5mm)` }}><div className="text-slate-400 font-bold text-sm uppercase tracking-widest text-center">1. SAYFA BANNER</div></div>}
-          {pageNumber === 6 && <div className="absolute top-0 left-0 w-full border-[3px] border-slate-300 rounded-lg bg-slate-50 flex items-center justify-center z-10" style={{ height: `calc(((100% / ${totalRows}) * 2) - 5mm)` }}><div className="text-slate-400 font-bold text-sm uppercase tracking-widest text-center">PİZZA KARTONLARI</div></div>}
+          {pageNumber === 6 && <div className="absolute top-0 left-0 w-full z-10" style={{ height: `calc(((100% / ${totalRows}) * 2) - 5mm)` }}><PizzaSection /></div>}
           <div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{renderSlots(pageNumber === 1 ? 4 : pageNumber === 6 ? 8 : 0)}</div>
         </div>
         <div className="absolute w-full flex items-end gap-5 z-50" style={{ bottom: "10mm", left: "0", paddingLeft: "10mm", paddingRight: "10mm", height: "12mm" }}>

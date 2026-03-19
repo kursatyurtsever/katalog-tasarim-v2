@@ -165,7 +165,10 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
         const validSlots: any[] = [];
         
-        newPages.forEach(p => {
+        // Sayfaları 1, 2, 3, 4, 5, 6 sırasına diziyoruz ki ekrandaki hücre numaralarıyla POS numaraları tam eşleşsin.
+        const sortedPages = [...newPages].sort((a, b) => a.pageNumber - b.pageNumber);
+        
+        sortedPages.forEach(p => {
           let startIdx = (p.pageNumber === 1 ? 4 : p.pageNumber === 6 ? 8 : 0);
           p.slots.forEach((s, idx) => { if (idx >= startIdx && !s.hidden) validSlots.push(s); });
         });
@@ -178,9 +181,9 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
             const keys = Object.keys(product.raw);
             const posKey = keys.find(k => k.trim().toUpperCase() === "POS");
             if (posKey) {
-              // KURŞUN GEÇİRMEZ POS OKUYUCU: Sadece rakamları çeker, \n veya boşlukları yok sayar
-              const rawVal = String(product.raw[posKey]).replace(/[^0-9]/g, '');
-              posValue = parseInt(rawVal, 10);
+              const rawString = String(product.raw[posKey]);
+              const match = rawString.match(/\d+/); 
+              posValue = match ? parseInt(match[0], 10) : 0;
             }
           }
 
