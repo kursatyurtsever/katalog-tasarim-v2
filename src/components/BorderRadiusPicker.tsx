@@ -17,20 +17,15 @@ interface Props {
 }
 
 export function BorderRadiusPicker({ title = "Köşe Ovalliği (Radius)", value, onChange }: Props) {
-  
-  // Tüm köşeleri aynı anda günceller
   const handleLinkedChange = (val: number) => {
     onChange({ tl: val, tr: val, bl: val, br: val, linked: true });
   };
 
-  // Sadece tek bir köşeyi günceller ve bağı koparır
   const updateCorner = (key: keyof BorderRadiusData, val: number) => {
     onChange({ ...value, [key]: val, linked: false });
   };
 
-  // Bağlantı (Link) butonuna basıldığında tetiklenir
   const toggleLink = () => {
-    // Eğer bağlanıyorsa, sol üst (tl) değerini baz alıp hepsine eşitle
     if (!value.linked) {
       onChange({ tl: value.tl, tr: value.tl, bl: value.tl, br: value.tl, linked: true });
     } else {
@@ -52,23 +47,36 @@ export function BorderRadiusPicker({ title = "Köşe Ovalliği (Radius)", value,
       </div>
 
       {value.linked ? (
-        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded border border-slate-200">
-          <span className="text-[9px] font-medium text-slate-400 w-8">Tümü</span>
-          <input type="range" min="0" max="50" value={value.tl} onChange={(e) => handleLinkedChange(Number(e.target.value))} className="flex-1 accent-blue-600" />
-          <span className="text-[9px] font-bold text-slate-600 w-6 text-right">{value.tl}</span>
+        <div className="bg-slate-50 p-3 rounded border border-slate-200 text-center space-y-2">
+          <span className="text-[10px] font-medium text-slate-500 block">Tüm Köşeler</span>
+          <div className="max-w-[120px] mx-auto">
+            <input
+              type="number"
+              value={value.tl}
+              onChange={(e) => handleLinkedChange(parseInt(e.target.value) || 0)}
+              className="w-full text-[10px] font-bold text-slate-600 text-center border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500 shadow-inner"
+            />
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        <div className="grid grid-cols-2 gap-2">
           {[
-            { key: 'tl', label: 'Sol Üst' },
-            { key: 'tr', label: 'Sağ Üst' },
-            { key: 'bl', label: 'Sol Alt' },
-            { key: 'br', label: 'Sağ Alt' }
+            { key: 'tl', label: 'Sol Üst', short: 'TL' },
+            { key: 'tr', label: 'Sağ Üst', short: 'TR' },
+            { key: 'bl', label: 'Sol Alt', short: 'BL' },
+            { key: 'br', label: 'Sağ Alt', short: 'BR' }
           ].map((corner) => (
-            <div key={corner.key} className="flex items-center justify-between gap-1 bg-slate-50 p-1.5 rounded border border-slate-200">
-              <span className="text-[8px] font-medium text-slate-400 w-10">{corner.label}</span>
-              <input type="range" min="0" max="50" value={value[corner.key as keyof BorderRadiusData] as number} onChange={(e) => updateCorner(corner.key as keyof BorderRadiusData, Number(e.target.value))} className="flex-1 w-10 accent-blue-600" />
-              <span className="text-[8px] font-bold text-slate-600 w-4 text-right">{value[corner.key as keyof BorderRadiusData]}</span>
+            <div key={corner.key} className="bg-slate-50 p-2 rounded border border-slate-200 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[8px] font-bold text-slate-500">{corner.short}</span>
+                <span className="text-[8px] text-slate-400">{corner.label}</span>
+              </div>
+              <input
+                type="number"
+                value={value[corner.key as keyof BorderRadiusData] as number}
+                onChange={(e) => updateCorner(corner.key as keyof BorderRadiusData, parseInt(e.target.value) || 0)}
+                className="w-full text-[10px] font-bold text-slate-600 text-center border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500 shadow-inner"
+              />
             </div>
           ))}
         </div>

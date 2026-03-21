@@ -28,7 +28,10 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
           <div className="flex items-center justify-between gap-2 bg-white p-2.5 rounded border border-slate-200 shadow-sm relative z-[60]">
             <span className="text-[10px] font-bold text-slate-600 w-24">Hücreler Arası Boşluk</span>
             <input type="range" min="0" max="10" step="0.5" value={globalSettings.gridGap} onChange={(e) => setGlobalSettings({ gridGap: parseFloat(e.target.value) })} className="flex-1 accent-blue-600" />
-            <span className="text-[10px] font-black text-blue-600 w-8 text-right">{globalSettings.gridGap}mm</span>
+            <div className="flex items-center gap-1">
+              <input type="number" value={globalSettings.gridGap} onChange={(e) => setGlobalSettings({ gridGap: parseFloat(e.target.value) || 0 })} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
+              <span className="text-[9px] text-slate-400">mm</span>
+            </div>
           </div>
 
           <div className="bg-white p-3 rounded border border-slate-200 shadow-sm space-y-3 relative z-[50]">
@@ -43,7 +46,10 @@ export function GlobalCellSettings({ isOpen, onToggle }: Props) {
             <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
               <span className="text-[9px] font-medium text-slate-500 w-16">Kenarlık Kalınlığı</span>
               <input type="range" min="0" max="10" step="0.5" value={globalSettings.borderWidth} onChange={(e) => setGlobalSettings({ borderWidth: parseFloat(e.target.value) })} className="flex-1 accent-blue-600" />
-              <span className="text-[9px] font-bold text-slate-600 w-8 text-right">{globalSettings.borderWidth}px</span>
+              <div className="flex items-center gap-1">
+                <input type="number" value={globalSettings.borderWidth} onChange={(e) => setGlobalSettings({ borderWidth: parseFloat(e.target.value) || 0 })} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
+                <span className="text-[9px] text-slate-400">px</span>
+              </div>
             </div>
           </div>
 

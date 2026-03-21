@@ -52,14 +52,14 @@ export function ShadowPicker({ title = "Gölge Ayarları (Drop Shadow)", value, 
               <span className="text-[9px] font-medium text-slate-400">Yatay Kaydırma (X)</span>
               <div className="flex items-center gap-2">
                 <input type="range" min="-50" max="50" value={value.x} onChange={(e) => update("x", Number(e.target.value))} className="flex-1 accent-blue-600" />
-                <span className="text-[9px] font-bold text-slate-600 w-6 text-right">{value.x}</span>
+                <input type="number" value={value.x} onChange={(e) => update("x", parseInt(e.target.value) || 0)} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
               </div>
             </div>
             <div className="flex flex-col gap-1.5 bg-white p-1.5 rounded border border-slate-100">
               <span className="text-[9px] font-medium text-slate-400">Dikey Kaydırma (Y)</span>
               <div className="flex items-center gap-2">
                 <input type="range" min="-50" max="50" value={value.y} onChange={(e) => update("y", Number(e.target.value))} className="flex-1 accent-blue-600" />
-                <span className="text-[9px] font-bold text-slate-600 w-6 text-right">{value.y}</span>
+                <input type="number" value={value.y} onChange={(e) => update("y", parseInt(e.target.value) || 0)} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
               </div>
             </div>
           </div>
@@ -70,14 +70,14 @@ export function ShadowPicker({ title = "Gölge Ayarları (Drop Shadow)", value, 
               <span className="text-[9px] font-medium text-slate-400">Bulanıklık (Blur)</span>
               <div className="flex items-center gap-2">
                 <input type="range" min="0" max="100" value={value.blur} onChange={(e) => update("blur", Number(e.target.value))} className="flex-1 accent-blue-600" />
-                <span className="text-[9px] font-bold text-slate-600 w-6 text-right">{value.blur}</span>
+                <input type="number" value={value.blur} onChange={(e) => update("blur", parseInt(e.target.value) || 0)} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
               </div>
             </div>
             <div className="flex flex-col gap-1.5 bg-white p-1.5 rounded border border-slate-100">
               <span className="text-[9px] font-medium text-slate-400">Yayılma (Spread)</span>
               <div className="flex items-center gap-2">
                 <input type="range" min="-20" max="50" value={value.spread} onChange={(e) => update("spread", Number(e.target.value))} className="flex-1 accent-blue-600" />
-                <span className="text-[9px] font-bold text-slate-600 w-6 text-right">{value.spread}</span>
+                <input type="number" value={value.spread} onChange={(e) => update("spread", parseInt(e.target.value) || 0)} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
               </div>
             </div>
           </div>

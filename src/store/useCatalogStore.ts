@@ -3,11 +3,14 @@ import { persist } from "zustand/middleware";
 import { Template1, availableTemplates, getSlotCountForPage } from "@/lib/templates";
 import type { BrochureTemplate } from "@/lib/templates";
 
-// YENİ MODÜLER TİPLERİ İÇE AKTARIYORUZ
 import { TypographyData } from "@/components/TypographyPicker";
 import { BorderRadiusData } from "@/components/BorderRadiusPicker";
 import { SpacingData } from "@/components/SpacingPicker";
 import { ShadowData } from "@/components/ShadowPicker";
+
+export type DeepPartial<T> = T extends object ? {
+    [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
 
 export const defaultTypography: TypographyData = { fontFamily: "Inter", fontWeight: "400", fontSize: 12, lineHeight: 1.2, letterSpacing: 0, textAlign: "left", verticalAlign: "middle", textTransform: "none", textDecoration: "none", color: "#000000", opacity: 100, decimalScale: 100 };
 export const defaultRadius: BorderRadiusData = { tl: 8, tr: 8, bl: 8, br: 8, linked: true };
@@ -25,7 +28,6 @@ export interface ProductInfo {
   [key: string]: unknown;
 }
 
-// YENİ GLOBAL SETTINGS YAPISI
 export interface CatalogSettings {
   gridGap: number;
   borderWidth: number;
@@ -36,6 +38,22 @@ export interface CatalogSettings {
   imagePosX: number;
   imagePosY: number;
   imageEditMode: boolean;
+  badge: {
+    active: boolean;
+    text: string;
+    bgColor: string;
+    textColor: string;
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    shape: 'rectangle' | 'pill' | 'circle' | 'banner' | 'burst' | 'flama';
+    borderColor: string;
+    borderWidth: number;
+    font: TypographyData;
+    shadow: ShadowData;
+    size: number;
+    isFreePosition: boolean;
+    posX: number;
+    posY: number;
+  };
   colors: {
     cellBg: { c: string; o: number };
     cellBorder: { c: string; o: number };
@@ -65,7 +83,7 @@ export interface Slot {
   hidden?: boolean;
   mergedInto?: string | null;
   isCustom?: boolean; 
-  customSettings?: Partial<CatalogSettings>; 
+  customSettings?: DeepPartial<CatalogSettings>; 
 }
 
 export interface CatalogPage {
@@ -82,7 +100,8 @@ export interface CatalogState {
   pages: CatalogPage[];
   productPool: ProductInfo[]; 
   masterProductPool: ProductInfo[]; 
-  globalSettings: CatalogSettings; // YENİ TİP EKLENDİ
+  globalSettings: CatalogSettings;
+  copiedSlotSettings: DeepPartial<CatalogSettings> | null;
   isZoomed: boolean;
   selectedSlotIds: string[];
   pastPages: CatalogPage[][];
@@ -92,7 +111,7 @@ export interface CatalogState {
 export interface CatalogActions {
   setActiveTab: (tab: "outer" | "inner") => void;
   setActiveTemplate: (templateId: string) => void;
-  setGlobalSettings: (settings: Partial<CatalogSettings>) => void;
+  setGlobalSettings: (settings: DeepPartial<CatalogSettings>) => void;
   updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;
   swapSlotContents: (sourcePage: number, sourceIndex: number, targetPage: number, targetIndex: number) => void;
   toggleZoom: () => void;
@@ -108,13 +127,15 @@ export interface CatalogActions {
   undo: () => void;
   redo: () => void;
   toggleSlotCustomSettings: (enabled: boolean) => void;
-  updateSlotCustomSettings: (settings: Partial<CatalogSettings>) => void;
+  updateSlotCustomSettings: (settings: DeepPartial<CatalogSettings>) => void;
+  copySlotSettings: () => void;
+  pasteSlotSettings: () => void;
+  clearSlotSettings: () => void;
   clearSlot: (pageNumber: number, slotId: string) => void;
   setSlotProduct: (pageNumber: number, slotId: string, product: ProductInfo) => void;
   updateSlotProduct: (pageNumber: number, slotId: string, updates: Partial<ProductInfo>) => void;
 }
 
-// YENİ VARSAYILAN AYARLAR
 const initialGlobalSettings: CatalogSettings = {
   gridGap: 0,
   borderWidth: 1,
@@ -125,6 +146,22 @@ const initialGlobalSettings: CatalogSettings = {
   imagePosX: 0,
   imagePosY: 0,
   imageEditMode: false,
+  badge: {
+    active: false,
+    text: "YENİ",
+    bgColor: "#e60000",
+    textColor: "#ffffff",
+    position: "top-left",
+    shape: 'rectangle',
+    borderColor: "#ffffff",
+    borderWidth: 2,
+    font: { ...defaultTypography, fontFamily: "Inter", fontWeight: "900", fontSize: 10, textAlign: "center", color: "#ffffff" },
+    shadow: { ...defaultShadow, active: false },
+    size: 100,
+    isFreePosition: false,
+    posX: 0,
+    posY: 0,
+  },
   colors: {
     cellBg: { c: "#ffffff", o: 100 },
     cellBorder: { c: "#e2e8f0", o: 100 },
@@ -163,7 +200,6 @@ function buildPagesForTemplate(template: BrochureTemplate): CatalogPage[] {
   }));
 }
 
-// YARDIMCI FONKSİYON: Alt objelerin (colors, fonts vb.) güvenli birleştirilmesi
 function isObject(item: any) { return (item && typeof item === 'object' && !Array.isArray(item)); }
 function deepMerge(target: any, source: any) {
   if (!target) return source;
@@ -188,6 +224,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       productPool: [],
       masterProductPool: [],
       globalSettings: initialGlobalSettings,
+      copiedSlotSettings: null,
       isZoomed: false,
       selectedSlotIds: [],
       pastPages: [],
@@ -212,6 +249,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         newPages.forEach(p => p.slots.forEach(s => {
           if (s.isCustom && s.customSettings) {
             s.customSettings.imageEditMode = false;
+            if (s.customSettings.badge) s.customSettings.badge.isFreePosition = false;
           }
         }));
 
@@ -233,7 +271,10 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       clearSelection: () => set((state) => {
         const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
         newPages.forEach(p => p.slots.forEach(s => {
-          if (s.isCustom && s.customSettings) s.customSettings.imageEditMode = false;
+          if (s.isCustom && s.customSettings) {
+            s.customSettings.imageEditMode = false;
+            if (s.customSettings.badge) s.customSettings.badge.isFreePosition = false;
+          }
         }));
         
         return { 
@@ -448,6 +489,52 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           }));
         });
         return { pages: newPages };
+      }),
+
+      copySlotSettings: () => set((state) => {
+        if (state.selectedSlotIds.length !== 1) return state;
+        let settingsToCopy = null;
+        state.pages.forEach(p => p.slots.forEach(s => {
+          if (s.id === state.selectedSlotIds[0]) {
+            settingsToCopy = s.isCustom && s.customSettings ? s.customSettings : state.globalSettings;
+          }
+        }));
+        return { copiedSlotSettings: settingsToCopy ? JSON.parse(JSON.stringify(settingsToCopy)) : null };
+      }),
+
+      pasteSlotSettings: () => set((state) => {
+        if (!state.copiedSlotSettings || state.selectedSlotIds.length === 0) return state;
+        const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
+        state.selectedSlotIds.forEach(id => {
+          newPages.forEach(p => p.slots.forEach(s => {
+            if (s.id === id) {
+              s.isCustom = true;
+              const copied = JSON.parse(JSON.stringify(state.copiedSlotSettings));
+              copied.imageEditMode = false;
+              if (copied.badge) copied.badge.isFreePosition = false;
+              s.customSettings = copied;
+            }
+          }));
+        });
+        return { pages: newPages, pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))], futurePages: [] };
+      }),
+
+      clearSlotSettings: () => set((state) => {
+        if (state.selectedSlotIds.length === 0) return state;
+        const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
+        state.selectedSlotIds.forEach(id => {
+          newPages.forEach(p => p.slots.forEach(s => {
+            if (s.id === id) {
+              s.isCustom = false;
+              s.customSettings = undefined;
+            }
+          }));
+        });
+        return { 
+          pages: newPages, 
+          pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))], 
+          futurePages: [] 
+        };
       }),
     }),
     { name: "catalog-storage-v2" }

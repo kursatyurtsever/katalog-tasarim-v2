@@ -53,7 +53,7 @@ export function SpacingPicker({ title = "İç Boşluk (Padding)", value, onChang
         <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded border border-slate-200">
           <span className="text-[9px] font-medium text-slate-400 w-8">Tümü</span>
           <input type="range" min="0" max="100" value={value.t} onChange={(e) => handleLinkedChange(Number(e.target.value))} className="flex-1 accent-blue-600" />
-          <span className="text-[9px] font-bold text-slate-600 w-6 text-right">{value.t}</span>
+          <input type="number" value={value.t} onChange={(e) => handleLinkedChange(parseInt(e.target.value) || 0)} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
@@ -66,7 +66,7 @@ export function SpacingPicker({ title = "İç Boşluk (Padding)", value, onChang
             <div key={side.key} className="flex items-center justify-between gap-1 bg-slate-50 p-1.5 rounded border border-slate-200">
               <span className="text-[8px] font-medium text-slate-400 w-6">{side.label}</span>
               <input type="range" min="0" max="100" value={value[side.key as keyof Omit<SpacingData, 'linked'>]} onChange={(e) => updateSide(side.key as keyof Omit<SpacingData, 'linked'>, Number(e.target.value))} className="flex-1 w-10 accent-blue-600" />
-              <span className="text-[8px] font-bold text-slate-600 w-6 text-right">{value[side.key as keyof Omit<SpacingData, 'linked'>]}</span>
+              <input type="number" value={value[side.key as keyof Omit<SpacingData, 'linked'>]} onChange={(e) => updateSide(side.key as keyof Omit<SpacingData, 'linked'>, parseInt(e.target.value) || 0)} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
             </div>
           ))}
         </div>
