@@ -175,69 +175,76 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
           </div>
 
           {/* PROMOSYON ETİKETİ */}
-          {finalSettings.badge?.active && (
-            <div 
-              className={`absolute z-[40] pointer-events-auto transition-all flex items-center justify-center text-center leading-tight ${finalSettings.badge?.isFreePosition ? (badgeDrag.isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-text'} ${
-                finalSettings.badge.position === 'top-left' ? 'top-2 left-2' :
-                finalSettings.badge.position === 'top-right' ? 'top-2 right-2' :
-                finalSettings.badge.position === 'bottom-left' ? 'bottom-2 left-2' :
-                'bottom-2 right-2'
-              } ${
-                finalSettings.badge.shape === 'rectangle' ? (
-                  finalSettings.badge.position.includes('left') ? (finalSettings.badge.position.includes('top') ? 'rounded-tl-md rounded-br-md px-3 py-1.5' : 'rounded-bl-md rounded-tr-md px-3 py-1.5') : (finalSettings.badge.position.includes('top') ? 'rounded-tr-md rounded-bl-md px-3 py-1.5' : 'rounded-br-md rounded-tl-md px-3 py-1.5')
-                ) : finalSettings.badge.shape === 'pill' ? 'rounded-full px-4 py-1.5' :
-                finalSettings.badge.shape === 'circle' ? 'rounded-full w-14 h-14' :
-                finalSettings.badge.shape === 'banner' ? 'w-12 h-16' : 
-                finalSettings.badge.shape === 'flama' ? 'w-16 h-16' : 
-                'w-16 h-16' // Burst
-              }`}
-              style={{ 
-                transform: `translate(${badgeX}px, ${badgeY}px) scale(${badgeScale})`,
-                transformOrigin: finalSettings.badge.position.includes('left') ? 'top left' : 'top right',
-                backgroundColor: ['rectangle', 'pill', 'circle'].includes(finalSettings.badge.shape) ? hexToRgba(finalSettings.badge.bgColor, 100) : 'transparent',
-                borderStyle: ['rectangle', 'pill', 'circle'].includes(finalSettings.badge.shape) ? 'solid' : 'none',
-                borderColor: ['rectangle', 'pill', 'circle'].includes(finalSettings.badge.shape) ? hexToRgba(finalSettings.badge.borderColor, 100) : 'transparent',
-                borderWidth: ['rectangle', 'pill', 'circle'].includes(finalSettings.badge.shape) ? `${finalSettings.badge.borderWidth}px` : '0px',
-                ...getFontStyle(finalSettings.badge.font || { ...finalSettings.fonts.productName, color: finalSettings.badge.textColor, fontSize: 10 }),
-                color: finalSettings.badge.textColor,
-                boxShadow: getShadowStyle(finalSettings.badge.shadow || { active: false } as ShadowData),
-              }}
-              onMouseDown={handleBadgeMouseDown}
-              onClick={(e) => e.stopPropagation()}
-            >
-              
-              {/* SVG ARKA PLANLAR */}
-              {['banner', 'burst', 'flama'].includes(finalSettings.badge.shape) && (
-                <svg viewBox={['burst', 'flama'].includes(finalSettings.badge.shape) ? "0 0 200 200" : "0 0 100 100"} preserveAspectRatio="none" className="absolute inset-0 w-full h-full -z-10 overflow-visible">
-                  <path 
-                    d={
-                      finalSettings.badge.shape === 'banner' ? "M5,0 L95,0 L95,100 L50,75 L5,100 Z" :
-                      finalSettings.badge.shape === 'flama' ? "M103.7,148.02 L153,158.8 L155.21,159.28 L155.21,48.09 L52.18,48.09 L52.18,159.28 L54.39,158.8 Z" :
-                      "M177.65,135.05c-14.9-20.88-10.01-27.13,15.13-27.44-27.53-6.19-32.92-17.93-14.27-31.28-28.11,2.93-32.46-9.85-23.23-32.18-17.24,18.31-45.06,21.75-58.39-9.03-15.92,31.37-36.69,21.67-53.16,4.99,12.15,25.35,4.43,32.62-21.57,26.85,17.06,15.23,5.65,23.91-14.93,26.9,23.74,3.02,24.68,15,8.02,27.7,24.67.32,27.82,12.9,13.33,27.74,18.91-12.59,29.93-7.88,26.95,16.31,20.69-16.57,31.07-9.37,31.46,12.73,7.92-20.49,20.53-27.21,35.48-5.56,3.42-25.03,15.9-27.49,34.02-11.46-15.68-25.21-6.41-32.93,21.17-26.27Z"
-                    } 
-                    fill={hexToRgba(finalSettings.badge.bgColor, 100)} 
-                    stroke={hexToRgba(finalSettings.badge.borderColor, 100)} 
-                    strokeWidth={finalSettings.badge.borderWidth} 
-                    vectorEffect="non-scaling-stroke" 
-                    strokeLinejoin="round" 
-                    fillRule="evenodd" 
-                  />
-                </svg>
-              )}
-
-              {/* YAZI ALANI */}
+          {finalSettings.badge?.active && (() => {
+            const bPos = finalSettings.badge?.position || 'top-left';
+            const bShape = finalSettings.badge?.shape || 'rectangle';
+            const bBg = finalSettings.badge?.bgColor || '#e60000';
+            const bBorder = finalSettings.badge?.borderColor || '#ffffff';
+            const bBorderW = finalSettings.badge?.borderWidth || 0;
+            const bText = finalSettings.badge?.textColor || '#ffffff';
+            
+            return (
               <div 
-                className="w-full h-full flex items-center justify-center z-10 p-1"
-                style={{ paddingBottom: ['banner'].includes(finalSettings.badge.shape) ? '15%' : '0' }}
-                contentEditable={!finalSettings.badge?.isFreePosition}
-                suppressContentEditableWarning
-                onBlur={(e) => updateSlotCustomSettings({ badge: { ...finalSettings.badge!, text: e.currentTarget.textContent || "YENİ" } })}
+                className={`absolute z-[40] pointer-events-auto transition-all flex items-center justify-center text-center leading-tight ${finalSettings.badge?.isFreePosition ? (badgeDrag.isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-text'} ${
+                  bPos === 'top-left' ? 'top-2 left-2' :
+                  bPos === 'top-right' ? 'top-2 right-2' :
+                  bPos === 'bottom-left' ? 'bottom-2 left-2' :
+                  'bottom-2 right-2'
+                } ${
+                  bShape === 'rectangle' ? (
+                    bPos.includes('left') ? (bPos.includes('top') ? 'rounded-tl-md rounded-br-md px-3 py-1.5' : 'rounded-bl-md rounded-tr-md px-3 py-1.5') : (bPos.includes('top') ? 'rounded-tr-md rounded-bl-md px-3 py-1.5' : 'rounded-br-md rounded-tl-md px-3 py-1.5')
+                  ) : bShape === 'pill' ? 'rounded-full px-4 py-1.5' :
+                  bShape === 'circle' ? 'rounded-full w-14 h-14' :
+                  bShape === 'banner' ? 'w-12 h-16' : 
+                  bShape === 'flama' ? 'w-16 h-16' : 
+                  'w-16 h-16' // Burst
+                }`}
+                style={{ 
+                  transform: `translate(${badgeX}px, ${badgeY}px) scale(${badgeScale})`,
+                  transformOrigin: bPos.includes('left') ? 'top left' : 'top right',
+                  backgroundColor: ['rectangle', 'pill', 'circle'].includes(bShape) ? hexToRgba(bBg, 100) : 'transparent',
+                  borderStyle: ['rectangle', 'pill', 'circle'].includes(bShape) ? 'solid' : 'none',
+                  borderColor: ['rectangle', 'pill', 'circle'].includes(bShape) ? hexToRgba(bBorder, 100) : 'transparent',
+                  borderWidth: ['rectangle', 'pill', 'circle'].includes(bShape) ? `${bBorderW}px` : '0px',
+                  ...getFontStyle(finalSettings.badge?.font || { ...finalSettings.fonts.productName, color: bText, fontSize: 10 }),
+                  color: bText,
+                  boxShadow: getShadowStyle(finalSettings.badge?.shadow || { active: false } as ShadowData),
+                }}
+                onMouseDown={handleBadgeMouseDown}
+                onClick={(e) => e.stopPropagation()}
               >
-                {finalSettings.badge.text}
-              </div>
+                {/* SVG ARKA PLANLAR */}
+                {['banner', 'burst', 'flama'].includes(bShape) && (
+                  <svg viewBox={['burst', 'flama'].includes(bShape) ? "0 0 200 200" : "0 0 100 100"} preserveAspectRatio="none" className="absolute inset-0 w-full h-full -z-10 overflow-visible">
+                    <path 
+                      d={
+                        bShape === 'banner' ? "M5,0 L95,0 L95,100 L50,75 L5,100 Z" :
+                        bShape === 'flama' ? "M103.7,148.02 L153,158.8 L155.21,159.28 L155.21,48.09 L52.18,48.09 L52.18,159.28 L54.39,158.8 Z" :
+                        "M177.65,135.05c-14.9-20.88-10.01-27.13,15.13-27.44-27.53-6.19-32.92-17.93-14.27-31.28-28.11,2.93-32.46-9.85-23.23-32.18-17.24,18.31-45.06,21.75-58.39-9.03-15.92,31.37-36.69,21.67-53.16,4.99,12.15,25.35,4.43,32.62-21.57,26.85,17.06,15.23,5.65,23.91-14.93,26.9,23.74,3.02,24.68,15,8.02,27.7,24.67.32,27.82,12.9,13.33,27.74,18.91-12.59,29.93-7.88,26.95,16.31,20.69-16.57,31.07-9.37,31.46,12.73,7.92-20.49,20.53-27.21,35.48-5.56,3.42-25.03,15.9-27.49,34.02-11.46-15.68-25.21-6.41-32.93,21.17-26.27Z"
+                      } 
+                      fill={hexToRgba(bBg, 100)} 
+                      stroke={hexToRgba(bBorder, 100)} 
+                      strokeWidth={bBorderW} 
+                      vectorEffect="non-scaling-stroke" 
+                      strokeLinejoin="round" 
+                      fillRule="evenodd" 
+                    />
+                  </svg>
+                )}
 
-            </div>
-          )}
+                {/* YAZI ALANI */}
+                <div 
+                  className="w-full h-full flex items-center justify-center z-10 p-1 whitespace-pre-wrap"
+                  style={{ paddingBottom: ['banner'].includes(bShape) ? '15%' : '0' }}
+                  contentEditable={!finalSettings.badge?.isFreePosition}
+                  suppressContentEditableWarning
+                  onBlur={(e) => updateSlotCustomSettings({ badge: { ...finalSettings.badge!, text: e.currentTarget.innerText || "YENİ" } })}
+                >
+                  {finalSettings.badge?.text || "YENİ"}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
