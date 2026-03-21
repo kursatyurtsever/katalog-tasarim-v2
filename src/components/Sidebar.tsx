@@ -5,6 +5,7 @@ import { ProductManagement } from "./sidebar-panels/ProductManagement";
 import { GlobalCellSettings } from "./sidebar-panels/GlobalCellSettings";
 import { GlobalPriceSettings } from "./sidebar-panels/GlobalPriceSettings";
 import { CustomCellSettings } from "./sidebar-panels/CustomCellSettings";
+import { PizzaSettingsPanel } from "./sidebar-panels/PizzaSettingsPanel";
 
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState<"products" | "settings">("products");
@@ -28,6 +29,9 @@ export function Sidebar() {
             <GlobalCellSettings isOpen={openAcc === "cell"} onToggle={() => setOpenAcc(openAcc === "cell" ? null : "cell")} />
             <GlobalPriceSettings isOpen={openAcc === "price"} onToggle={() => setOpenAcc(openAcc === "price" ? null : "price")} />
             <CustomCellSettings isOpen={openAcc === "customCell"} onToggle={() => setOpenAcc(openAcc === "customCell" ? null : "customCell")} />
+
+            {/* Yeni Pizza Paneli */}
+            <PizzaSettingsPanel isOpen={openAcc === "pizza"} onToggle={() => setOpenAcc(openAcc === "pizza" ? null : "pizza")} />
           </div>
         )}
       </div>

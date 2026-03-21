@@ -1,10 +1,16 @@
 "use client";
 
 import React, { useRef, useState } from 'react';
+import { usePizzaStore } from '../store/usePizzaStore';
+import { TypographyData } from './TypographyPicker';
+import { BorderRadiusData } from './BorderRadiusPicker';
+import { SpacingData } from './SpacingPicker';
+import { ShadowData } from './ShadowPicker';
 
 export function PizzaSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const { colors, fonts, tableLineWidth, radiuses, spacings, shadows } = usePizzaStore();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -12,86 +18,152 @@ export function PizzaSection() {
     }
   };
 
-  const Cell = ({ size, price }: { size: string, price: string }) => (
-    <div className="flex flex-col border-r border-slate-300 bg-white last:border-r-0 h-full">
-      <div className="text-[10px] font-bold text-center border-b border-slate-300 bg-slate-100 py-1 flex-1 flex items-center justify-center min-h-[22px]" contentEditable suppressContentEditableWarning>{size}</div>
-      <div className="text-[12px] font-black text-center text-red-600 py-1 flex-1 flex items-center justify-center min-h-[22px]" contentEditable suppressContentEditableWarning>{price}</div>
+  const hexToRgba = (hex: string, opacity: number) => {
+    const r = parseInt(hex.slice(1, 3), 16) || 0;
+    const g = parseInt(hex.slice(3, 5), 16) || 0;
+    const b = parseInt(hex.slice(5, 7), 16) || 0;
+    return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+  };
+
+  const getRadiusStyle = (r: BorderRadiusData) => `${r.tl}px ${r.tr}px ${r.br}px ${r.bl}px`;
+  const getPaddingStyle = (s: SpacingData) => `${s.t}px ${s.r}px ${s.b}px ${s.l}px`;
+  
+  const getShadowStyle = (s: ShadowData) => {
+    if (!s.active) return 'none';
+    return `${s.x}px ${s.y}px ${s.blur}px ${s.spread}px ${hexToRgba(s.color, s.opacity)}`;
+  };
+
+  const getFontStyle = (font: TypographyData): React.CSSProperties => {
+    let justifyContent = "center";
+    if (font.textAlign === "left") justifyContent = "flex-start";
+    if (font.textAlign === "right") justifyContent = "flex-end";
+
+    let alignItems = "center";
+    if (font.verticalAlign === "top") alignItems = "flex-start";
+    if (font.verticalAlign === "bottom") alignItems = "flex-end";
+
+    return {
+      fontFamily: font.fontFamily,
+      fontWeight: font.fontWeight,
+      fontSize: `${font.fontSize}px`,
+      lineHeight: font.lineHeight,
+      letterSpacing: `${font.letterSpacing}px`,
+      textAlign: font.textAlign,
+      textTransform: font.textTransform,
+      textDecoration: font.textDecoration,
+      color: hexToRgba(font.color, font.opacity),
+      display: 'flex',
+      justifyContent,
+      alignItems,
+    };
+  };
+
+  const renderFormattedText = (text: string, font: TypographyData) => {
+    if (!font.decimalScale || font.decimalScale === 100) return text;
+    
+    const match = text.match(/^(.*?\d)([,.])(\d+)(.*)$/s);
+    if (match) {
+      return (
+        <span style={{ display: 'inline-block' }}>
+          {match[1]}
+          {match[2]}
+          <span style={{ fontSize: `${font.decimalScale}%`, display: 'inline-block', verticalAlign: 'top', lineHeight: '1em' }}>
+            {match[3]}
+          </span>
+          {match[4]}
+        </span>
+      );
+    }
+    return text;
+  };
+
+  const Cell = ({ size, price, isLast = false }: { size: string, price: string, isLast?: boolean }) => (
+    <div className="flex flex-col h-full border-solid transition-shadow duration-200" style={{ borderRightWidth: isLast ? 0 : `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), boxShadow: getShadowStyle(shadows.cell) }}>
+      <div className="flex-1 min-h-[22px] w-full border-solid" style={{ padding: getPaddingStyle(spacings.cell), borderBottomWidth: `${tableLineWidth}px`, backgroundColor: hexToRgba(colors.cellBg.c, colors.cellBg.o), borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), ...getFontStyle(fonts.sizes) }} contentEditable suppressContentEditableWarning>
+        {renderFormattedText(size, fonts.sizes)}
+      </div>
+      <div className="flex-1 min-h-[22px] w-full" style={{ padding: getPaddingStyle(spacings.cell), backgroundColor: hexToRgba(colors.cellPriceBg.c, colors.cellPriceBg.o), ...getFontStyle(fonts.prices) }} contentEditable suppressContentEditableWarning>
+        {renderFormattedText(price, fonts.prices)}
+      </div>
     </div>
   );
 
-  const SpecialCell = ({ title, price }: { title: string, price: string }) => (
-    <div className="flex flex-col border-r border-slate-300 bg-white last:border-r-0 h-full">
-      <div className="text-[10px] font-bold text-center border-b border-slate-300 bg-slate-100 py-1 flex-1 flex items-center justify-center whitespace-pre-wrap leading-tight px-1 min-h-[30px]" contentEditable suppressContentEditableWarning>{title}</div>
-      <div className="text-[12px] font-black text-center text-red-600 py-1 flex-1 flex items-center justify-center min-h-[22px]" contentEditable suppressContentEditableWarning>{price}</div>
+  const SpecialCell = ({ title, price, isLast = false }: { title: string, price: string, isLast?: boolean }) => (
+    <div className="flex flex-col h-full border-solid transition-shadow duration-200" style={{ borderRightWidth: isLast ? 0 : `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), boxShadow: getShadowStyle(shadows.cell) }}>
+      <div className="flex-1 whitespace-pre-wrap min-h-[30px] w-full border-solid" style={{ padding: getPaddingStyle(spacings.cell), borderBottomWidth: `${tableLineWidth}px`, backgroundColor: hexToRgba(colors.cellBg.c, colors.cellBg.o), borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), ...getFontStyle(fonts.sizes) }} contentEditable suppressContentEditableWarning>
+        {renderFormattedText(title, fonts.sizes)}
+      </div>
+      <div className="flex-1 min-h-[22px] w-full" style={{ padding: getPaddingStyle(spacings.cell), backgroundColor: hexToRgba(colors.cellPriceBg.c, colors.cellPriceBg.o), ...getFontStyle(fonts.prices) }} contentEditable suppressContentEditableWarning>
+        {renderFormattedText(price, fonts.prices)}
+      </div>
     </div>
   );
 
   return (
-    <div className="w-full h-full p-[4mm] flex flex-col bg-white border-2 border-slate-800 rounded-lg shadow-sm">
+    <div className="w-full h-full flex flex-col border-[2px] transition-colors duration-200" style={{ padding: getPaddingStyle(spacings.container), backgroundColor: hexToRgba(colors.bg.c, colors.bg.o), borderColor: hexToRgba(colors.border.c, colors.border.o), borderRadius: getRadiusStyle(radiuses.container), boxShadow: getShadowStyle(shadows.container) }}>
       
-      {/* BAŞLIK (Altındaki çizgi kaldırıldı) */}
-      <div className="w-full text-center shrink-0">
-        <h2 className="text-[18px] font-black text-slate-900 uppercase tracking-widest italic">Pizzakartons KRAFT !!!</h2>
+      <div className="w-full shrink-0 border-b-2 pb-2" style={{ borderColor: hexToRgba(colors.border.c, colors.border.o), ...getFontStyle(fonts.title) }}>
+        <span className="w-full" contentEditable suppressContentEditableWarning>Pizzakartons KRAFT !!!</span>
       </div>
 
-      {/* İÇERİK: Tablo 1 ve Tablo 3'ü 10mm aşağı itmek için mt-[10mm] eklendi */}
       <div className="flex flex-row gap-[5mm] flex-1 min-h-0 mt-[10mm]">
         
-        {/* SOL KOLON (Tablo 1 & Tablo 2) */}
+        {/* SOL KOLON */}
         <div className="flex flex-col gap-[6mm] flex-[3] h-full">
-          {/* TABLO 1: KRAFT BRAUN */}
-          <div className="border-[2px] border-slate-800 flex flex-col bg-white rounded-sm overflow-hidden flex-1">
-            <div className="bg-slate-800 text-white text-center font-bold text-[11px] py-1.5 uppercase" contentEditable suppressContentEditableWarning>New York Kraft Braun 100 Stk.</div>
+          {/* TABLO 1 */}
+          <div className="flex flex-col overflow-hidden flex-1 border-solid" style={{ borderWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableBg.c, colors.tableBg.o), borderRadius: getRadiusStyle(radiuses.table), boxShadow: getShadowStyle(shadows.table) }}>
+            <div className="w-full" style={{ padding: getPaddingStyle(spacings.tableTitle), backgroundColor: hexToRgba(colors.tableTitleBg.c, colors.tableTitleBg.o), ...getFontStyle(fonts.tableTitle) }} contentEditable suppressContentEditableWarning>New York Kraft Braun 100 Stk.</div>
             <div className="flex flex-col flex-1 gap-[3mm]">
-              <div className="grid grid-cols-4 flex-1 border-b border-slate-300">
+              <div className="grid grid-cols-4 flex-1 border-solid" style={{ borderBottomWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}>
                 <Cell size="20x20" price="7,99" />
                 <Cell size="22x22" price="9,49" />
                 <Cell size="24x24" price="10,49" />
-                <Cell size="26x26" price="11,49" />
+                <Cell size="26x26" price="11,49" isLast />
               </div>
-              <div className="grid grid-cols-4 flex-1 border-t border-slate-300">
+              <div className="grid grid-cols-4 flex-1 border-solid" style={{ borderTopWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}>
                 <Cell size="28x28" price="12,49" />
                 <Cell size="29x29" price="12,99" />
                 <Cell size="30x30" price="13,49" />
-                <Cell size="32x32" price="14,49" />
+                <Cell size="32x32" price="14,49" isLast />
               </div>
             </div>
           </div>
 
-          {/* TABLO 2: KRAFT WEISS */}
-          <div className="border-[2px] border-slate-800 flex flex-col bg-white rounded-sm overflow-hidden flex-1">
-            <div className="bg-slate-200 text-slate-900 text-center font-bold text-[11px] py-1.5 uppercase border-b border-slate-800" contentEditable suppressContentEditableWarning>New York Kraft Weiss 100 Stk.</div>
+          {/* TABLO 2 */}
+          <div className="flex flex-col overflow-hidden flex-1 border-solid" style={{ borderWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableBg.c, colors.tableBg.o), borderRadius: getRadiusStyle(radiuses.table), boxShadow: getShadowStyle(shadows.table) }}>
+            <div className="w-full border-solid" style={{ padding: getPaddingStyle(spacings.tableTitle), borderBottomWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableTitleBg.c, colors.tableTitleBg.o), ...getFontStyle(fonts.tableTitle) }} contentEditable suppressContentEditableWarning>New York Kraft Weiss 100 Stk.</div>
             <div className="flex flex-col flex-1 gap-[3mm]">
-              <div className="grid grid-cols-4 flex-1 border-b border-slate-300">
+              <div className="grid grid-cols-4 flex-1 border-solid" style={{ borderBottomWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}>
                 <Cell size="20x20" price="7,99" />
                 <Cell size="22x22" price="9,49" />
                 <Cell size="24x24" price="10,49" />
-                <Cell size="26x26" price="11,49" />
+                <Cell size="26x26" price="11,49" isLast />
               </div>
-              <div className="grid grid-cols-4 flex-1 border-t border-slate-300">
+              <div className="grid grid-cols-4 flex-1 border-solid" style={{ borderTopWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}>
                 <Cell size="28x28" price="12,49" />
                 <Cell size="29x29" price="12,99" />
                 <Cell size="30x30" price="13,49" />
-                <Cell size="32x32" price="14,49" />
+                <Cell size="32x32" price="14,49" isLast />
               </div>
             </div>
           </div>
         </div>
 
-        {/* SAĞ KOLON (Tablo 3 & Resim) */}
+        {/* SAĞ KOLON */}
         <div className="flex flex-col gap-[4mm] flex-[5] h-full">
-          {/* TABLO 3: ÖZEL ÜRÜNLER */}
-          <div className="border-[2px] border-slate-800 flex flex-col bg-white rounded-sm overflow-hidden shrink-0">
+          {/* TABLO 3 */}
+          <div className="flex flex-col overflow-hidden shrink-0 border-solid" style={{ borderWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableBg.c, colors.tableBg.o), borderRadius: getRadiusStyle(radiuses.table), boxShadow: getShadowStyle(shadows.table) }}>
             <div className="grid grid-cols-3">
               <SpecialCell title={"Rollo\n(200 Stk.)"} price="7,99" />
               <SpecialCell title={"Calzone\n(100 Stk.)"} price="9,49" />
-              <SpecialCell title={"Familie 40x60\n(50 Stk.)"} price="10,49" />
+              <SpecialCell title={"Familie 40x60\n(50 Stk.)"} price="10,49" isLast />
             </div>
           </div>
 
           {/* RESİM ALANI */}
           <div 
-            className="flex-1 border-[2px] border-dashed border-slate-400 bg-slate-50 flex items-center justify-center relative group cursor-pointer overflow-hidden rounded-sm min-h-0"
+            className="flex-1 border-[2px] border-dashed flex items-center justify-center relative group cursor-pointer overflow-hidden min-h-0"
+            style={{ borderColor: hexToRgba(colors.imgBorder.c, colors.imgBorder.o), backgroundColor: hexToRgba(colors.imgBg.c, colors.imgBg.o), borderRadius: getRadiusStyle(radiuses.image), boxShadow: getShadowStyle(shadows.image) }}
             onClick={() => fileInputRef.current?.click()}
           >
             {imageUrl ? (

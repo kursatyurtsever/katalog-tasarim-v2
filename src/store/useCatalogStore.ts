@@ -3,6 +3,17 @@ import { persist } from "zustand/middleware";
 import { Template1, availableTemplates, getSlotCountForPage } from "@/lib/templates";
 import type { BrochureTemplate } from "@/lib/templates";
 
+// YENİ MODÜLER TİPLERİ İÇE AKTARIYORUZ
+import { TypographyData } from "@/components/TypographyPicker";
+import { BorderRadiusData } from "@/components/BorderRadiusPicker";
+import { SpacingData } from "@/components/SpacingPicker";
+import { ShadowData } from "@/components/ShadowPicker";
+
+export const defaultTypography: TypographyData = { fontFamily: "Inter", fontWeight: "400", fontSize: 12, lineHeight: 1.2, letterSpacing: 0, textAlign: "left", verticalAlign: "middle", textTransform: "none", textDecoration: "none", color: "#000000", opacity: 100, decimalScale: 100 };
+export const defaultRadius: BorderRadiusData = { tl: 8, tr: 8, bl: 8, br: 8, linked: true };
+export const defaultSpacing: SpacingData = { t: 8, r: 8, b: 8, l: 8, linked: true };
+export const defaultShadow: ShadowData = { x: 0, y: 4, blur: 6, spread: -1, color: "#000000", opacity: 10, active: false };
+
 export interface ProductInfo {
   id?: string;
   name?: string;
@@ -14,6 +25,38 @@ export interface ProductInfo {
   [key: string]: unknown;
 }
 
+// YENİ GLOBAL SETTINGS YAPISI
+export interface CatalogSettings {
+  gridGap: number;
+  borderWidth: number;
+  pricePosition: "left" | "center" | "right";
+  priceWidth: number;
+  priceHeight: number;
+  imageScale: number;
+  imagePosX: number;
+  imagePosY: number;
+  imageEditMode: boolean;
+  colors: {
+    cellBg: { c: string; o: number };
+    cellBorder: { c: string; o: number };
+    priceBg: { c: string; o: number };
+  };
+  radiuses: {
+    cell: BorderRadiusData;
+    price: BorderRadiusData;
+  };
+  fonts: {
+    productName: TypographyData;
+    price: TypographyData;
+  };
+  spacings: {
+    cell: SpacingData;
+  };
+  shadows: {
+    cell: ShadowData;
+  };
+}
+
 export interface Slot {
   id: string;
   colSpan: number;
@@ -22,7 +65,7 @@ export interface Slot {
   hidden?: boolean;
   mergedInto?: string | null;
   isCustom?: boolean; 
-  customSettings?: Partial<CatalogState["globalSettings"]>; 
+  customSettings?: Partial<CatalogSettings>; 
 }
 
 export interface CatalogPage {
@@ -39,19 +82,7 @@ export interface CatalogState {
   pages: CatalogPage[];
   productPool: ProductInfo[]; 
   masterProductPool: ProductInfo[]; 
-  globalSettings: { 
-    gridGap: number;
-    radiusTL: number; radiusTR: number; radiusBR: number; radiusBL: number; linkRadius: boolean;
-    fontFamily: string; fontWeight: string; fontStyle: string; fontSize: number; lineHeight: number; fontColor: string; textAlign: "left" | "center" | "right" | "justify";
-    letterSpacing: number; textVerticalAlign: "top" | "middle" | "bottom";
-    bgColor: string; bgOpacity: number; borderColor: string; borderOpacity: number; borderWidth: number;
-    priceBgColor: string; priceFontColor: string;
-    priceFontFamily: string; priceFontWeight: string; priceFontSize: number; priceDecimalSize: number;
-    priceRadiusTL: number; priceRadiusTR: number; priceRadiusBR: number; priceRadiusBL: number; linkPriceRadius: boolean;
-    priceTextAlign: "left" | "center" | "right" | "justify";
-    priceTextVerticalAlign: "top" | "middle" | "bottom";
-    priceLetterSpacing: number;
-  };
+  globalSettings: CatalogSettings; // YENİ TİP EKLENDİ
   isZoomed: boolean;
   selectedSlotIds: string[];
   pastPages: CatalogPage[][];
@@ -61,7 +92,7 @@ export interface CatalogState {
 export interface CatalogActions {
   setActiveTab: (tab: "outer" | "inner") => void;
   setActiveTemplate: (templateId: string) => void;
-  setGlobalSettings: (settings: Partial<CatalogState["globalSettings"]>) => void;
+  setGlobalSettings: (settings: Partial<CatalogSettings>) => void;
   updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;
   swapSlotContents: (sourcePage: number, sourceIndex: number, targetPage: number, targetIndex: number) => void;
   toggleZoom: () => void;
@@ -77,22 +108,42 @@ export interface CatalogActions {
   undo: () => void;
   redo: () => void;
   toggleSlotCustomSettings: (enabled: boolean) => void;
-  updateSlotCustomSettings: (settings: Partial<CatalogState["globalSettings"]>) => void;
+  updateSlotCustomSettings: (settings: Partial<CatalogSettings>) => void;
   clearSlot: (pageNumber: number, slotId: string) => void;
   setSlotProduct: (pageNumber: number, slotId: string, product: ProductInfo) => void;
   updateSlotProduct: (pageNumber: number, slotId: string, updates: Partial<ProductInfo>) => void;
 }
 
-const initialGlobalSettings: CatalogState["globalSettings"] = {
+// YENİ VARSAYILAN AYARLAR
+const initialGlobalSettings: CatalogSettings = {
   gridGap: 0,
-  radiusTL: 0, radiusTR: 0, radiusBR: 0, radiusBL: 0, linkRadius: true,
-  fontFamily: "Inter, sans-serif", fontWeight: "700", fontStyle: "normal", fontSize: 10, lineHeight: 1.2, fontColor: "#1e293b", textAlign: "center",
-  letterSpacing: 0, textVerticalAlign: "bottom",
-  bgColor: "#ffffff", bgOpacity: 100, borderColor: "#e2e8f0", borderOpacity: 100, borderWidth: 1,
-  priceBgColor: "#e60000", priceFontColor: "#ffffff",
-  priceFontFamily: "Inter, sans-serif", priceFontWeight: "900", priceFontSize: 20, priceDecimalSize: 11,
-  priceRadiusTL: 0, priceRadiusTR: 0, priceRadiusBR: 0, priceRadiusBL: 4, linkPriceRadius: false,
-  priceTextAlign: "center", priceTextVerticalAlign: "middle", priceLetterSpacing: -1
+  borderWidth: 1,
+  pricePosition: "right",
+  priceWidth: 50,
+  priceHeight: 10,
+  imageScale: 100,
+  imagePosX: 0,
+  imagePosY: 0,
+  imageEditMode: false,
+  colors: {
+    cellBg: { c: "#ffffff", o: 100 },
+    cellBorder: { c: "#e2e8f0", o: 100 },
+    priceBg: { c: "#e60000", o: 100 }
+  },
+  radiuses: {
+    cell: { ...defaultRadius, tl: 0, tr: 0, bl: 0, br: 0 },
+    price: { ...defaultRadius, tl: 0, tr: 0, bl: 0, br: 4, linked: false }
+  },
+  fonts: {
+    productName: { ...defaultTypography, fontFamily: "Inter", fontWeight: "700", fontSize: 10, textAlign: "center", verticalAlign: "bottom", color: "#1e293b" },
+    price: { ...defaultTypography, fontFamily: "Inter", fontWeight: "900", fontSize: 20, textAlign: "center", verticalAlign: "middle", color: "#ffffff", decimalScale: 55 }
+  },
+  spacings: {
+    cell: { ...defaultSpacing, t: 8, r: 8, b: 8, l: 8 }
+  },
+  shadows: {
+    cell: { ...defaultShadow, active: false }
+  }
 };
 
 function createPageSlots(pageNumber: number, count: number): Slot[] {
@@ -110,6 +161,22 @@ function buildPagesForTemplate(template: BrochureTemplate): CatalogPage[] {
     footerText: "Sayfa altı notu...",
     footerLogo: null
   }));
+}
+
+// YARDIMCI FONKSİYON: Alt objelerin (colors, fonts vb.) güvenli birleştirilmesi
+function isObject(item: any) { return (item && typeof item === 'object' && !Array.isArray(item)); }
+function deepMerge(target: any, source: any) {
+  if (!target) return source;
+  if (!source) return target;
+  const output = { ...target };
+  Object.keys(source).forEach(key => {
+    if (isObject(source[key]) && key in target && isObject(target[key])) {
+      output[key] = deepMerge(target[key], source[key]);
+    } else {
+      output[key] = source[key];
+    }
+  });
+  return output;
 }
 
 export const useCatalogStore = create<CatalogState & CatalogActions>()(
@@ -141,21 +208,51 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       }),
 
       toggleSlotSelection: (id, isMulti) => set((state) => {
+        const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
+        newPages.forEach(p => p.slots.forEach(s => {
+          if (s.isCustom && s.customSettings) {
+            s.customSettings.imageEditMode = false;
+          }
+        }));
+
+        let newSelectedIds = [];
         if (isMulti) {
-          if (state.selectedSlotIds.includes(id)) return { selectedSlotIds: state.selectedSlotIds.filter((x) => x !== id) };
-          return { selectedSlotIds: [...state.selectedSlotIds, id] };
+          if (state.selectedSlotIds.includes(id)) newSelectedIds = state.selectedSlotIds.filter((x) => x !== id);
+          else newSelectedIds = [...state.selectedSlotIds, id];
+        } else {
+          newSelectedIds = state.selectedSlotIds[0] === id && state.selectedSlotIds.length === 1 ? [] : [id];
         }
-        return { selectedSlotIds: state.selectedSlotIds[0] === id && state.selectedSlotIds.length === 1 ? [] : [id] };
+        
+        return { 
+          selectedSlotIds: newSelectedIds,
+          pages: newPages,
+          globalSettings: { ...state.globalSettings, imageEditMode: false }
+        };
       }),
 
-      clearSelection: () => set({ selectedSlotIds: [] }),
+      clearSelection: () => set((state) => {
+        const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
+        newPages.forEach(p => p.slots.forEach(s => {
+          if (s.isCustom && s.customSettings) s.customSettings.imageEditMode = false;
+        }));
+        
+        return { 
+          selectedSlotIds: [],
+          pages: newPages,
+          globalSettings: { ...state.globalSettings, imageEditMode: false }
+        };
+      }),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setActiveTemplate: (templateId) => {
         const tmpl = availableTemplates.find((t) => t.id === templateId);
         if (!tmpl) return;
         set({ activeTemplate: tmpl, pages: buildPagesForTemplate(tmpl), pastPages: [], futurePages: [] });
       },
-      setGlobalSettings: (settings) => set((state) => ({ globalSettings: { ...state.globalSettings, ...settings } })),
+      
+      setGlobalSettings: (settings) => set((state) => ({ 
+        globalSettings: deepMerge(state.globalSettings, settings) 
+      })),
+
       updatePageFooter: (pageNum, data) => set((state) => ({ pages: state.pages.map(p => p.pageNumber === pageNum ? { ...p, ...data } : p) })),
       toggleZoom: () => set((state) => ({ isZoomed: !state.isZoomed })),
       setProductPool: (products) => set({ productPool: products }),
@@ -164,8 +261,6 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       autoFillSlots: () => set((state) => {
         const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
         const validSlots: any[] = [];
-        
-        // Sayfaları 1, 2, 3, 4, 5, 6 sırasına diziyoruz ki ekrandaki hücre numaralarıyla POS numaraları tam eşleşsin.
         const sortedPages = [...newPages].sort((a, b) => a.pageNumber - b.pageNumber);
         
         sortedPages.forEach(p => {
@@ -338,7 +433,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       toggleSlotCustomSettings: (enabled) => set((state) => {
         const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
         state.selectedSlotIds.forEach(id => {
-          newPages.forEach(p => p.slots.forEach(s => { if (s.id === id) { s.isCustom = enabled; if (enabled && !s.customSettings) s.customSettings = { ...state.globalSettings }; } }));
+          newPages.forEach(p => p.slots.forEach(s => { if (s.id === id) { s.isCustom = enabled; if (enabled && !s.customSettings) s.customSettings = JSON.parse(JSON.stringify(state.globalSettings)); } }));
         });
         return { pages: newPages, pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))], futurePages: [] };
       }),
@@ -346,11 +441,15 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       updateSlotCustomSettings: (settings) => set((state) => {
         const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
         state.selectedSlotIds.forEach(id => {
-          newPages.forEach(p => p.slots.forEach(s => { if (s.id === id && s.isCustom) s.customSettings = { ...s.customSettings, ...settings }; }));
+          newPages.forEach(p => p.slots.forEach(s => { 
+            if (s.id === id && s.isCustom) {
+              s.customSettings = deepMerge(s.customSettings || {}, settings);
+            } 
+          }));
         });
         return { pages: newPages };
       }),
     }),
-    { name: "catalog-storage" }
+    { name: "catalog-storage-v2" }
   )
 );
