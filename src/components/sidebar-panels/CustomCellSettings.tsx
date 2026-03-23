@@ -13,7 +13,6 @@ interface Props { isOpen: boolean; onToggle: () => void; }
 export function CustomCellSettings({ isOpen, onToggle }: Props) {
   const { pages, globalSettings, selectedSlotIds, toggleSlotCustomSettings, updateSlotCustomSettings, copySlotSettings, pasteSlotSettings, copiedSlotSettings, clearSlotSettings } = useCatalogStore();
   
-  // YENİ EKLENDİ: Akordiyon State'i (Varsayılan olarak 'cell' sekmesi açık)
   const [activeTab, setActiveTab] = useState<string | null>("cell");
 
   let globalNumberCounter = 0;
@@ -37,14 +36,14 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
   const customSettings = selectedSlot?.customSettings || globalSettings;
 
   return (
-    <div className="bg-white rounded-md border border-purple-200 shadow-sm mb-20 relative z-30">
+    <div className="bg-white rounded-md border border-purple-200 shadow-sm mb-4 relative z-30">
       <button onClick={onToggle} className={`w-full flex items-center justify-between p-3 bg-purple-700 hover:bg-purple-600 transition-colors ${isOpen ? "rounded-t-md" : "rounded-md"}`}>
         <span className="text-[11px] font-black text-white uppercase tracking-widest">Özel Hücre Ayarları</span>
         <span className="text-white text-xs">{isOpen ? "▲" : "▼"}</span>
       </button>
       
       {isOpen && (
-        <div className="p-4 bg-purple-50 border-t border-purple-200 space-y-4">
+        <div className="p-4 bg-purple-50 border-t border-purple-200 space-y-4 rounded-b-md">
           {selectedSlotIds.length !== 1 ? (
             <div className="text-[10px] text-center text-slate-500 font-bold p-4 bg-white rounded border border-slate-200 shadow-sm">
               Lütfen tablodan sadece BİR adet hücre seçin.
@@ -54,6 +53,7 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
               <div className="flex items-center justify-between bg-white p-2 rounded border border-slate-200 shadow-sm">
                 <span className="text-[10px] font-black text-slate-600">Seçili Hücre: #{selectedGlobalNumber}</span>
               </div>
+              
               <div className="flex gap-1 bg-white p-2 rounded border border-slate-200 shadow-sm">
                 <button onClick={copySlotSettings} className="flex-1 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[9px] font-bold hover:bg-blue-100 transition-colors">
                   Kopyala
@@ -69,7 +69,8 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                   Temizle
                 </button>
               </div>
-              <div className="flex items-center justify-between bg-white p-2.5 rounded border border-purple-300 shadow-sm">
+
+              <div className="flex items-center justify-between bg-white p-2.5 rounded border border-purple-300 shadow-sm mt-4">
                 <span className="text-[10px] font-black text-purple-700">Bu Hücreyi Özelleştir</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" checked={isCustomActive} onChange={(e) => toggleSlotCustomSettings(e.target.checked)} />
@@ -77,7 +78,6 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                 </label>
               </div>
 
-              {/* AKORDİYON MENÜLERİ BAŞLIYOR */}
               <div className={`space-y-2 transition-all duration-300 ${isCustomActive ? "opacity-100" : "opacity-30 pointer-events-none blur-[1px]"}`}>
                 
                 {/* 1. HÜCRE TASARIMI */}
@@ -161,7 +161,7 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                   )}
                 </div>
 
-                {/* 4. FİYAT KUTUSU (Tüm Fiyat Ayarları Birleşti) */}
+                {/* 4. FİYAT KUTUSU */}
                 <div className={`bg-white rounded border border-orange-200 shadow-sm relative z-[30] ${activeTab === 'price' ? 'overflow-visible' : 'overflow-hidden'}`}>
                   <button onClick={() => setActiveTab(activeTab === 'price' ? null : 'price')} className="w-full flex items-center justify-between p-2.5 bg-orange-50 hover:bg-orange-100 transition-colors border-b border-orange-100">
                     <span className="text-[10px] font-black text-orange-700 uppercase tracking-wider">4. Fiyat Kutusu</span>

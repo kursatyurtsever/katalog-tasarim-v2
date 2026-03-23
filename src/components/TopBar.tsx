@@ -2,6 +2,7 @@
 
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useEffect } from "react";
+import { DownloadMenu } from "./DownloadMenu"; // YENİ EKLENDİ
 
 export function TopBar() {
   const activeTab = useCatalogStore((state) => state.activeTab);
@@ -79,9 +80,10 @@ export function TopBar() {
         >
           {isZoomed ? "🔍 Uzaklaş" : "🔍 Yakınlaş"}
         </button>
-        <button className="px-5 py-1.5 bg-[#e60000] hover:bg-red-700 text-white rounded-md text-sm font-bold transition-all shadow-sm">
-          PDF İndir
-        </button>
+        
+        {/* YENİ İNDİRME MENÜSÜ BURADA */}
+        <DownloadMenu />
+        
       </div>
     </div>
   );

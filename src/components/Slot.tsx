@@ -145,7 +145,9 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
       className={`product-slot relative overflow-hidden border border-solid transition-all h-full min-w-0 min-h-0 cursor-pointer ${isSelected ? "ring-4 ring-blue-500 z-30 shadow-lg" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300"}`} 
       style={{ gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`, gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`, borderRadius: getRadiusStyle(finalSettings.radiuses.cell), backgroundColor: hexToRgba(finalSettings.colors.cellBg.c, finalSettings.colors.cellBg.o), borderColor: hexToRgba(finalSettings.colors.cellBorder.c, finalSettings.colors.cellBorder.o), borderWidth: `${finalSettings.borderWidth}px`, boxShadow: getShadowStyle(finalSettings.shadows.cell), padding: getPaddingStyle(finalSettings.spacings.cell) }}
     >
-      <div className="absolute top-0 left-0 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none z-[50]">{globalNumber}</div>
+      {/* 2. MADDE: Hücre numarası çıktıda gizleniyor */}
+      <div data-hide-on-export="true" className="absolute top-0 left-0 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none z-[50]">{globalNumber}</div>
+      
       {slot.product && (
         <div 
           className={`w-full h-full flex flex-col relative min-w-0 min-h-0 ${isSelected ? "opacity-75" : ""}`}
@@ -154,7 +156,8 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
           onMouseLeave={handleMouseUp}
         >
           
-          {hasCost && <div className={`absolute right-1 text-[10px] font-black pointer-events-none z-[40] ${isLoss ? "text-red-600" : "text-green-600"}`} style={{ top: "10.5mm" }}>%{profit.toFixed(1)}</div>}
+          {/* 1. MADDE: Kâr hesaplaması çıktıda gizleniyor */}
+          {hasCost && <div data-hide-on-export="true" className={`absolute right-1 text-[10px] font-black pointer-events-none z-[40] ${isLoss ? "text-red-600" : "text-green-600"}`} style={{ top: "10.5mm" }}>%{profit.toFixed(1)}</div>}
 
           <div className={`absolute top-0 z-[30] flex shadow-sm transition-all px-1.5 py-1 cursor-text pointer-events-auto ${finalSettings.pricePosition === 'left' ? 'left-0' : finalSettings.pricePosition === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0'}`} style={{ width: `${finalSettings.priceWidth}%`, height: `${finalSettings.priceHeight}mm`, backgroundColor: hexToRgba(finalSettings.colors.priceBg.c, finalSettings.colors.priceBg.o), borderRadius: getRadiusStyle(finalSettings.radiuses.price), ...getFontStyle(finalSettings.fonts.price) }} onClick={(e) => e.stopPropagation()} contentEditable suppressContentEditableWarning onBlur={(e) => updateSlotProduct(pageNumber, slot.id, { price: e.currentTarget.textContent || "0" })}>
             <div className="flex items-start pointer-events-none"><span style={{ lineHeight: "0.8" }}>{splitPrice(slot.product.price).main},</span><span style={{ fontSize: `${finalSettings.fonts.price.decimalScale}%`, verticalAlign: "top", lineHeight: "1em", marginLeft: "2px" }}>{splitPrice(slot.product.price).decimal}</span></div>

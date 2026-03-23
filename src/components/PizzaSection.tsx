@@ -162,8 +162,15 @@ export function PizzaSection() {
 
           {/* RESİM ALANI */}
           <div 
-            className="flex-1 border-[2px] border-dashed flex items-center justify-center relative group cursor-pointer overflow-hidden min-h-0"
-            style={{ borderColor: hexToRgba(colors.imgBorder.c, colors.imgBorder.o), backgroundColor: hexToRgba(colors.imgBg.c, colors.imgBg.o), borderRadius: getRadiusStyle(radiuses.image), boxShadow: getShadowStyle(shadows.image) }}
+            // YENİ EKLENEN KISIM BURASI: Resim yoksa gizle
+            data-hide-on-export={!imageUrl ? "true" : undefined}
+            className={`flex-1 flex items-center justify-center relative group cursor-pointer overflow-hidden min-h-0 ${!imageUrl ? 'border-[2px] border-dashed' : ''}`}
+            style={{ 
+              borderColor: !imageUrl ? hexToRgba(colors.imgBorder.c, colors.imgBorder.o) : 'transparent', 
+              backgroundColor: hexToRgba(colors.imgBg.c, colors.imgBg.o), 
+              borderRadius: getRadiusStyle(radiuses.image), 
+              boxShadow: getShadowStyle(shadows.image) 
+            }}
             onClick={() => fileInputRef.current?.click()}
           >
             {imageUrl ? (
