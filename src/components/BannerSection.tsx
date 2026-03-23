@@ -1,6 +1,8 @@
 "use client";
 
 import { useBannerStore } from "@/store/useBannerStore";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { usePizzaStore } from "@/store/usePizzaStore";
 import { useEffect, useState } from "react";
 
 function hexToRgba(hex: string, opacity: number) {
@@ -15,6 +17,9 @@ export function BannerSection() {
     bannerSettings, undo, 
     selectedBannerCellIds, toggleBannerCellSelection, updateBannerCell 
   } = useBannerStore();
+
+  const clearCatalogSelection = useCatalogStore((state) => state.clearSelection);
+  const clearPizzaSelection = usePizzaStore((state) => state.clearSelection);
   
   const { cells } = bannerSettings;
 
@@ -58,14 +63,18 @@ export function BannerSection() {
         return (
           <div
             key={cell.id}
+            id={`banner-${cell.id}`}
             onClick={(e) => {
               e.stopPropagation();
               if (!isEditing) {
+                clearCatalogSelection();
+                clearPizzaSelection();
                 toggleBannerCellSelection(cell.id, e.ctrlKey || e.shiftKey);
               }
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
+              clearCatalogSelection();
               setEditingCellId(cell.id);
               if (!isSelected) {
                 toggleBannerCellSelection(cell.id, false); // Çift tıklanınca otomatik seçili hale de gelsin

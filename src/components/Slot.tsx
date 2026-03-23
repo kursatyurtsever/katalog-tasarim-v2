@@ -1,6 +1,8 @@
 "use client";
 
 import { useCatalogStore, Slot as SlotType } from "@/store/useCatalogStore";
+import { useBannerStore } from "@/store/useBannerStore";
+import { usePizzaStore } from "@/store/usePizzaStore";
 import { useState } from "react";
 import { TypographyData } from "./TypographyPicker";
 import { BorderRadiusData } from "./BorderRadiusPicker";
@@ -42,9 +44,17 @@ const getFontStyle = (font: TypographyData): React.CSSProperties => {
 };
 
 export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu, gridPosition }: SlotProps) {
-  const { globalSettings, swapSlotContents, toggleSlotSelection, setSlotProduct, updateSlotProduct, updateSlotCustomSettings, selectedSlotIds } = useCatalogStore();
+  // YENİ: selectedTextElement ve setSelectedTextElement eklendi
+  const { globalSettings, swapSlotContents, toggleSlotSelection, setSlotProduct, updateSlotProduct, updateSlotCustomSettings, updateSlotImageSettings, selectedSlotIds, disableAllImageEditModes, selectedTextElement, setSelectedTextElement } = useCatalogStore();
+  
+  const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
+  const clearPizzaSelection = usePizzaStore((state) => state.clearSelection);
+
   const [isOver, setIsOver] = useState(false);
   
+  // YENİ: Hangi metnin o an düzenleme modunda (yazı yazılabilir) olduğunu tutar
+  const [editingText, setEditingText] = useState<'name' | 'price' | 'badge' | null>(null);
+
   const [imgDrag, setImgDrag] = useState({ isDragging: false, startX: 0, startY: 0, initialPosX: 0, initialPosY: 0, currentX: 0, currentY: 0 });
   const [badgeDrag, setBadgeDrag] = useState({ isDragging: false, startX: 0, startY: 0, initialPosX: 0, initialPosY: 0, currentX: 0, currentY: 0 });
 
@@ -68,6 +78,9 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   const finalSettings = (slot.isCustom && slot.customSettings) 
     ? deepMerge(globalSettings, slot.customSettings) as typeof globalSettings
     : globalSettings;
+
+  const imgSettings = slot.imageSettings || {};
+  const isImgEditMode = imgSettings.editMode || false;
 
   let profit = 0, isLoss = false, hasCost = false;
   if (slot.product) {
@@ -96,7 +109,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   const handleMouseUp = (e: React.MouseEvent) => {
     if (imgDrag.isDragging) {
       e.stopPropagation();
-      updateSlotCustomSettings({ imagePosX: imgDrag.currentX, imagePosY: imgDrag.currentY });
+      updateSlotImageSettings(pageNumber, slot.id, { posX: imgDrag.currentX, posY: imgDrag.currentY });
       setImgDrag(prev => ({ ...prev, isDragging: false }));
     }
     if (badgeDrag.isDragging) {
@@ -107,9 +120,9 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   };
 
   const handleImgMouseDown = (e: React.MouseEvent) => {
-    if (!finalSettings.imageEditMode) return;
+    if (!isImgEditMode) return;
     e.preventDefault(); e.stopPropagation();
-    setImgDrag({ isDragging: true, startX: e.clientX, startY: e.clientY, initialPosX: finalSettings.imagePosX || 0, initialPosY: finalSettings.imagePosY || 0, currentX: finalSettings.imagePosX || 0, currentY: finalSettings.imagePosY || 0 });
+    setImgDrag({ isDragging: true, startX: e.clientX, startY: e.clientY, initialPosX: imgSettings.posX || 0, initialPosY: imgSettings.posY || 0, currentX: imgSettings.posX || 0, currentY: imgSettings.posY || 0 });
   };
 
   const handleBadgeMouseDown = (e: React.MouseEvent) => {
@@ -118,9 +131,9 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
     setBadgeDrag({ isDragging: true, startX: e.clientX, startY: e.clientY, initialPosX: finalSettings.badge?.posX || 0, initialPosY: finalSettings.badge?.posY || 0, currentX: finalSettings.badge?.posX || 0, currentY: finalSettings.badge?.posY || 0 });
   };
 
-  const displayX = imgDrag.isDragging ? imgDrag.currentX : (finalSettings.imagePosX || 0);
-  const displayY = imgDrag.isDragging ? imgDrag.currentY : (finalSettings.imagePosY || 0);
-  const displayScale = (finalSettings.imageScale || 100) / 100;
+  const displayX = imgDrag.isDragging ? imgDrag.currentX : (imgSettings.posX || 0);
+  const displayY = imgDrag.isDragging ? imgDrag.currentY : (imgSettings.posY || 0);
+  const displayScale = (imgSettings.scale || 100) / 100;
 
   const badgeScale = (finalSettings.badge?.size || 100) / 100;
   const badgeX = badgeDrag.isDragging ? badgeDrag.currentX : (finalSettings.badge?.posX || 0);
@@ -132,20 +145,40 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
 
   return (
     <div 
+      id={`slot-${slot.id}`}
       onClick={(e) => {
-        if (isSelected && (finalSettings.imageEditMode || finalSettings.badge?.isFreePosition)) return;
+        e.stopPropagation(); 
+        if (isSelected && (isImgEditMode || finalSettings.badge?.isFreePosition)) return;
+        
+        clearBannerSelection();
+        clearPizzaSelection();
+        disableAllImageEditModes();
+        
+        // YENİ: Hücrenin boşluğuna tıklandığında metin seçimini iptal et
+        setSelectedTextElement(null); 
+        
         toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
       }} 
       onContextMenu={(e) => onContextMenu(e, slot)} 
-      draggable={!!slot.product && !isSelected && !finalSettings.imageEditMode && !finalSettings.badge?.isFreePosition} 
+      draggable={!!slot.product && !isSelected && !isImgEditMode && !finalSettings.badge?.isFreePosition} 
       onDragStart={(e) => { e.dataTransfer.setData("sourcePage", String(pageNumber)); e.dataTransfer.setData("sourceIndex", String(slotIndex)); }} 
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }} 
       onDragLeave={() => setIsOver(false)} 
       onDrop={handleDrop} 
-      className={`product-slot relative overflow-hidden border border-solid transition-all h-full min-w-0 min-h-0 cursor-pointer ${isSelected ? "ring-4 ring-blue-500 z-30 shadow-lg" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300"}`} 
-      style={{ gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`, gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`, borderRadius: getRadiusStyle(finalSettings.radiuses.cell), backgroundColor: hexToRgba(finalSettings.colors.cellBg.c, finalSettings.colors.cellBg.o), borderColor: hexToRgba(finalSettings.colors.cellBorder.c, finalSettings.colors.cellBorder.o), borderWidth: `${finalSettings.borderWidth}px`, boxShadow: getShadowStyle(finalSettings.shadows.cell), padding: getPaddingStyle(finalSettings.spacings.cell) }}
+      className={`product-slot relative overflow-hidden border border-solid transition-all h-full min-w-0 min-h-0 cursor-pointer ${isSelected ? "z-30" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300"}`} 
+      style={{ 
+        gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`, 
+        gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`, 
+        borderRadius: getRadiusStyle(finalSettings.radiuses.cell), 
+        backgroundColor: hexToRgba(finalSettings.colors.cellBg.c, finalSettings.colors.cellBg.o), 
+        borderColor: hexToRgba(finalSettings.colors.cellBorder.c, finalSettings.colors.cellBorder.o), 
+        borderWidth: `${finalSettings.borderWidth}px`, 
+        boxShadow: isSelected 
+          ? `0 0 0 4px #3b82f6, ${getShadowStyle(finalSettings.shadows.cell)}` 
+          : getShadowStyle(finalSettings.shadows.cell), 
+        padding: getPaddingStyle(finalSettings.spacings.cell) 
+      }}
     >
-      {/* 2. MADDE: Hücre numarası çıktıda gizleniyor */}
       <div data-hide-on-export="true" className="absolute top-0 left-0 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none z-[50]">{globalNumber}</div>
       
       {slot.product && (
@@ -155,29 +188,77 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          
-          {/* 1. MADDE: Kâr hesaplaması çıktıda gizleniyor */}
           {hasCost && <div data-hide-on-export="true" className={`absolute right-1 text-[10px] font-black pointer-events-none z-[40] ${isLoss ? "text-red-600" : "text-green-600"}`} style={{ top: "10.5mm" }}>%{profit.toFixed(1)}</div>}
 
-          <div className={`absolute top-0 z-[30] flex shadow-sm transition-all px-1.5 py-1 cursor-text pointer-events-auto ${finalSettings.pricePosition === 'left' ? 'left-0' : finalSettings.pricePosition === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0'}`} style={{ width: `${finalSettings.priceWidth}%`, height: `${finalSettings.priceHeight}mm`, backgroundColor: hexToRgba(finalSettings.colors.priceBg.c, finalSettings.colors.priceBg.o), borderRadius: getRadiusStyle(finalSettings.radiuses.price), ...getFontStyle(finalSettings.fonts.price) }} onClick={(e) => e.stopPropagation()} contentEditable suppressContentEditableWarning onBlur={(e) => updateSlotProduct(pageNumber, slot.id, { price: e.currentTarget.textContent || "0" })}>
+          {/* FİYAT ALANI */}
+          <div 
+            className={`absolute top-0 z-[30] flex shadow-sm transition-all px-1.5 py-1 pointer-events-auto outline-none ${
+              // YENİ: Fiyat seçiliyse mavi ince çerçeve eklenir
+              selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'price' ? 'ring-2 ring-blue-500 ring-offset-1 cursor-text' : 'cursor-pointer hover:ring-1 hover:ring-blue-300'
+            } ${finalSettings.pricePosition === 'left' ? 'left-0' : finalSettings.pricePosition === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0'}`} 
+            style={{ width: `${finalSettings.priceWidth}%`, height: `${finalSettings.priceHeight}mm`, backgroundColor: hexToRgba(finalSettings.colors.priceBg.c, finalSettings.colors.priceBg.o), borderRadius: getRadiusStyle(finalSettings.radiuses.price), ...getFontStyle(finalSettings.fonts.price) }} 
+            
+            // YENİ: Tek tıkla Seç, Çift Tıkla Düzenle Mantığı
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!selectedSlotIds.includes(slot.id)) toggleSlotSelection(slot.id, false);
+              setSelectedTextElement({ slotId: slot.id, elementType: 'price' });
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setEditingText('price');
+              const target = e.currentTarget;
+              setTimeout(() => target.focus(), 0);
+            }}
+            contentEditable={editingText === 'price'} 
+            suppressContentEditableWarning 
+            onBlur={(e) => {
+              setEditingText(null);
+              updateSlotProduct(pageNumber, slot.id, { price: e.currentTarget.textContent || "0" });
+            }}
+          >
             <div className="flex items-start pointer-events-none"><span style={{ lineHeight: "0.8" }}>{splitPrice(slot.product.price).main},</span><span style={{ fontSize: `${finalSettings.fonts.price.decimalScale}%`, verticalAlign: "top", lineHeight: "1em", marginLeft: "2px" }}>{splitPrice(slot.product.price).decimal}</span></div>
           </div>
 
-          {/* RESİM ALANI */}
           <div className="flex-1 flex items-center justify-center min-h-0 min-w-0 mb-2 mt-6 pointer-events-auto relative z-[10]" title={slot.product.sku || "SKU Yok"}>
             {slot.product.image ? (
-              <img src={slot.product.image} onMouseDown={handleImgMouseDown} draggable={false} className="max-w-full max-h-full object-contain select-none transformOrigin-center" style={{ transform: `translate(${displayX}px, ${displayY}px) scale(${displayScale})`, cursor: finalSettings.imageEditMode ? (imgDrag.isDragging ? 'grabbing' : 'grab') : 'default', transition: imgDrag.isDragging ? 'none' : 'transform 0.1s ease-out', }} />
+              <img src={slot.product.image} onMouseDown={handleImgMouseDown} draggable={false} className="max-w-full max-h-full object-contain select-none transformOrigin-center" style={{ transform: `translate(${displayX}px, ${displayY}px) scale(${displayScale})`, cursor: isImgEditMode ? (imgDrag.isDragging ? 'grabbing' : 'grab') : 'default', transition: imgDrag.isDragging ? 'none' : 'transform 0.1s ease-out', }} />
             ) : (
               <div className="text-[8px] text-slate-300 italic uppercase">Resim Yok</div>
             )}
           </div>
           
-          {/* ÜRÜN İSMİ */}
-          <div className="shrink-0 w-full flex flex-col cursor-text pointer-events-auto relative z-[20]" style={{ height: "3em", ...getFontStyle(finalSettings.fonts.productName), paddingLeft: `${bl / 5}px`, paddingRight: `${br / 5}px`, marginBottom: `${maxRadiusBottom}px` }} onClick={(e) => e.stopPropagation()}>
-            <div className="line-clamp-2 w-full outline-none focus:bg-white/50 rounded whitespace-pre-wrap" contentEditable suppressContentEditableWarning onBlur={(e) => updateSlotProduct(pageNumber, slot.id, { name: e.currentTarget.innerText || "" })}>{slot.product.name}</div>
+          {/* ÜRÜN İSMİ ALANI */}
+          <div className="shrink-0 w-full flex flex-col pointer-events-auto relative z-[20]" style={{ height: "3em", ...getFontStyle(finalSettings.fonts.productName), paddingLeft: `${bl / 5}px`, paddingRight: `${br / 5}px`, marginBottom: `${maxRadiusBottom}px` }}>
+            <div 
+              className={`line-clamp-2 w-full outline-none focus:bg-white/50 rounded whitespace-pre-wrap transition-all ${
+                // YENİ: İsim seçiliyse mavi ince çerçeve eklenir
+                selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'name' ? 'ring-2 ring-blue-500 cursor-text' : 'cursor-pointer hover:ring-1 hover:ring-blue-300'
+              }`} 
+              
+              // YENİ: Tek tıkla Seç, Çift Tıkla Düzenle Mantığı
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!selectedSlotIds.includes(slot.id)) toggleSlotSelection(slot.id, false);
+                setSelectedTextElement({ slotId: slot.id, elementType: 'name' });
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setEditingText('name');
+                const target = e.currentTarget;
+                setTimeout(() => target.focus(), 0);
+              }}
+              contentEditable={editingText === 'name'} 
+              suppressContentEditableWarning 
+              onBlur={(e) => {
+                setEditingText(null);
+                updateSlotProduct(pageNumber, slot.id, { name: e.currentTarget.innerText || "" });
+              }}
+            >
+              {slot.product.name}
+            </div>
           </div>
 
-          {/* PROMOSYON ETİKETİ */}
           {finalSettings.badge?.active && (() => {
             const bPos = finalSettings.badge?.position || 'top-left';
             const bShape = finalSettings.badge?.shape || 'rectangle';
@@ -200,7 +281,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
                   bShape === 'circle' ? 'rounded-full w-14 h-14' :
                   bShape === 'banner' ? 'w-12 h-16' : 
                   bShape === 'flama' ? 'w-16 h-16' : 
-                  'w-16 h-16' // Burst
+                  'w-16 h-16' 
                 }`}
                 style={{ 
                   transform: `translate(${badgeX}px, ${badgeY}px) scale(${badgeScale})`,
@@ -216,7 +297,6 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
                 onMouseDown={handleBadgeMouseDown}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* SVG ARKA PLANLAR */}
                 {['banner', 'burst', 'flama'].includes(bShape) && (
                   <svg viewBox={['burst', 'flama'].includes(bShape) ? "0 0 200 200" : "0 0 100 100"} preserveAspectRatio="none" className="absolute inset-0 w-full h-full -z-10 overflow-visible">
                     <path 
@@ -234,14 +314,35 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
                     />
                   </svg>
                 )}
-
-                {/* YAZI ALANI */}
+                
+                {/* ETİKET METNİ */}
                 <div 
-                  className="w-full h-full flex items-center justify-center z-10 p-1 whitespace-pre-wrap"
+                  className={`w-full h-full flex items-center justify-center z-10 p-1 whitespace-pre-wrap outline-none transition-all ${
+                    // YENİ: Etiket metni seçiliyse
+                    selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'badge' ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-blue-300'
+                  }`}
                   style={{ paddingBottom: ['banner'].includes(bShape) ? '15%' : '0' }}
-                  contentEditable={!finalSettings.badge?.isFreePosition}
+                  
+                  // YENİ: Tek tıkla Seç, Çift Tıkla Düzenle Mantığı
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!selectedSlotIds.includes(slot.id)) toggleSlotSelection(slot.id, false);
+                    setSelectedTextElement({ slotId: slot.id, elementType: 'badge' });
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if(!finalSettings.badge?.isFreePosition) {
+                      setEditingText('badge');
+                      const target = e.currentTarget;
+                      setTimeout(() => target.focus(), 0);
+                    }
+                  }}
+                  contentEditable={editingText === 'badge' && !finalSettings.badge?.isFreePosition}
                   suppressContentEditableWarning
-                  onBlur={(e) => updateSlotCustomSettings({ badge: { ...finalSettings.badge!, text: e.currentTarget.innerText || "YENİ" } })}
+                  onBlur={(e) => {
+                    setEditingText(null);
+                    updateSlotCustomSettings({ badge: { ...finalSettings.badge!, text: e.currentTarget.innerText || "YENİ" } });
+                  }}
                 >
                   {finalSettings.badge?.text || "YENİ"}
                 </div>

@@ -10,6 +10,12 @@ export const defaultSpacing: SpacingData = { t: 8, r: 8, b: 8, l: 8, linked: tru
 export const defaultShadow: ShadowData = { x: 0, y: 4, blur: 6, spread: -1, color: "#000000", opacity: 10, active: false };
 
 interface PizzaStore {
+  // YENİ EKLENEN DURUMLAR (STATE)
+  isSelected: boolean;
+  selectPizza: () => void;
+  clearSelection: () => void;
+  
+  // Mevcut Durumlar...
   colors: {
     bg: { c: string; o: number };
     border: { c: string; o: number };
@@ -53,6 +59,12 @@ interface PizzaStore {
 }
 
 export const usePizzaStore = create<PizzaStore>((set) => ({
+  // YENİ EKLENEN FONKSİYONLAR
+  isSelected: false,
+  selectPizza: () => set({ isSelected: true }),
+  clearSelection: () => set({ isSelected: false }),
+
+  // Mevcut Veriler...
   colors: {
     bg: { c: "#ffffff", o: 100 },
     border: { c: "#1e293b", o: 100 },
@@ -81,7 +93,7 @@ export const usePizzaStore = create<PizzaStore>((set) => ({
     cell: { t: 2, r: 4, b: 2, l: 4, linked: false },
   },
   shadows: {
-    container: { ...defaultShadow, active: true, blur: 10, opacity: 5 }, // Ana çerçevede hafif aktif gölge
+    container: { ...defaultShadow, active: true, blur: 10, opacity: 5 },
     table: { ...defaultShadow },
     image: { ...defaultShadow },
     cell: { ...defaultShadow },

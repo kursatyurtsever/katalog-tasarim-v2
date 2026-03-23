@@ -17,6 +17,8 @@ export function Canvas() {
   const activeTab = useCatalogStore((state) => state.activeTab);
   const isZoomed = useCatalogStore((state) => state.isZoomed);
   const template = useCatalogStore((state) => state.activeTemplate);
+  const clearCatalogSelection = useCatalogStore((state) => state.clearSelection);
+  const disableAllImageEditModes = useCatalogStore((state) => state.disableAllImageEditModes);
   
   const [scale, setScale] = useState(1);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,10 @@ export function Canvas() {
     >
       <div
         id="canvas"
+        onClick={() => {
+          clearCatalogSelection();
+          disableAllImageEditModes(); // YENİ: Boşluğa tıklanınca serbest konumu kapat
+        }}
         className={`canvas flex flex-row items-stretch bg-white shadow-2xl transition-transform duration-200 ${isZoomed ? "relative mx-auto mt-20 mb-8" : "absolute top-1/2 left-1/2 origin-center"}`}
         style={{
           boxSizing: "border-box",

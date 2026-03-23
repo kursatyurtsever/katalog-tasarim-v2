@@ -36,25 +36,25 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
   const customSettings = selectedSlot?.customSettings || globalSettings;
 
   return (
-    <div className="bg-white rounded-md border border-purple-200 shadow-sm mb-4 relative z-30">
-      <button onClick={onToggle} className={`w-full flex items-center justify-between p-3 bg-purple-700 hover:bg-purple-600 transition-colors ${isOpen ? "rounded-t-md" : "rounded-md"}`}>
+    <div className="bg-slate-800 rounded-md border border-slate-700 shadow-lg mb-4 relative z-30">
+      <button onClick={onToggle} className={`w-full flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 transition-colors ${isOpen ? "rounded-t-md" : "rounded-md"}`}>
         <span className="text-[11px] font-black text-white uppercase tracking-widest">Özel Hücre Ayarları</span>
-        <span className="text-white text-xs">{isOpen ? "▲" : "▼"}</span>
+        <span className="text-white text-white/70 text-xs">{isOpen ? "▲" : "▼"}</span>
       </button>
       
       {isOpen && (
-        <div className="p-4 bg-purple-50 border-t border-purple-200 space-y-4 rounded-b-md">
+        <div className="p-4 bg-slate-800 border-t border-slate-700 space-y-4 rounded-b-md">
           {selectedSlotIds.length !== 1 ? (
-            <div className="text-[10px] text-center text-slate-500 font-bold p-4 bg-white rounded border border-slate-200 shadow-sm">
+            <div className="text-[10px] text-center text-slate-300 font-bold p-4 bg-slate-900 rounded border border-slate-700 shadow-sm">
               Lütfen tablodan sadece BİR adet hücre seçin.
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between bg-white p-2 rounded border border-slate-200 shadow-sm">
-                <span className="text-[10px] font-black text-slate-600">Seçili Hücre: #{selectedGlobalNumber}</span>
+              <div className="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700 shadow-sm">
+                <span className="text-[10px] font-black text-slate-200">Seçili Hücre: #{selectedGlobalNumber}</span>
               </div>
               
-              <div className="flex gap-1 bg-white p-2 rounded border border-slate-200 shadow-sm">
+              <div className="flex gap-1 bg-slate-900 p-2 rounded border border-slate-700 shadow-sm">
                 <button onClick={copySlotSettings} className="flex-1 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[9px] font-bold hover:bg-blue-100 transition-colors">
                   Kopyala
                 </button>
@@ -70,21 +70,21 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                 </button>
               </div>
 
-              <div className="flex items-center justify-between bg-white p-2.5 rounded border border-purple-300 shadow-sm mt-4">
-                <span className="text-[10px] font-black text-purple-700">Bu Hücreyi Özelleştir</span>
+              <div className="flex items-center justify-between bg-slate-900 p-2.5 rounded border border-slate-700 shadow-sm mt-4">
+                <span className="text-[10px] font-black text-slate-200">Bu Hücreyi Özelleştir</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" checked={isCustomActive} onChange={(e) => toggleSlotCustomSettings(e.target.checked)} />
-                  <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600 shadow-inner"></div>
+                  <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
                 </label>
               </div>
 
               <div className={`space-y-2 transition-all duration-300 ${isCustomActive ? "opacity-100" : "opacity-30 pointer-events-none blur-[1px]"}`}>
                 
                 {/* 1. HÜCRE TASARIMI */}
-                <div className={`bg-white rounded border border-purple-200 shadow-sm relative z-[60] ${activeTab === 'cell' ? 'overflow-visible' : 'overflow-hidden'}`}>
-                  <button onClick={() => setActiveTab(activeTab === 'cell' ? null : 'cell')} className="w-full flex items-center justify-between p-2.5 bg-purple-50 hover:bg-purple-100 transition-colors border-b border-purple-100">
-                    <span className="text-[10px] font-black text-purple-700 uppercase tracking-wider">1. Hücre Tasarımı</span>
-                    <span className="text-purple-500 font-bold">{activeTab === 'cell' ? "▼" : "▶"}</span>
+                <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[60] ${activeTab === 'cell' ? 'overflow-visible' : 'overflow-hidden'}`}>
+                  <button onClick={() => setActiveTab(activeTab === 'cell' ? null : 'cell')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
+                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">1. Hücre Tasarımı</span>
+                    <span className="text-slate-400 font-bold">{activeTab === 'cell' ? "▼" : "▶"}</span>
                   </button>
                   {activeTab === 'cell' && (
                     <div className="p-3 space-y-4">
@@ -93,13 +93,13 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                           <span className="text-[10px] font-bold text-slate-600">Zemin Rengi</span>
                           <ColorOpacityPicker color={customSettings.colors?.cellBg?.c || "#fff"} opacity={customSettings.colors?.cellBg?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBg: { c, o } } })} />
                         </div>
-                        <div className="flex items-center justify-between pt-1 border-t border-purple-50">
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-50">
                           <span className="text-[10px] font-bold text-slate-600">Kenarlık Rengi</span>
                           <ColorOpacityPicker color={customSettings.colors?.cellBorder?.c || "#000"} opacity={customSettings.colors?.cellBorder?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBorder: { c, o } } })} />
                         </div>
-                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-purple-50">
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-50">
                           <span className="text-[9px] font-medium text-slate-500 w-16">Kalınlık</span>
-                          <input type="range" min="0" max="10" step="0.5" value={customSettings.borderWidth || 0} onChange={(e) => updateSlotCustomSettings({ borderWidth: parseFloat(e.target.value) })} className="flex-1 accent-purple-600" />
+                          <input type="range" min="0" max="10" step="0.5" value={customSettings.borderWidth || 0} onChange={(e) => updateSlotCustomSettings({ borderWidth: parseFloat(e.target.value) })} className="flex-1 accent-blue-600" />
                           <div className="flex items-center gap-1">
                             <input type="number" value={customSettings.borderWidth || 0} onChange={(e) => updateSlotCustomSettings({ borderWidth: parseFloat(e.target.value) || 0 })} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
                             <span className="text-[9px] text-slate-400">px</span>
@@ -114,10 +114,10 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                 </div>
 
                 {/* 2. ÜRÜN GÖRSELİ */}
-                <div className={`bg-white rounded border border-blue-200 shadow-sm relative z-[50] ${activeTab === 'image' ? 'overflow-visible' : 'overflow-hidden'}`}>
-                  <button onClick={() => setActiveTab(activeTab === 'image' ? null : 'image')} className="w-full flex items-center justify-between p-2.5 bg-blue-50 hover:bg-blue-100 transition-colors border-b border-blue-100">
-                    <span className="text-[10px] font-black text-blue-700 uppercase tracking-wider">2. Ürün Görseli</span>
-                    <span className="text-blue-500 font-bold">{activeTab === 'image' ? "▼" : "▶"}</span>
+                <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[50] ${activeTab === 'image' ? 'overflow-visible' : 'overflow-hidden'}`}>
+                  <button onClick={() => setActiveTab(activeTab === 'image' ? null : 'image')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
+                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">2. Ürün Görseli</span>
+                    <span className="text-slate-400 font-bold">{activeTab === 'image' ? "▼" : "▶"}</span>
                   </button>
                   {activeTab === 'image' && (
                     <div className="p-3 space-y-3">
@@ -149,10 +149,10 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                 </div>
 
                 {/* 3. ÜRÜN İSMİ */}
-                <div className={`bg-white rounded border border-indigo-200 shadow-sm relative z-[40] ${activeTab === 'name' ? 'overflow-visible' : 'overflow-hidden'}`}>
-                  <button onClick={() => setActiveTab(activeTab === 'name' ? null : 'name')} className="w-full flex items-center justify-between p-2.5 bg-indigo-50 hover:bg-indigo-100 transition-colors border-b border-indigo-100">
-                    <span className="text-[10px] font-black text-indigo-700 uppercase tracking-wider">3. Ürün İsmi</span>
-                    <span className="text-indigo-500 font-bold">{activeTab === 'name' ? "▼" : "▶"}</span>
+                <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[40] ${activeTab === 'name' ? 'overflow-visible' : 'overflow-hidden'}`}>
+                  <button onClick={() => setActiveTab(activeTab === 'name' ? null : 'name')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
+                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">3. Ürün İsmi</span>
+                    <span className="text-slate-400 font-bold">{activeTab === 'name' ? "▼" : "▶"}</span>
                   </button>
                   {activeTab === 'name' && (
                     <div className="p-3">
@@ -162,10 +162,10 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                 </div>
 
                 {/* 4. FİYAT KUTUSU */}
-                <div className={`bg-white rounded border border-orange-200 shadow-sm relative z-[30] ${activeTab === 'price' ? 'overflow-visible' : 'overflow-hidden'}`}>
-                  <button onClick={() => setActiveTab(activeTab === 'price' ? null : 'price')} className="w-full flex items-center justify-between p-2.5 bg-orange-50 hover:bg-orange-100 transition-colors border-b border-orange-100">
-                    <span className="text-[10px] font-black text-orange-700 uppercase tracking-wider">4. Fiyat Kutusu</span>
-                    <span className="text-orange-500 font-bold">{activeTab === 'price' ? "▼" : "▶"}</span>
+                <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[30] ${activeTab === 'price' ? 'overflow-visible' : 'overflow-hidden'}`}>
+                  <button onClick={() => setActiveTab(activeTab === 'price' ? null : 'price')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
+                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">4. Fiyat Kutusu</span>
+                    <span className="text-slate-400 font-bold">{activeTab === 'price' ? "▼" : "▶"}</span>
                   </button>
                   {activeTab === 'price' && (
                     <div className="p-3 space-y-4">
@@ -219,13 +219,13 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                 </div>
 
                 {/* 5. PROMOSYON ETİKETİ */}
-                <div className={`bg-white rounded border border-green-200 shadow-sm relative z-[20] ${activeTab === 'badge' ? 'overflow-visible' : 'overflow-hidden'}`}>
-                  <button onClick={() => setActiveTab(activeTab === 'badge' ? null : 'badge')} className="w-full flex items-center justify-between p-2.5 bg-green-50 hover:bg-green-100 transition-colors border-b border-green-100">
+                <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[20] ${activeTab === 'badge' ? 'overflow-visible' : 'overflow-hidden'}`}>
+                  <button onClick={() => setActiveTab(activeTab === 'badge' ? null : 'badge')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-green-700 uppercase tracking-wider">5. Promosyon Etiketi</span>
+                      <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">5. Promosyon Etiketi</span>
                       {customSettings.badge?.active && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>}
                     </div>
-                    <span className="text-green-500 font-bold">{activeTab === 'badge' ? "▼" : "▶"}</span>
+                    <span className="text-slate-400 font-bold">{activeTab === 'badge' ? "▼" : "▶"}</span>
                   </button>
                   {activeTab === 'badge' && (
                     <div className="p-3 space-y-4">

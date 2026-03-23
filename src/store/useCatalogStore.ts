@@ -83,7 +83,14 @@ export interface Slot {
   hidden?: boolean;
   mergedInto?: string | null;
   isCustom?: boolean; 
-  customSettings?: DeepPartial<CatalogSettings>; 
+  customSettings?: DeepPartial<CatalogSettings>;
+  // YENİ: Resim ayarları hücrenin global statüsünden bağımsız tutuluyor
+  imageSettings?: {
+    scale?: number;
+    posX?: number;
+    posY?: number;
+    editMode?: boolean;
+  }; 
 }
 
 export interface CatalogPage {
@@ -104,6 +111,7 @@ export interface CatalogState {
   copiedSlotSettings: DeepPartial<CatalogSettings> | null;
   isZoomed: boolean;
   selectedSlotIds: string[];
+  selectedTextElement: { slotId: string, elementType: 'name' | 'price' | 'badge' } | null;
   pastPages: CatalogPage[][];
   futurePages: CatalogPage[][];
 }
@@ -112,6 +120,7 @@ export interface CatalogActions {
   setActiveTab: (tab: "outer" | "inner") => void;
   setActiveTemplate: (templateId: string) => void;
   setGlobalSettings: (settings: DeepPartial<CatalogSettings>) => void;
+  updateGlobalSettings: (settings: any) => void;
   updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;
   swapSlotContents: (sourcePage: number, sourceIndex: number, targetPage: number, targetIndex: number) => void;
   toggleZoom: () => void;
@@ -122,6 +131,8 @@ export interface CatalogActions {
   resetCatalog: () => void;
   toggleSlotSelection: (id: string, isMulti: boolean) => void;
   clearSelection: () => void;
+  setSelectedTextElement: (element: { slotId: string, elementType: 'name' | 'price' | 'badge' } | null) => void;
+  disableAllImageEditModes: () => void;
   mergeSelected: (pageNumber: number, targetSlotId: string) => { success: boolean; error?: string };
   unmergeSlot: (pageNumber: number, slotId: string) => void;
   undo: () => void;
@@ -134,6 +145,7 @@ export interface CatalogActions {
   clearSlot: (pageNumber: number, slotId: string) => void;
   setSlotProduct: (pageNumber: number, slotId: string, product: ProductInfo) => void;
   updateSlotProduct: (pageNumber: number, slotId: string, updates: Partial<ProductInfo>) => void;
+  updateSlotImageSettings: (pageNumber: number, slotId: string, settings: any) => void;
 }
 
 const initialGlobalSettings: CatalogSettings = {
@@ -227,6 +239,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       copiedSlotSettings: null,
       isZoomed: false,
       selectedSlotIds: [],
+      selectedTextElement: null,
       pastPages: [],
       futurePages: [],
 
@@ -263,6 +276,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         
         return { 
           selectedSlotIds: newSelectedIds,
+          selectedTextElement: null,
           pages: newPages,
           globalSettings: { ...state.globalSettings, imageEditMode: false }
         };
@@ -279,10 +293,29 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         
         return { 
           selectedSlotIds: [],
+          selectedTextElement: null,
           pages: newPages,
           globalSettings: { ...state.globalSettings, imageEditMode: false }
         };
       }),
+
+      setSelectedTextElement: (element) => set({ selectedTextElement: element }),
+
+      disableAllImageEditModes: () => set((state) => ({
+        pages: state.pages.map(page => ({
+          ...page,
+          slots: page.slots.map(slot => {
+            if (slot.imageSettings?.editMode) {
+              return {
+                ...slot,
+                imageSettings: { ...slot.imageSettings, editMode: false }
+              };
+            }
+            return slot;
+          })
+        }))
+      })),
+
       setActiveTab: (tab) => set({ activeTab: tab }),
       setActiveTemplate: (templateId) => {
         const tmpl = availableTemplates.find((t) => t.id === templateId);
@@ -292,6 +325,10 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       
       setGlobalSettings: (settings) => set((state) => ({ 
         globalSettings: deepMerge(state.globalSettings, settings) 
+      })),
+
+      updateGlobalSettings: (settings) => set((state) => ({
+        globalSettings: { ...state.globalSettings, ...settings }
       })),
 
       updatePageFooter: (pageNum, data) => set((state) => ({ pages: state.pages.map(p => p.pageNumber === pageNum ? { ...p, ...data } : p) })),
@@ -359,9 +396,20 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         return { pages: newPages, pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))], futurePages: [] };
       }),
 
+      updateSlotImageSettings: (pageNumber, slotId, settings) => set((state) => ({
+        pages: state.pages.map(p => p.pageNumber === pageNumber ? {
+          ...p,
+          slots: p.slots.map(s => s.id === slotId ? {
+            ...s,
+            imageSettings: { ...(s.imageSettings || {}), ...settings }
+          } : s)
+        } : p)
+      })),
+
       resetCatalog: () => set((state) => ({
         pages: buildPagesForTemplate(state.activeTemplate),
         selectedSlotIds: [],
+        selectedTextElement: null,
         globalSettings: initialGlobalSettings,
         pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))],
         futurePages: []
@@ -371,9 +419,19 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newPages = JSON.parse(JSON.stringify(state.pages)) as CatalogPage[];
         const sPage = newPages.find(p => p.pageNumber === sPageNum), tPage = newPages.find(p => p.pageNumber === tPageNum);
         if (!sPage || !tPage) return state;
-        const temp = sPage.slots[sIdx].product;
-        sPage.slots[sIdx].product = tPage.slots[tIdx].product;
-        tPage.slots[tIdx].product = temp;
+        const sourceSlot = sPage.slots[sIdx];
+        const targetSlot = tPage.slots[tIdx];
+
+        // 1. Ürün takası
+        const tempProduct = sourceSlot.product;
+        sourceSlot.product = targetSlot.product;
+        targetSlot.product = tempProduct;
+
+        // 2. Resim Ayarları (Büyütme/Kaydırma) takası
+        const tempImgSettings = sourceSlot.imageSettings;
+        sourceSlot.imageSettings = targetSlot.imageSettings;
+        targetSlot.imageSettings = tempImgSettings;
+
         return { pages: newPages, pastPages: [...(state.pastPages || []).slice(-20), JSON.parse(JSON.stringify(state.pages))], futurePages: [] };
       }),
 

@@ -2,6 +2,8 @@
 
 import React, { useRef, useState } from 'react';
 import { usePizzaStore } from '../store/usePizzaStore';
+import { useCatalogStore } from '@/store/useCatalogStore';
+import { useBannerStore } from '@/store/useBannerStore';
 import { TypographyData } from './TypographyPicker';
 import { BorderRadiusData } from './BorderRadiusPicker';
 import { SpacingData } from './SpacingPicker';
@@ -10,7 +12,11 @@ import { ShadowData } from './ShadowPicker';
 export function PizzaSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const { colors, fonts, tableLineWidth, radiuses, spacings, shadows } = usePizzaStore();
+  
+  const { colors, fonts, tableLineWidth, radiuses, spacings, shadows, isSelected, selectPizza } = usePizzaStore();
+  
+  const clearCatalogSelection = useCatalogStore((state) => state.clearSelection);
+  const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -61,7 +67,8 @@ export function PizzaSection() {
   const renderFormattedText = (text: string, font: TypographyData) => {
     if (!font.decimalScale || font.decimalScale === 100) return text;
     
-    const match = text.match(/^(.*?\d)([,.])(\d+)(.*)$/s);
+    // /s bayrağını kaldırdık, yerine her karakteri ve alt satırı kapsayan [\s\S] kullandık
+    const match = text.match(/^([\s\S]*?\d)([,.])(\d+)([\s\S]*)$/);
     if (match) {
       return (
         <span style={{ display: 'inline-block' }}>
@@ -77,33 +84,120 @@ export function PizzaSection() {
     return text;
   };
 
+  // YENİ: Çift Tıklayarak Düzenleme Sağlayan Akıllı Bileşen
+  const EditableText = ({ initialValue, font, className, style }: { initialValue: string, font: TypographyData, className?: string, style?: React.CSSProperties }) => {
+    const [val, setVal] = useState(initialValue);
+    const [isEditing, setIsEditing] = useState(false);
+
+    if (isEditing) {
+      return (
+        <div
+          className={`outline-none bg-white/90 ring-1 ring-inset ring-blue-500 z-50 shadow-sm ${className || ''}`}
+          style={{ ...style, ...getFontStyle(font) }}
+          contentEditable
+          suppressContentEditableWarning
+          onBlur={(e) => {
+            setVal(e.currentTarget.innerText);
+            setIsEditing(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsEditing(false);
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          ref={(el) => {
+            // Açılır açılmaz imleci hücrenin en sonuna odakla
+            if (el && document.activeElement !== el) {
+              el.focus();
+              if (typeof window !== 'undefined') {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                range.collapse(false);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              }
+            }
+          }}
+        >
+          {val}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`cursor-text ${className || ''}`}
+        style={{ ...style, ...getFontStyle(font) }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          setIsEditing(true);
+        }}
+        title="Düzenlemek için çift tıklayın"
+      >
+        {renderFormattedText(val, font)}
+      </div>
+    );
+  };
+
   const Cell = ({ size, price, isLast = false }: { size: string, price: string, isLast?: boolean }) => (
     <div className="flex flex-col h-full border-solid transition-shadow duration-200" style={{ borderRightWidth: isLast ? 0 : `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), boxShadow: getShadowStyle(shadows.cell) }}>
-      <div className="flex-1 min-h-[22px] w-full border-solid" style={{ padding: getPaddingStyle(spacings.cell), borderBottomWidth: `${tableLineWidth}px`, backgroundColor: hexToRgba(colors.cellBg.c, colors.cellBg.o), borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), ...getFontStyle(fonts.sizes) }} contentEditable suppressContentEditableWarning>
-        {renderFormattedText(size, fonts.sizes)}
-      </div>
-      <div className="flex-1 min-h-[22px] w-full" style={{ padding: getPaddingStyle(spacings.cell), backgroundColor: hexToRgba(colors.cellPriceBg.c, colors.cellPriceBg.o), ...getFontStyle(fonts.prices) }} contentEditable suppressContentEditableWarning>
-        {renderFormattedText(price, fonts.prices)}
-      </div>
+      <EditableText
+        initialValue={size}
+        font={fonts.sizes}
+        className="flex-1 min-h-[22px] w-full border-solid"
+        style={{ padding: getPaddingStyle(spacings.cell), borderBottomWidth: `${tableLineWidth}px`, backgroundColor: hexToRgba(colors.cellBg.c, colors.cellBg.o), borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}
+      />
+      <EditableText
+        initialValue={price}
+        font={fonts.prices}
+        className="flex-1 min-h-[22px] w-full"
+        style={{ padding: getPaddingStyle(spacings.cell), backgroundColor: hexToRgba(colors.cellPriceBg.c, colors.cellPriceBg.o) }}
+      />
     </div>
   );
 
   const SpecialCell = ({ title, price, isLast = false }: { title: string, price: string, isLast?: boolean }) => (
     <div className="flex flex-col h-full border-solid transition-shadow duration-200" style={{ borderRightWidth: isLast ? 0 : `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), boxShadow: getShadowStyle(shadows.cell) }}>
-      <div className="flex-1 whitespace-pre-wrap min-h-[30px] w-full border-solid" style={{ padding: getPaddingStyle(spacings.cell), borderBottomWidth: `${tableLineWidth}px`, backgroundColor: hexToRgba(colors.cellBg.c, colors.cellBg.o), borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), ...getFontStyle(fonts.sizes) }} contentEditable suppressContentEditableWarning>
-        {renderFormattedText(title, fonts.sizes)}
-      </div>
-      <div className="flex-1 min-h-[22px] w-full" style={{ padding: getPaddingStyle(spacings.cell), backgroundColor: hexToRgba(colors.cellPriceBg.c, colors.cellPriceBg.o), ...getFontStyle(fonts.prices) }} contentEditable suppressContentEditableWarning>
-        {renderFormattedText(price, fonts.prices)}
-      </div>
+      <EditableText
+        initialValue={title}
+        font={fonts.sizes}
+        className="flex-1 whitespace-pre-wrap min-h-[30px] w-full border-solid"
+        style={{ padding: getPaddingStyle(spacings.cell), borderBottomWidth: `${tableLineWidth}px`, backgroundColor: hexToRgba(colors.cellBg.c, colors.cellBg.o), borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}
+      />
+      <EditableText
+        initialValue={price}
+        font={fonts.prices}
+        className="flex-1 min-h-[22px] w-full"
+        style={{ padding: getPaddingStyle(spacings.cell), backgroundColor: hexToRgba(colors.cellPriceBg.c, colors.cellPriceBg.o) }}
+      />
     </div>
   );
 
   return (
-    <div className="w-full h-full flex flex-col border-[2px] transition-colors duration-200" style={{ padding: getPaddingStyle(spacings.container), backgroundColor: hexToRgba(colors.bg.c, colors.bg.o), borderColor: hexToRgba(colors.border.c, colors.border.o), borderRadius: getRadiusStyle(radiuses.container), boxShadow: getShadowStyle(shadows.container) }}>
+    <div 
+      id="pizza-section"
+      onClick={(e) => {
+        e.stopPropagation();
+        // Sadece seçili değilse işlemi yap (Yeniden çizimi/Re-render'ı engeller)
+        if (!isSelected) {
+          clearCatalogSelection();
+          clearBannerSelection();
+          selectPizza();
+        }
+      }}
+      className={`w-full h-full flex flex-col transition-all duration-200 cursor-pointer border-[2px] ${isSelected ? 'z-30' : 'hover:border-blue-300'}`} 
+      style={{ padding: getPaddingStyle(spacings.container), backgroundColor: hexToRgba(colors.bg.c, colors.bg.o), borderColor: isSelected ? 'transparent' : hexToRgba(colors.border.c, colors.border.o), borderRadius: getRadiusStyle(radiuses.container), boxShadow: isSelected ? `0 0 0 4px #3b82f6, ${getShadowStyle(shadows.container)}` : getShadowStyle(shadows.container) }}
+    >
       
-      <div className="w-full shrink-0 border-b-2 pb-2" style={{ borderColor: hexToRgba(colors.border.c, colors.border.o), ...getFontStyle(fonts.title) }}>
-        <span className="w-full" contentEditable suppressContentEditableWarning>Pizzakartons KRAFT !!!</span>
+      <div className="w-full shrink-0 border-b-2 pb-2 flex" style={{ borderColor: hexToRgba(colors.border.c, colors.border.o) }}>
+        <EditableText
+          initialValue="Pizzakartons KRAFT !!!"
+          font={fonts.title}
+          className="w-full"
+        />
       </div>
 
       <div className="flex flex-row gap-[5mm] flex-1 min-h-0 mt-[10mm]">
@@ -112,7 +206,12 @@ export function PizzaSection() {
         <div className="flex flex-col gap-[6mm] flex-[3] h-full">
           {/* TABLO 1 */}
           <div className="flex flex-col overflow-hidden flex-1 border-solid" style={{ borderWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableBg.c, colors.tableBg.o), borderRadius: getRadiusStyle(radiuses.table), boxShadow: getShadowStyle(shadows.table) }}>
-            <div className="w-full" style={{ padding: getPaddingStyle(spacings.tableTitle), backgroundColor: hexToRgba(colors.tableTitleBg.c, colors.tableTitleBg.o), ...getFontStyle(fonts.tableTitle) }} contentEditable suppressContentEditableWarning>New York Kraft Braun 100 Stk.</div>
+            <EditableText
+              initialValue="New York Kraft Braun 100 Stk."
+              font={fonts.tableTitle}
+              className="w-full"
+              style={{ padding: getPaddingStyle(spacings.tableTitle), backgroundColor: hexToRgba(colors.tableTitleBg.c, colors.tableTitleBg.o) }}
+            />
             <div className="flex flex-col flex-1 gap-[3mm]">
               <div className="grid grid-cols-4 flex-1 border-solid" style={{ borderBottomWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}>
                 <Cell size="20x20" price="7,99" />
@@ -131,7 +230,12 @@ export function PizzaSection() {
 
           {/* TABLO 2 */}
           <div className="flex flex-col overflow-hidden flex-1 border-solid" style={{ borderWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableBg.c, colors.tableBg.o), borderRadius: getRadiusStyle(radiuses.table), boxShadow: getShadowStyle(shadows.table) }}>
-            <div className="w-full border-solid" style={{ padding: getPaddingStyle(spacings.tableTitle), borderBottomWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableTitleBg.c, colors.tableTitleBg.o), ...getFontStyle(fonts.tableTitle) }} contentEditable suppressContentEditableWarning>New York Kraft Weiss 100 Stk.</div>
+            <EditableText
+              initialValue="New York Kraft Weiss 100 Stk."
+              font={fonts.tableTitle}
+              className="w-full border-solid"
+              style={{ padding: getPaddingStyle(spacings.tableTitle), borderBottomWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableTitleBg.c, colors.tableTitleBg.o) }}
+            />
             <div className="flex flex-col flex-1 gap-[3mm]">
               <div className="grid grid-cols-4 flex-1 border-solid" style={{ borderBottomWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}>
                 <Cell size="20x20" price="7,99" />
@@ -162,16 +266,13 @@ export function PizzaSection() {
 
           {/* RESİM ALANI */}
           <div 
-            // YENİ EKLENEN KISIM BURASI: Resim yoksa gizle
             data-hide-on-export={!imageUrl ? "true" : undefined}
-            className={`flex-1 flex items-center justify-center relative group cursor-pointer overflow-hidden min-h-0 ${!imageUrl ? 'border-[2px] border-dashed' : ''}`}
-            style={{ 
-              borderColor: !imageUrl ? hexToRgba(colors.imgBorder.c, colors.imgBorder.o) : 'transparent', 
-              backgroundColor: hexToRgba(colors.imgBg.c, colors.imgBg.o), 
-              borderRadius: getRadiusStyle(radiuses.image), 
-              boxShadow: getShadowStyle(shadows.image) 
+            className="flex-1 border-[2px] border-dashed flex items-center justify-center relative group cursor-pointer overflow-hidden min-h-0"
+            style={{ borderColor: hexToRgba(colors.imgBorder.c, colors.imgBorder.o), backgroundColor: hexToRgba(colors.imgBg.c, colors.imgBg.o), borderRadius: getRadiusStyle(radiuses.image), boxShadow: getShadowStyle(shadows.image) }}
+            onClick={(e) => {
+              e.stopPropagation();
+              fileInputRef.current?.click();
             }}
-            onClick={() => fileInputRef.current?.click()}
           >
             {imageUrl ? (
               <img src={imageUrl} alt="Pizza Kartonu" className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300" />

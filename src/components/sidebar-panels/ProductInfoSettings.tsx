@@ -193,14 +193,14 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-md border border-emerald-200 shadow-sm mb-4 relative z-30">
-      <button onClick={onToggle} className={`w-full flex items-center justify-between p-3 bg-emerald-600 hover:bg-emerald-500 transition-colors ${isOpen ? "rounded-t-md" : "rounded-md"}`}>
+    <div className="bg-white rounded-md border border-slate-200 shadow-sm mb-4 relative z-30">
+      <button onClick={onToggle} className={`w-full flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 transition-colors ${isOpen ? "rounded-t-md" : "rounded-md"}`}>
         <span className="text-[11px] font-black text-white uppercase tracking-widest">Ürün Bilgileri</span>
-        <span className="text-white text-xs">{isOpen ? "▲" : "▼"}</span>
+        <span className="text-white text-white/70 text-xs">{isOpen ? "▲" : "▼"}</span>
       </button>
       
       {isOpen && (
-        <div className="p-4 bg-emerald-50 border-t border-emerald-200 space-y-4 rounded-b-md">
+        <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-4 rounded-b-md">
           {selectedSlotIds.length !== 1 ? (
             <div className="text-[10px] text-center text-slate-500 font-bold p-4 bg-white rounded border border-slate-200 shadow-sm">
               Lütfen tablodan sadece BİR adet hücre seçin.
@@ -218,7 +218,7 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
                     rows={2}
                     value={selectedSlot?.product?.name || ""} 
                     onChange={(e) => handleProductUpdate({ name: e.target.value }, { BEZEICHNUNG: e.target.value })} 
-                    className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-emerald-500 resize-none"
+                    className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500 resize-none"
                   />
                 </div>
                 
@@ -229,7 +229,7 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
                         type="text" 
                         value={selectedSlot?.product?.price || ""} 
                         onChange={(e) => handleProductUpdate({ price: e.target.value }, { VK_NETTO: e.target.value })} 
-                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-emerald-500"
+                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1">
@@ -238,7 +238,7 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
                         type="text" 
                         value={selectedSlot?.product?.raw?.EK || ""} 
                         onChange={(e) => handleProductUpdate({}, { EK: e.target.value })} 
-                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-emerald-500"
+                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
                       />
                     </div>
                 </div>
@@ -250,7 +250,7 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
                         type="text" 
                         value={selectedSlot?.product?.sku || ""} 
                         onChange={(e) => handleProductUpdate({ sku: e.target.value }, { ARTNR: e.target.value })} 
-                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-emerald-500"
+                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1">
@@ -268,7 +268,7 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
                         type="text" 
                         value={selectedSlot?.product?.category || ""} 
                         onChange={(e) => handleProductUpdate({ category: e.target.value }, { ARTGRP: e.target.value })} 
-                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-emerald-500"
+                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1">
@@ -283,7 +283,7 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
                 <div className="space-y-1 pt-1">
                   <span className="text-[9px] font-bold text-slate-500">Görsel Seç</span>
                   <input type="file" accept="image/*" className="hidden" id="image-upload" ref={fileInputRef} onChange={handleFileChange} />
-                  <label htmlFor="image-upload" className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-300 hover:border-emerald-400 rounded p-1.5 cursor-pointer shadow-sm transition-all">
+                  <label htmlFor="image-upload" className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-300 hover:border-blue-400 rounded p-1.5 cursor-pointer shadow-sm transition-all">
                     {selectedFile ? selectedFile.name : "Bilgisayardan Görsel Seç"}
                   </label>
                 </div>
@@ -307,7 +307,7 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
                   <button 
                     onClick={handleSaveClick}
                     disabled={!selectedSlot?.product?.name || isSaving}
-                    className={`w-full py-2.5 rounded text-[11px] font-bold text-white transition-all shadow-sm mt-4 ${(!selectedSlot?.product?.name || isSaving) ? 'bg-slate-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                    className={`w-full py-2.5 rounded text-[11px] font-bold text-white transition-all shadow-sm mt-4 ${(!selectedSlot?.product?.name || isSaving) ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}
                   >
                     {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
                   </button>
