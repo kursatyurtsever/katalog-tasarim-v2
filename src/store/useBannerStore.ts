@@ -8,7 +8,7 @@ export type DeepPartial<T> = T extends object ? {
 } : T;
 
 export const defaultTypography: TypographyData = { fontFamily: "Inter", fontWeight: "400", fontSize: 12, lineHeight: 1.2, letterSpacing: 0, textAlign: "center", verticalAlign: "middle", textTransform: "none", textDecoration: "none", color: "#000000", opacity: 100, decimalScale: 100 };
-export const defaultSpacing: SpacingData = { t: 4, r: 4, b: 4, l: 4, linked: true };
+export const defaultSpacing: SpacingData = { t: 0, r: 0, b: 0, l: 0, linked: true };
 
 export interface BannerBorderData {
   t: number; r: number; b: number; l: number;

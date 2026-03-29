@@ -61,6 +61,20 @@ export function GlobalPriceSettings({ isOpen, onToggle }: Props) {
               <ColorOpacityPicker color={globalSettings.colors.priceBg.c} opacity={globalSettings.colors.priceBg.o} onChange={(c, o) => setGlobalSettings({ colors: { ...globalSettings.colors, priceBg: { c, o } } })} />
             </div>
           </div>
+
+          <div className="bg-white p-3 rounded border border-slate-200 shadow-sm relative z-[28] space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-600">Fiyat Zemin Konturu (Kenarlık)</span>
+              <ColorOpacityPicker 
+                type="border"
+                color={globalSettings.colors.priceBorder?.c || "#ffffff"} 
+                opacity={globalSettings.colors.priceBorder?.o ?? 100} 
+                thickness={globalSettings.priceBorderWidth ?? 0}
+                onChange={(c, o) => setGlobalSettings({ colors: { ...globalSettings.colors, priceBorder: { c, o } } })} 
+                onThicknessChange={(thickness) => setGlobalSettings({ priceBorderWidth: thickness })}
+              />
+            </div>
+          </div>
           
           <div className="bg-white p-2 rounded border border-slate-200 shadow-sm relative z-[20]">
             <BorderRadiusPicker title="Fiyat Kutusu Ovalliği" value={globalSettings.radiuses.price} onChange={(val) => setGlobalSettings({ radiuses: { ...globalSettings.radiuses, price: val } })} />

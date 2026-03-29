@@ -5,7 +5,9 @@ import { useCatalogStore } from "@/store/useCatalogStore";
 import * as XLSX from "xlsx";
 
 export function ProductManagement() {
-  const { productPool, setProductPool, masterProductPool, setMasterProductPool, pages, autoFillSlots, clearProducts, resetCatalog } = useCatalogStore();
+  const { productPool, setProductPool, masterProductPool, setMasterProductPool, formas, activeFormaId, autoFillSlots, clearProducts, resetCatalog } = useCatalogStore();
+  const activeForma = formas.find((f) => f.id === activeFormaId);
+  const pages = activeForma?.pages || [];
   const [searchTerm, setSearchTerm] = useState("");
   const layoutFileRef = useRef<HTMLInputElement>(null);
   const masterFileRef = useRef<HTMLInputElement>(null);

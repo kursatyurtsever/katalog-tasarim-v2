@@ -12,9 +12,11 @@ const parsePrice = (price: any) => {
 
 export function ProductInfoSettings({ isOpen, onToggle }: Props) {
   const { 
-    pages, selectedSlotIds, updateSlotProduct, setSlotProduct,
+    formas, activeFormaId, selectedSlotIds, updateSlotProduct, setSlotProduct,
     masterProductPool, setMasterProductPool, productPool, setProductPool 
   } = useCatalogStore();
+  const activeForma = formas.find((f) => f.id === activeFormaId);
+  const pages = activeForma?.pages || [];
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);

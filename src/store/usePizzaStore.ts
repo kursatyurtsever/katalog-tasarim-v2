@@ -6,7 +6,7 @@ import { ShadowData } from '../components/ShadowPicker';
 
 export const defaultTypography: TypographyData = { fontFamily: "Inter", fontWeight: "400", fontSize: 12, lineHeight: 1.2, letterSpacing: 0, textAlign: "left", verticalAlign: "middle", textTransform: "none", textDecoration: "none", color: "#000000", opacity: 100, decimalScale: 100 };
 export const defaultRadius: BorderRadiusData = { tl: 8, tr: 8, bl: 8, br: 8, linked: true };
-export const defaultSpacing: SpacingData = { t: 8, r: 8, b: 8, l: 8, linked: true };
+export const defaultSpacing: SpacingData = { t: 0, r: 0, b: 0, l: 0, linked: true };
 export const defaultShadow: ShadowData = { x: 0, y: 4, blur: 6, spread: -1, color: "#000000", opacity: 10, active: false };
 
 interface PizzaStore {
@@ -90,7 +90,7 @@ export const usePizzaStore = create<PizzaStore>((set) => ({
   spacings: {
     container: { t: 16, r: 16, b: 16, l: 16, linked: true },
     tableTitle: { t: 6, r: 8, b: 6, l: 8, linked: false },
-    cell: { t: 2, r: 4, b: 2, l: 4, linked: false },
+    cell: { t: 0, r: 0, b: 0, l: 0, linked: true },
   },
   shadows: {
     container: { ...defaultShadow, active: true, blur: 10, opacity: 5 },

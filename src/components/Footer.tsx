@@ -10,9 +10,14 @@ interface FooterProps {
  * Her sayfanın altındaki logo alanı ve düzenlenebilir metin (contenteditable yerine controlled input).
  */
 export function Footer({ pageNumber }: FooterProps) {
-  const footerText = useCatalogStore((state) => state.footerTexts[pageNumber] ?? "");
-  const footerLogo = useCatalogStore((state) => state.footerLogos[pageNumber]);
-  const setFooterText = useCatalogStore((state) => state.setFooterText);
+  const formas = useCatalogStore((state) => state.formas);
+  const activeFormaId = useCatalogStore((state) => state.activeFormaId);
+  const updatePageFooter = useCatalogStore((state) => state.updatePageFooter);
+
+  const activeForma = formas.find((f) => f.id === activeFormaId);
+  const currentPage = activeForma?.pages.find((p) => p.pageNumber === pageNumber);
+  const footerText = currentPage?.footerText ?? "";
+  const footerLogo = currentPage?.footerLogo ?? null;
 
   return (
     <div className="flex h-[10mm] shrink-0 items-center gap-2 mt-2">
@@ -38,7 +43,7 @@ export function Footer({ pageNumber }: FooterProps) {
       <div className="relative group flex-grow">
         <textarea
           value={footerText}
-          onChange={(e) => setFooterText(pageNumber, e.target.value)}
+          onChange={(e) => updatePageFooter(pageNumber, { footerText: e.target.value })}
           className="footer-editable w-full h-full resize-none overflow-hidden rounded border border-dashed border-transparent bg-transparent py-1 text-black outline-none leading-tight hover:border-slate-300 focus:border-slate-400"
           style={{ fontSize: "9pt", minHeight: "10mm" }}
           rows={2}

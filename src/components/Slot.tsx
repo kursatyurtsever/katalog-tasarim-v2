@@ -147,7 +147,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
     <div 
       id={`slot-${slot.id}`}
       onClick={(e) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         if (isSelected && (isImgEditMode || finalSettings.badge?.isFreePosition)) return;
         
         clearBannerSelection();
@@ -196,7 +196,16 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
               // YENİ: Fiyat seçiliyse mavi ince çerçeve eklenir
               selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'price' ? 'ring-2 ring-blue-500 ring-offset-1 cursor-text' : 'cursor-pointer hover:ring-1 hover:ring-blue-300'
             } ${finalSettings.pricePosition === 'left' ? 'left-0' : finalSettings.pricePosition === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0'}`} 
-            style={{ width: `${finalSettings.priceWidth}%`, height: `${finalSettings.priceHeight}mm`, backgroundColor: hexToRgba(finalSettings.colors.priceBg.c, finalSettings.colors.priceBg.o), borderRadius: getRadiusStyle(finalSettings.radiuses.price), ...getFontStyle(finalSettings.fonts.price) }} 
+            style={{
+              width: `${finalSettings.priceWidth}%`,
+              height: `${finalSettings.priceHeight}mm`,
+              backgroundColor: hexToRgba(finalSettings.colors.priceBg?.c || "#e60000", finalSettings.colors.priceBg?.o ?? 100),
+              borderRadius: getRadiusStyle(finalSettings.radiuses.price),
+              borderStyle: 'solid',
+              borderWidth: `${finalSettings.priceBorderWidth || 0}px`,
+              borderColor: hexToRgba(finalSettings.colors.priceBorder?.c || "#ffffff", finalSettings.colors.priceBorder?.o ?? 100),
+              ...getFontStyle(finalSettings.fonts.price)
+            }} 
             
             // YENİ: Tek tıkla Seç, Çift Tıkla Düzenle Mantığı
             onClick={(e) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCatalogStore } from "@/store/useCatalogStore";
-import { 
+import {
   Package, DollarSign, Image as ImageIcon,
   Square, Box, Copy, ClipboardPaste, Eraser, Settings2,
   Wand2, Combine,
@@ -31,10 +31,76 @@ export function ContextualBar() {
   const {
     selectedSlotIds, clearSlotSettings, copySlotSettings, pasteSlotSettings,
     copiedSlotSettings, globalSettings, setGlobalSettings, updateGlobalSettings,
-    pages, updateSlotImageSettings, updateSlotCustomSettings,
-    toggleSlotCustomSettings, 
-    selectedTextElement, setSelectedTextElement // YENİ: Metin seçimi eklendi
+    formas, activeFormaId, selectedPageNumber, updatePageBackground,
+    updateSlotImageSettings, updateSlotCustomSettings,
+    toggleSlotCustomSettings,
+    selectedTextElement, setSelectedTextElement, // YENİ: Metin seçimi eklendi
+    setSidebarState,
+    updateGlobalBackground, isGlobalActive, setGlobalActive, updatePageBackgrounds, updateFormaBackground,
+    contextualBarFormaId, contextualBarSelectedPages, setContextualBarFormaId, setContextualBarSelectedPages,
+    setActiveFormaId,
   } = useCatalogStore();
+
+  const isGlobalApplyActive = isGlobalActive;
+
+  const currentFormaScope = formas.find(f => f.id === (contextualBarFormaId ? parseInt(contextualBarFormaId) : undefined));
+
+  const displayScopeText = () => {
+    if (isGlobalApplyActive) return "Tüm Broşüre Uygula";
+
+    if (!currentFormaScope) return "Kapsam Seçilmedi";
+
+    let scopeText = currentFormaScope.name;
+    if (contextualBarSelectedPages.length === 0) {
+      // Tüm forma seçili
+      scopeText += " (Tüm Sayfalar)";
+    } else if (contextualBarSelectedPages.length === 1) {
+      // Tek sayfa seçili
+      scopeText += ` (Sayfa ${contextualBarSelectedPages[0]})`;
+    } else if (contextualBarSelectedPages.length > 1) {
+      // Birden fazla sayfa seçili
+      const pageNumbers = [...contextualBarSelectedPages].sort((a, b) => a - b).join(", ");
+      scopeText += ` (Sayfa ${pageNumbers})`;
+    }
+    return scopeText;
+  };
+
+  const handleBackgroundColorChange = (color: string, opacity: number) => {
+    if (isGlobalApplyActive) {
+      updateGlobalBackground({ color, opacity, type: "color" });
+      setGlobalActive(true);
+    } else if (currentFormaScope && contextualBarSelectedPages.length === 0) {
+      updateFormaBackground(currentFormaScope.id, { globalBackground: { color, opacity, type: "color" }, isGlobalBackgroundActive: true });
+    } else if (contextualBarSelectedPages.length > 0) {
+      updatePageBackgrounds(contextualBarSelectedPages, { color, opacity, type: "color" });
+    }
+  };
+
+  const getInitialBackgroundColor = () => {
+    // 1. Eğer Global aktifse globalSettings.background oku.
+    if (isGlobalApplyActive) {
+      return globalSettings.globalBackground;
+    }
+
+    // 2. Eğer Global kapalı ama Sayfa Seçimi boşsa (Forma seviyesi), aktif formanın background'unu oku.
+    if (currentFormaScope && contextualBarSelectedPages.length === 0) {
+      return currentFormaScope.globalBackground;
+    }
+
+    // 3. Eğer belirli sayfalar (Pill) seçiliyse, selectedScopePageNumbers (contextualBarSelectedPages) 
+    // dizisindeki ilk sayfanın güncel background verisini bul
+    if (currentFormaScope && contextualBarSelectedPages.length > 0) {
+      const firstPageNum = contextualBarSelectedPages[0];
+      const page = currentFormaScope.pages.find(p => p.pageNumber === firstPageNum);
+      return page?.background;
+    }
+
+    return globalSettings.globalBackground;
+  };
+  const initialBackgroundColor = getInitialBackgroundColor();
+
+  const activeForma = formas.find((f) => f.id === activeFormaId);
+  const pages = activeForma?.pages || [];
 
   const [activePopover, setActivePopover] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -57,6 +123,24 @@ export function ContextualBar() {
     ? deepMerge(globalSettings, selectedSlot.customSettings)
     : globalSettings;
 
+  const selectedPage = selectedPageNumber !== null
+    ? pages.find((p) => p.pageNumber === selectedPageNumber)
+    : null;
+
+  const selectedPageBg = selectedPage?.background || {
+    type: "color" as const,
+    color: "#ffffff",
+    opacity: 100,
+    imageUrl: null,
+    scale: 100,
+    posX: 0,
+    posY: 0,
+    rotation: 0,
+  };
+
+  const imgEditMode = selectedSlot?.imageSettings?.editMode ?? activeSettings.imageEditMode;
+  const imgScale = selectedSlot?.imageSettings?.scale ?? activeSettings.imageScale;
+
   const handleSettingUpdate = (updates: any) => {
     if (selectedSlot?.isCustom) {
       updateSlotCustomSettings(updates);
@@ -77,11 +161,6 @@ export function ContextualBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const openSidebarSettings = (panelType: string) => {
-    window.dispatchEvent(new CustomEvent('open-sidebar-panel', { detail: panelType }));
-    setActivePopover(null);
-  };
-
   const Divider = () => <div className="w-px h-5 bg-slate-200 mx-1"></div>;
 
   const IconButton = ({ icon: Icon, label, onClick, disabled = false, danger = false, isActive = false, popoverId }: any) => (
@@ -96,11 +175,11 @@ export function ContextualBar() {
         }}
         disabled={disabled}
         className={`p-1.5 rounded transition-all flex items-center justify-center
-          ${disabled ? 'text-slate-300 cursor-not-allowed' : 
-            danger ? 'text-slate-500 hover:text-red-500 hover:bg-red-50' : 
+          ${disabled ? 'text-slate-300 cursor-not-allowed' :
+            danger ? 'text-slate-500 hover:text-red-500 hover:bg-red-50' :
             isActive ? 'text-blue-600 bg-blue-50' :
-            'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+            'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}
+          `}
       >
         <Icon size={14} strokeWidth={2.5} />
       </button>
@@ -129,7 +208,7 @@ export function ContextualBar() {
     };
 
     return (
-      <div ref={barRef} className="h-12 bg-indigo-50/80 border-b border-indigo-200 flex items-center px-4 gap-2 shrink-0 shadow-sm z-40 relative">
+      <div ref={barRef} className="h-12 bg-indigo-50/80 border-b border-indigo-200 flex items-center justify-center px-4 gap-2 shrink-0 shadow-sm z-40 relative">
         
         {/* Hangi Metnin Düzenlendiği Bilgisi */}
         <div className="flex items-center gap-1.5 pr-2 mr-1">
@@ -195,6 +274,8 @@ export function ContextualBar() {
           <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'right' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'right' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`} title="Sağa Hizala"><AlignRight size={14} /></button>
         </div>
 
+        <Divider />
+
         {/* DİKEY HİZALAMA */}
         <div className="flex items-center bg-white border border-slate-200 rounded overflow-hidden">
           <button onClick={() => handleFontUpdate({ ...currentFont, verticalAlign: 'top' })} className={`px-2 py-1.5 transition-colors ${currentFont.verticalAlign === 'top' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`} title="Üste Hizala"><span className="text-[10px] font-bold">ÜST</span></button>
@@ -254,7 +335,22 @@ export function ContextualBar() {
               />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">Fiyat Zemini</span>
             </div>
-            
+
+            <Divider />
+
+            {/* FİYAT KONTURU */}
+            <div className="relative group flex items-center justify-center" onClick={() => setActivePopover(null)}>
+              <ColorOpacityPicker 
+                type="border"
+                color={activeSettings.colors.priceBorder?.c || "#ffffff"} 
+                opacity={activeSettings.colors.priceBorder?.o ?? 100} 
+                thickness={activeSettings.priceBorderWidth ?? 0}
+                onChange={(c, o) => handleSettingUpdate({ colors: { ...activeSettings.colors, priceBorder: { c, o } } })} 
+                onThicknessChange={(thickness) => handleSettingUpdate({ priceBorderWidth: thickness })}
+              />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">Fiyat Konturu</span>
+            </div>
+
             {/* FİYAT KÖŞE OVALLİĞİ */}
             <div className="relative">
               <IconButton icon={Square} popoverId="priceRadius" isActive={activePopover === 'priceRadius'} label="Fiyat Köşeleri" />
@@ -268,13 +364,20 @@ export function ContextualBar() {
           </>
         )}
 
-        <div className="flex-1"></div>
-        {/* METİN MODUNDAN ÇIKIŞ BUTONU */}
+        <Divider />
+        {/* DETAYLI AYARLAR (Koşullu: Custom ise customCell/price, değilse price) */}
         <button 
-          onClick={() => setSelectedTextElement(null)} 
+          onClick={() => {
+            if (selectedSlot?.isCustom) {
+              setSidebarState("settings", "customCell", "price");
+            } else {
+              setSidebarState("settings", "price", null);
+            }
+            setActivePopover(null);
+          }}
           className="text-[10px] font-bold bg-slate-200 text-slate-600 hover:bg-slate-300 px-3 py-1.5 rounded transition-colors"
         >
-          KAPAT
+          Detaylı Ayarlar
         </button>
       </div>
     );
@@ -285,7 +388,7 @@ export function ContextualBar() {
   // ==========================================
   if (selectedSlotIds.length === 1) {
     return (
-      <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center px-4 gap-1.5 shrink-0 shadow-sm z-40 relative">
+      <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center justify-center px-4 gap-1.5 shrink-0 shadow-sm z-40 relative">
         <div className="flex items-center gap-2 pr-2 mr-1">
           <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Hücre</span>
         </div>
@@ -329,7 +432,7 @@ export function ContextualBar() {
 
           {/* KÖŞE OVALLİĞİ POPOVER */}
           <div className="relative">
-            <IconButton icon={Square} label="Köşe Ovalliği" popoverId="borderRadius" isActive={activePopover === 'borderRadius'} />
+            <IconButton icon={Square} popoverId="borderRadius" isActive={activePopover === 'borderRadius'} label="Köşe Ovalliği" />
             {activePopover === 'borderRadius' && (
               <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 shadow-xl rounded-lg p-3 w-64 z-50 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Köşe Ovalliği {selectedSlot?.isCustom ? "(Özel)" : "(Global)"}</span>
@@ -368,10 +471,17 @@ export function ContextualBar() {
           <IconButton icon={Eraser} label="İçeriği Temizle" onClick={clearSlotSettings} danger />
         </div>
 
-        <div className="flex-1"></div> 
+        <Divider /> 
 
         <button 
-          onClick={() => openSidebarSettings(selectedSlot?.isCustom ? 'customCell' : 'cell')} 
+          onClick={() => {
+            if (selectedSlot?.isCustom) {
+              setSidebarState("settings", "customCell", null);
+            } else {
+              setSidebarState("settings", "cell", null);
+            }
+            setActivePopover(null);
+          }}
           className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-bold rounded transition-colors flex items-center gap-1.5"
         >
           <Settings2 size={14} strokeWidth={2.5} /> Detaylı Ayarlar
@@ -380,9 +490,161 @@ export function ContextualBar() {
     );
   }
 
+  // ==========================================
+  // 3. DURUM: ARKA PLAN AYARLARI TOOLBARI (YENİ)
+  // ==========================================
+  if (selectedSlotIds.length === 0) {
+    return (
+      <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-40 relative">
+        <div className="flex flex-row items-center gap-4 w-full">
+          {/* 1. Global Kontrol (Sol) */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-700">Tüm Broşüre Uygula</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={!!isGlobalApplyActive}
+                onChange={(e) => {
+                  setGlobalActive(e.target.checked);
+                }}
+              />
+              <div className="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+
+          <Divider />
+
+          {/* 2. Kapsam Seçimi (Orta-Sol) */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-700">Düzenleme Kapsamı:</span>
+            <select
+              className={`text-[11px] font-bold text-slate-700 bg-white border border-slate-200 rounded p-1.5 outline-none focus:border-indigo-500 cursor-pointer ${isGlobalApplyActive ? 'opacity-50 cursor-not-allowed bg-slate-100' : ''}`}
+              value={contextualBarFormaId || ""}
+              onChange={(e) => {
+                const newFormaId = parseInt(e.target.value, 10);
+                if (newFormaId) {
+                  setActiveFormaId(newFormaId);
+                  setContextualBarFormaId(e.target.value);
+                  setContextualBarSelectedPages([]); // Forma değiştiğinde sayfa seçimini sıfırla
+                }
+
+                const selectedForma = formas.find(f => f.id === newFormaId);
+                if (selectedForma && selectedForma.pages.length > 0) {
+                  // Sayfaları pageNumber'a göre sırala ve ilkini al
+                  const firstPage = selectedForma.pages.slice().sort((a, b) => a.pageNumber - b.pageNumber)[0];
+                  const pageElement = document.getElementById(`page-${firstPage.pageNumber}`);
+                  if (pageElement) {
+                    pageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+                }
+              }}
+              disabled={isGlobalApplyActive}
+            >
+              <option value="">Forma Seç</option>
+              {formas.map((f) => (
+                <option key={f.id} value={f.id.toString()}>{f.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Sayfa Seçimi (Orta) */}
+          {currentFormaScope && ( // Sadece bir forma seçiliyse Sayfa Seçimi pill'lerini göster
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] font-bold text-slate-700">Sayfa Seçimi:</span>
+              <div className={`flex gap-1 ${isGlobalApplyActive || !currentFormaScope ? 'opacity-50 pointer-events-none' : ''}`}>
+                <button
+                  onClick={() => {
+                    if (currentFormaScope) {
+                      const allPageNumbers = currentFormaScope.pages.map(p => p.pageNumber);
+                      setContextualBarSelectedPages(allPageNumbers);
+                    }
+                  }}
+                  className={`px-2 py-1 rounded text-[10px] font-bold transition-colors
+                    ${contextualBarSelectedPages.length === currentFormaScope.pages.length
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}
+                  `}
+                  disabled={isGlobalApplyActive || !currentFormaScope}
+                >
+                  Tümü
+                </button>
+                {currentFormaScope.pages.map((page) => (
+                  <button
+                    key={page.pageNumber}
+                    onClick={() => {
+                      const pageElement = document.getElementById(`page-${page.pageNumber}`);
+                      if (pageElement) {
+                        pageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }
+                      const targetForma = formas.find(f => f.pages.some(p => p.pageNumber === page.pageNumber));
+                      if (targetForma) {
+                        setActiveFormaId(targetForma.id);
+                      }
+                      setContextualBarSelectedPages(
+                        contextualBarSelectedPages.includes(page.pageNumber)
+                          ? contextualBarSelectedPages.filter((p) => p !== page.pageNumber)
+                          : [...contextualBarSelectedPages, page.pageNumber]
+                      );
+                    }}
+                    className={`px-2 py-1 rounded text-[10px] font-bold transition-colors
+                      ${contextualBarSelectedPages.includes(page.pageNumber)
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}
+                    `}
+                    disabled={isGlobalApplyActive || !currentFormaScope}
+                  >
+                    {page.pageNumber}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Divider />
+
+          {/* Dinamik Durum Metni (Sağ) */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">
+              {displayScopeText()}
+            </span>
+          </div>
+
+          <Divider />
+
+          {/* Zemin Rengi */}
+          <div className="relative group flex items-center justify-center" onClick={() => setActivePopover(null)}>
+            <ColorOpacityPicker
+              color={initialBackgroundColor?.color || "#ffffff"}
+              opacity={initialBackgroundColor?.opacity ?? 100}
+              onChange={handleBackgroundColorChange}
+            />
+            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">Zemin Rengi</span>
+          </div>
+
+          <Divider />
+
+          {/* Detaylı Ayarlar Butonu */}
+          <button
+            onClick={() => {
+              setSidebarState("settings", "background", null);
+              setActivePopover(null);
+            }}
+            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-bold rounded transition-colors flex items-center gap-1.5"
+          >
+            <Settings2 size={14} strokeWidth={2.5} /> Detaylı Ayarlar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // Varsayılan durum: Hiçbir şey seçili değilse
+  // ==========================================
   return (
-    <div className="h-12 bg-white border-b border-slate-200 flex items-center px-4 shrink-0 z-40 relative">
-      <span className="text-[11px] font-medium text-slate-400">Düzenlemek için broşür üzerinden bir eleman seçin.</span>
+    <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center justify-center px-4 gap-1.5 shrink-0 shadow-sm z-40 relative">
+      <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Bir öğe seçin</span>
     </div>
   );
 }

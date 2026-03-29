@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { ColorOpacityPicker } from "../ColorOpacityPicker";
 import { TypographyPicker } from "../TypographyPicker";
@@ -11,9 +11,23 @@ import { ShadowPicker } from "../ShadowPicker";
 interface Props { isOpen: boolean; onToggle: () => void; }
 
 export function CustomCellSettings({ isOpen, onToggle }: Props) {
-  const { pages, globalSettings, selectedSlotIds, toggleSlotCustomSettings, updateSlotCustomSettings, copySlotSettings, pasteSlotSettings, copiedSlotSettings, clearSlotSettings } = useCatalogStore();
+  const { formas, activeFormaId, globalSettings, selectedSlotIds, toggleSlotCustomSettings, updateSlotCustomSettings, copySlotSettings, pasteSlotSettings, copiedSlotSettings, clearSlotSettings, sidebarState } = useCatalogStore();
+  const activeForma = formas.find((f) => f.id === activeFormaId);
+  const pages = activeForma?.pages || [];
   
   const [activeTab, setActiveTab] = useState<string | null>("cell");
+
+  // Sidebar'dan gelen programatik tab isteğini dinle
+  useEffect(() => {
+    if (sidebarState.activePanel === "settings" && sidebarState.activeTab === "customCell") {
+      // Alt sekme bilgisi yoksa mevcut durumu koru; varsa ona geç
+      if (sidebarState.activeSubTab) {
+        setActiveTab(sidebarState.activeSubTab);
+      } else {
+        setActiveTab("cell");
+      }
+    }
+  }, [sidebarState.activePanel, sidebarState.activeTab, sidebarState.activeSubTab]);
 
   let globalNumberCounter = 0;
   let selectedGlobalNumber: number | null = null;
@@ -113,45 +127,10 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                   )}
                 </div>
 
-                {/* 2. ÜRÜN GÖRSELİ */}
-                <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[50] ${activeTab === 'image' ? 'overflow-visible' : 'overflow-hidden'}`}>
-                  <button onClick={() => setActiveTab(activeTab === 'image' ? null : 'image')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
-                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">2. Ürün Görseli</span>
-                    <span className="text-slate-400 font-bold">{activeTab === 'image' ? "▼" : "▶"}</span>
-                  </button>
-                  {activeTab === 'image' && (
-                    <div className="p-3 space-y-3">
-                      <div className="flex items-center justify-between bg-slate-50 p-2 rounded border border-slate-200 shadow-inner">
-                        <span className="text-[10px] font-bold text-slate-700">Serbest Konum</span>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" checked={customSettings.imageEditMode || false} onChange={(e) => updateSlotCustomSettings({ imageEditMode: e.target.checked })} />
-                          <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
-                        </label>
-                      </div>
-
-                      <div className={`space-y-3 transition-all duration-300 ${customSettings.imageEditMode ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[9px] font-medium text-slate-500 w-16">Büyütme</span>
-                          <input type="range" min="50" max="300" value={customSettings.imageScale || 100} onChange={(e) => updateSlotCustomSettings({ imageScale: parseInt(e.target.value) })} className="flex-1 accent-blue-600" />
-                          <div className="flex items-center gap-1">
-                            <input type="number" value={customSettings.imageScale || 100} onChange={(e) => updateSlotCustomSettings({ imageScale: parseInt(e.target.value) || 0 })} className="w-12 text-[10px] font-bold text-slate-600 text-right border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
-                            <span className="text-[9px] text-slate-400">%</span>
-                          </div>
-                        </div>
-
-                        <button onClick={() => updateSlotCustomSettings({ imageScale: 100, imagePosX: 0, imagePosY: 0 })} className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-bold rounded border border-slate-200 transition-colors">
-                          Konumu ve Boyutu Sıfırla
-                        </button>
-                        <p className="text-[8px] text-slate-400 text-center leading-tight">Serbest Konum açıkken hücredeki resmi farenizle sürükleyerek kaydırabilirsiniz.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. ÜRÜN İSMİ */}
+                {/* 2. ÜRÜN İSMİ */}
                 <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[40] ${activeTab === 'name' ? 'overflow-visible' : 'overflow-hidden'}`}>
                   <button onClick={() => setActiveTab(activeTab === 'name' ? null : 'name')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
-                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">3. Ürün İsmi</span>
+                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">2. Ürün İsmi</span>
                     <span className="text-slate-400 font-bold">{activeTab === 'name' ? "▼" : "▶"}</span>
                   </button>
                   {activeTab === 'name' && (
@@ -161,10 +140,10 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                   )}
                 </div>
 
-                {/* 4. FİYAT KUTUSU */}
+                {/* 3. FİYAT KUTUSU */}
                 <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[30] ${activeTab === 'price' ? 'overflow-visible' : 'overflow-hidden'}`}>
                   <button onClick={() => setActiveTab(activeTab === 'price' ? null : 'price')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
-                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">4. Fiyat Kutusu</span>
+                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">3. Fiyat Kutusu</span>
                     <span className="text-slate-400 font-bold">{activeTab === 'price' ? "▼" : "▶"}</span>
                   </button>
                   {activeTab === 'price' && (
@@ -207,6 +186,18 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                         <ColorOpacityPicker color={customSettings.colors?.priceBg?.c || "#e60000"} opacity={customSettings.colors?.priceBg?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { priceBg: { c, o } } })} />
                       </div>
 
+                      <div className="flex items-center justify-between pt-2 border-t border-orange-50">
+                        <span className="text-[10px] font-bold text-slate-600">Zemin Kontur</span>
+                        <ColorOpacityPicker 
+                          type="border"
+                          color={customSettings.colors?.priceBorder?.c || "#ffffff"}
+                          opacity={customSettings.colors?.priceBorder?.o ?? 100}
+                          thickness={customSettings.priceBorderWidth ?? 0}
+                          onChange={(c, o) => updateSlotCustomSettings({ colors: { priceBorder: { c, o } } })}
+                          onThicknessChange={(thickness) => updateSlotCustomSettings({ priceBorderWidth: thickness })}
+                        />
+                      </div>
+
                       <div className="pt-2 border-t border-orange-50">
                         <BorderRadiusPicker title="Fiyat Kutusu Ovalliği" value={customSettings.radiuses?.price!} onChange={(val) => updateSlotCustomSettings({ radiuses: { price: val } })} />
                       </div>
@@ -218,11 +209,11 @@ export function CustomCellSettings({ isOpen, onToggle }: Props) {
                   )}
                 </div>
 
-                {/* 5. PROMOSYON ETİKETİ */}
+                {/* 4. PROMOSYON ETİKETİ */}
                 <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[20] ${activeTab === 'badge' ? 'overflow-visible' : 'overflow-hidden'}`}>
                   <button onClick={() => setActiveTab(activeTab === 'badge' ? null : 'badge')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">5. Promosyon Etiketi</span>
+                      <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">4. Promosyon Etiketi</span>
                       {customSettings.badge?.active && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>}
                     </div>
                     <span className="text-slate-400 font-bold">{activeTab === 'badge' ? "▼" : "▶"}</span>

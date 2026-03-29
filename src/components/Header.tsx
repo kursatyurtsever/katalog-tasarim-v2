@@ -1,13 +1,17 @@
 "use client";
 
-import { useCatalogStore } from "@/store/useCatalogStore";
+import { useState } from "react";
 
 /**
  * Sayfa 1 başlığı: logo, kırmızı SELBSTABHOLER - ANGEBOT, tarih, 41 numarası, alt slogan.
  */
 export function Header() {
-  const header = useCatalogStore((state) => state.header);
-  const setHeader = useCatalogStore((state) => state.setHeader);
+  const [header, setHeader] = useState({
+    logoUrl: "",
+    title: "SELBSTABHOLER - ANGEBOT",
+    date: "",
+    no: "41",
+  });
 
   return (
     <div className="header shrink-0 mb-2 flex flex-col border border-slate-400 bg-white text-black">
@@ -40,7 +44,7 @@ export function Header() {
               type="text"
               id="header-date"
               value={header.date}
-              onChange={(e) => setHeader({ date: e.target.value })}
+              onChange={(e) => setHeader((prev) => ({ ...prev, date: e.target.value }))}
               className="w-full border-none bg-transparent text-center font-bold text-red-700 outline-none"
               style={{ fontSize: "16px" }}
             />
@@ -51,7 +55,7 @@ export function Header() {
             type="text"
             id="header-no"
             value={header.no}
-            onChange={(e) => setHeader({ no: e.target.value })}
+            onChange={(e) => setHeader((prev) => ({ ...prev, no: e.target.value }))}
             className="w-full border-none bg-transparent text-center font-black text-white outline-none placeholder-white"
             style={{ fontSize: "36px" }}
           />
