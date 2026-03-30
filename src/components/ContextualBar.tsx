@@ -5,12 +5,16 @@ import {
   Package, DollarSign, Image as ImageIcon,
   Square, Box, Copy, ClipboardPaste, Eraser, Settings2,
   Wand2, Combine,
-  Type, AlignLeft, AlignCenter, AlignRight // YENİ: Metin ikonları
+  Type, AlignLeft, AlignCenter, AlignRight, // YENİ: Metin ikonları
+  Maximize // YENİ: Yayma ikonu
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ColorOpacityPicker } from "./ColorOpacityPicker";
 import { BorderRadiusPicker } from "./BorderRadiusPicker";
 import { ShadowPicker } from "./ShadowPicker";
+import { useLayerStore } from "@/store/useLayerStore";
+import { v4 as uuidv4 } from "uuid";
+import { Layer } from "@/types/document";
 
 function isObject(item: any) { return (item && typeof item === 'object' && !Array.isArray(item)); }
 function deepMerge(target: any, source: any) {
@@ -31,17 +35,22 @@ export function ContextualBar() {
   const {
     selectedSlotIds, clearSlotSettings, copySlotSettings, pasteSlotSettings,
     copiedSlotSettings, globalSettings, setGlobalSettings, updateGlobalSettings,
-    formas, activeFormaId, selectedPageNumber, updatePageBackground,
+    formas, activeFormaId, selectedPageNumber,
     updateSlotImageSettings, updateSlotCustomSettings,
     toggleSlotCustomSettings,
     selectedTextElement, setSelectedTextElement, // YENİ: Metin seçimi eklendi
     setSidebarState,
-    updateGlobalBackground, isGlobalActive, setGlobalActive, updatePageBackgrounds, updateFormaBackground,
     contextualBarFormaId, contextualBarSelectedPages, setContextualBarFormaId, setContextualBarSelectedPages,
     setActiveFormaId,
+    activeTemplate,
   } = useCatalogStore();
 
-  const isGlobalApplyActive = isGlobalActive;
+  const {
+    layers, addLayer, updateLayerProperties, setLayerMask, fitLayerToPages,
+    selectLayers, selectPages
+  } = useLayerStore();
+
+  const isGlobalApplyActive = false;
 
   const currentFormaScope = formas.find(f => f.id === (contextualBarFormaId ? parseInt(contextualBarFormaId) : undefined));
 
@@ -66,38 +75,82 @@ export function ContextualBar() {
   };
 
   const handleBackgroundColorChange = (color: string, opacity: number) => {
+    // 1. Hedef maskeyi belirle
+    let maskType: 'page' | 'spread' | 'document' = 'page';
+    let targetIds: string[] = [];
+
     if (isGlobalApplyActive) {
-      updateGlobalBackground({ color, opacity, type: "color" });
-      setGlobalActive(true);
-    } else if (currentFormaScope && contextualBarSelectedPages.length === 0) {
-      updateFormaBackground(currentFormaScope.id, { globalBackground: { color, opacity, type: "color" }, isGlobalBackgroundActive: true });
+      maskType = 'document';
+      targetIds = [];
     } else if (contextualBarSelectedPages.length > 0) {
-      updatePageBackgrounds(contextualBarSelectedPages, { color, opacity, type: "color" });
+      maskType = 'page';
+      targetIds = contextualBarSelectedPages.map(num => {
+        const page = currentFormaScope?.pages.find(p => p.pageNumber === num);
+        return page?.id || `page-${num}`;
+      });
+    } else if (currentFormaScope) {
+      maskType = 'spread';
+      targetIds = currentFormaScope.pages.map(p => p.id);
+    }
+
+    // 2. Mevcut maske ve tiple eşleşen bir 'solid' katman var mı bak
+    const existingLayer = layers.find(l => 
+      l.type === 'solid' && 
+      l.mask &&
+      l.mask.type === maskType && 
+      JSON.stringify(l.mask.targetIds || []) === JSON.stringify(targetIds)
+    );
+
+    if (existingLayer) {
+      // Güncelle
+      updateLayerProperties(existingLayer.id, { color, opacity });
+    } else {
+      // Yeni Oluştur
+      const newId = uuidv4();
+      const newLayer: Layer = {
+        id: newId,
+        type: 'solid',
+        name: 'Arka Plan (Renk)',
+        bounds: { x: 0, y: 0, w: activeTemplate?.openWidthMm || 210, h: activeTemplate?.openHeightMm || 297 },
+        transform: { rotation: 0, scale: 100, flipX: false, flipY: false, offsetX: 0, offsetY: 0 },
+        mask: { type: maskType, targetIds },
+        zIndex: 0, // En alta dayalı
+        properties: { color, opacity },
+        visible: true,
+      };
+      addLayer(newLayer);
+      fitLayerToPages(newId, targetIds.length > 0 ? targetIds : currentFormaScope?.pages.map(p => p.id) || []);
+      selectLayers([newId]);
     }
   };
 
-  const getInitialBackgroundColor = () => {
-    // 1. Eğer Global aktifse globalSettings.background oku.
+  const initialBackgroundColor = useMemo(() => {
+    let maskType: 'page' | 'spread' | 'document' = 'page';
+    let targetIds: string[] = [];
+
     if (isGlobalApplyActive) {
-      return globalSettings.globalBackground;
+      maskType = 'document';
+      targetIds = [];
+    } else if (contextualBarSelectedPages.length > 0) {
+      maskType = 'page';
+      targetIds = contextualBarSelectedPages.map(num => {
+        const page = currentFormaScope?.pages.find(p => p.pageNumber === num);
+        return page?.id || `page-${num}`;
+      });
+    } else if (currentFormaScope) {
+      maskType = 'spread';
+      targetIds = currentFormaScope.pages.map(p => p.id);
     }
 
-    // 2. Eğer Global kapalı ama Sayfa Seçimi boşsa (Forma seviyesi), aktif formanın background'unu oku.
-    if (currentFormaScope && contextualBarSelectedPages.length === 0) {
-      return currentFormaScope.globalBackground;
-    }
+    const match = layers.find(l => 
+      l.type === 'solid' && 
+      l.mask &&
+      l.mask.type === maskType && 
+      JSON.stringify(l.mask.targetIds || []) === JSON.stringify(targetIds)
+    );
 
-    // 3. Eğer belirli sayfalar (Pill) seçiliyse, selectedScopePageNumbers (contextualBarSelectedPages) 
-    // dizisindeki ilk sayfanın güncel background verisini bul
-    if (currentFormaScope && contextualBarSelectedPages.length > 0) {
-      const firstPageNum = contextualBarSelectedPages[0];
-      const page = currentFormaScope.pages.find(p => p.pageNumber === firstPageNum);
-      return page?.background;
-    }
-
-    return globalSettings.globalBackground;
-  };
-  const initialBackgroundColor = getInitialBackgroundColor();
+    return match ? { color: match.properties.color, opacity: match.properties.opacity } : { color: "#ffffff", opacity: 100 };
+  }, [layers, isGlobalApplyActive, contextualBarSelectedPages, currentFormaScope]);
 
   const activeForma = formas.find((f) => f.id === activeFormaId);
   const pages = activeForma?.pages || [];
@@ -127,16 +180,7 @@ export function ContextualBar() {
     ? pages.find((p) => p.pageNumber === selectedPageNumber)
     : null;
 
-  const selectedPageBg = selectedPage?.background || {
-    type: "color" as const,
-    color: "#ffffff",
-    opacity: 100,
-    imageUrl: null,
-    scale: 100,
-    posX: 0,
-    posY: 0,
-    rotation: 0,
-  };
+
 
   const imgEditMode = selectedSlot?.imageSettings?.editMode ?? activeSettings.imageEditMode;
   const imgScale = selectedSlot?.imageSettings?.scale ?? activeSettings.imageScale;
@@ -506,7 +550,7 @@ export function ContextualBar() {
                 className="sr-only peer"
                 checked={!!isGlobalApplyActive}
                 onChange={(e) => {
-                  setGlobalActive(e.target.checked);
+                  
                 }}
               />
               <div className="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
@@ -556,8 +600,15 @@ export function ContextualBar() {
                 <button
                   onClick={() => {
                     if (currentFormaScope) {
-                      const allPageNumbers = currentFormaScope.pages.map(p => p.pageNumber);
-                      setContextualBarSelectedPages(allPageNumbers);
+                      if (contextualBarSelectedPages.length === currentFormaScope.pages.length) {
+                        setContextualBarSelectedPages([]); // Hepsi seçiliyse temizle
+                        selectPages([]); // LayerStore'u da temizle
+                      } else {
+                        const allNumbers = currentFormaScope.pages.map(p => p.pageNumber);
+                        setContextualBarSelectedPages(allNumbers); // Hepsini seç
+                        const allIds = currentFormaScope.pages.map(p => p.id);
+                        selectPages(allIds); // LayerStore'u da senkronize et
+                      }
                     }
                   }}
                   className={`px-2 py-1 rounded text-[10px] font-bold transition-colors
@@ -581,11 +632,19 @@ export function ContextualBar() {
                       if (targetForma) {
                         setActiveFormaId(targetForma.id);
                       }
-                      setContextualBarSelectedPages(
-                        contextualBarSelectedPages.includes(page.pageNumber)
-                          ? contextualBarSelectedPages.filter((p) => p !== page.pageNumber)
-                          : [...contextualBarSelectedPages, page.pageNumber]
-                      );
+                      const newSelectedPages = contextualBarSelectedPages.includes(page.pageNumber)
+                        ? contextualBarSelectedPages.filter((p) => p !== page.pageNumber)
+                        : [...contextualBarSelectedPages, page.pageNumber];
+
+                      setContextualBarSelectedPages(newSelectedPages);
+                      
+                      // LayerStore ile senkronize et
+                      if (targetForma) {
+                         const layerPageIds = newSelectedPages
+                           .map(num => targetForma.pages.find(p => p.pageNumber === num)?.id)
+                           .filter(Boolean) as string[];
+                         selectPages(layerPageIds);
+                      }
                     }}
                     className={`px-2 py-1 rounded text-[10px] font-bold transition-colors
                       ${contextualBarSelectedPages.includes(page.pageNumber)
@@ -623,6 +682,27 @@ export function ContextualBar() {
           </div>
 
           <Divider />
+
+          {/* Formaya Yay (Spread) Butonu */}
+          <div className="flex items-center gap-1">
+             <IconButton 
+                icon={Maximize} 
+                label="Formaya Yay (Spread)" 
+                isActive={initialBackgroundColor !== null && layers.some(l => l.type === 'solid' && l.mask?.type === 'spread' && l.properties.color === initialBackgroundColor.color)}
+                onClick={() => {
+                  // Mevcut seçili kapsamdaki layer'ı bul
+                  const targetIds = contextualBarSelectedPages.map(num => currentFormaScope?.pages.find(p => p.pageNumber === num)?.id).filter(Boolean) as string[];
+                  const pageLayer = layers.find(l => l.type === 'solid' && l.mask?.type === 'page' && JSON.stringify(l.mask.targetIds) === JSON.stringify(targetIds));
+                  
+                  if (pageLayer && currentFormaScope) {
+                    const allFormaPageIds = currentFormaScope.pages.map(p => p.id);
+                    setLayerMask(pageLayer.id, { type: 'spread', targetIds: allFormaPageIds });
+                    fitLayerToPages(pageLayer.id, allFormaPageIds);
+                  }
+                }}
+                disabled={isGlobalApplyActive || contextualBarSelectedPages.length === 0}
+             />
+          </div>
 
           {/* Detaylı Ayarlar Butonu */}
           <button

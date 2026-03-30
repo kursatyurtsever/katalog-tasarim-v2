@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import * as htmlToImage from "html-to-image";
+import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useBannerStore } from "@/store/useBannerStore"; // YENİ EKLENDİ
@@ -24,20 +24,20 @@ export function DownloadMenu() {
     if (pages.length === 0) return null;
 
     const options = {
-      quality: 1.0,
-      pixelRatio: 2,
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
       backgroundColor: "#ffffff",
-      filter: (node: HTMLElement) => {
-        if (node.hasAttribute && node.hasAttribute('data-hide-on-export')) return false;
-        return true;
-      }
+      ignoreElements: (element: Element) => {
+        return element.hasAttribute('data-hide-on-export');
+      },
+      logging: false,
     };
 
     const pageImages = [];
     for (const page of pages) {
-      const dataUrl = format === "png" 
-        ? await htmlToImage.toPng(page, options) 
-        : await htmlToImage.toJpeg(page, options);
+      const canvas = await html2canvas(page, options);
+      const dataUrl = canvas.toDataURL(`image/${format}`, 1.0);
         
       pageImages.push({
         dataUrl,

@@ -1,0 +1,70 @@
+src/components/ContextualBar.tsx(38,48): error TS2339: Property 'updatePageBackground' does not exist on type 'CatalogState & CatalogActions'.
+src/components/ContextualBar.tsx(43,5): error TS2339: Property 'updateGlobalBackground' does not exist on type 'CatalogState & CatalogActions'.
+src/components/ContextualBar.tsx(43,29): error TS2339: Property 'isGlobalActive' does not exist on type 'CatalogState & CatalogActions'.
+src/components/ContextualBar.tsx(43,45): error TS2339: Property 'setGlobalActive' does not exist on type 'CatalogState & CatalogActions'.
+src/components/ContextualBar.tsx(43,62): error TS2339: Property 'updatePageBackgrounds' does not exist on type 'CatalogState & CatalogActions'.
+src/components/ContextualBar.tsx(43,85): error TS2339: Property 'updateFormaBackground' does not exist on type 'CatalogState & CatalogActions'.
+src/components/ContextualBar.tsx(184,40): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/core/exportPipeline.ts(47,26): error TS2339: Property 'banners' does not exist on type 'BannerState & BannerActions'.
+src/store/useCatalogStore.ts(229,3): error TS2353: Object literal may only specify known properties, and 'globalBackground' does not exist in type 'CatalogSettings'.
+src/store/useCatalogStore.ts(229,31): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(253,27): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(278,7): error TS2353: Object literal may only specify known properties, and 'globalBackground' does not exist in type 'Forma'.
+src/store/useCatalogStore.ts(278,35): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(286,7): error TS2353: Object literal may only specify known properties, and 'globalBackground' does not exist in type 'Forma'.
+src/store/useCatalogStore.ts(286,35): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(320,5): error TS2353: Object literal may only specify known properties, and 'background' does not exist in type 'CatalogPage'.
+src/store/useCatalogStore.ts(320,17): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(320,45): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(320,69): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(328,5): error TS2353: Object literal may only specify known properties, and 'globalBackground' does not exist in type 'Forma'.
+src/store/useCatalogStore.ts(328,23): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(328,51): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(328,76): error TS2339: Property 'globalBackground' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(329,44): error TS2339: Property 'isGlobalBackgroundActive' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(329,91): error TS2339: Property 'isGlobalBackgroundActive' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(355,35): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(524,32): error TS7006: Parameter 'bg' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(525,29): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(525,63): error TS2339: Property 'globalBackground' does not exist on type 'CatalogState & CatalogActions'.
+src/store/useCatalogStore.ts(537,25): error TS7006: Parameter 'active' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(552,30): error TS7006: Parameter 'pageNumber' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(552,42): error TS7006: Parameter 'bg' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(561,26): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(566,58): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(566,87): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(566,124): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(567,22): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(579,41): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(579,71): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(594,31): error TS7006: Parameter 'pageNumbers' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(594,44): error TS7006: Parameter 'bg' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(603,40): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(603,73): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(615,31): error TS7006: Parameter 'formaId' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(615,40): error TS7006: Parameter 'updates' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(621,24): error TS2339: Property 'globalBackground' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(621,43): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(621,73): error TS2339: Property 'globalBackground' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(635,35): error TS7006: Parameter 'bg' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(637,30): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(637,58): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(647,36): error TS7006: Parameter 'bg' implicitly has an 'any' type.
+src/store/useCatalogStore.ts(649,30): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(649,58): error TS2304: Cannot find name 'defaultBackground'.
+src/store/useCatalogStore.ts(1071,29): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(1072,81): error TS2339: Property 'globalBackground' does not exist on type 'CatalogSettings'.
+src/store/useCatalogStore.ts(1078,39): error TS2339: Property 'isGlobalBackgroundActive' does not exist on type 'CatalogSettings'.
+src/store/useCatalogStore.ts(1103,31): error TS2304: Cannot find name 'normalizeBackgroundSettings'.
+src/store/useCatalogStore.ts(1104,67): error TS2339: Property 'globalBackground' does not exist on type 'CatalogSettings'.
+src/store/useCatalogStore.ts(1146,19): error TS2339: Property 'isGlobalActive' does not exist on type 'CatalogState & CatalogActions'.
+src/store/useCatalogStore.ts(1146,43): error TS2339: Property 'globalBackground' does not exist on type 'CatalogState & CatalogActions'.
+src/store/useCatalogStore.ts(1147,35): error TS2339: Property 'globalBackground' does not exist on type 'CatalogState & CatalogActions'.
+src/store/useCatalogStore.ts(1148,17): error TS2339: Property 'isGlobalActive' does not exist on type 'CatalogState & CatalogActions'.
+src/store/useCatalogStore.ts(1160,21): error TS2339: Property 'isGlobalBackgroundActive' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(1160,55): error TS2339: Property 'globalBackground' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(1161,37): error TS2339: Property 'globalBackground' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(1162,19): error TS2339: Property 'isGlobalBackgroundActive' does not exist on type 'Forma'.
+src/store/useCatalogStore.ts(1168,22): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(1175,40): error TS2339: Property 'background' does not exist on type 'CatalogPage'.
+src/store/useCatalogStore.ts(1176,22): error TS2339: Property 'background' does not exist on type 'CatalogPage'.

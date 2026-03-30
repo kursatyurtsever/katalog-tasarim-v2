@@ -2,9 +2,9 @@
 
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useLayerStore } from "@/store/useLayerStore";
-import { Slot } from "./Slot";
-import { PizzaSection } from "./PizzaSection";
-import { BannerSection } from "./BannerSection"; // YENİ EKLENDİ
+import { Slot } from "../Slot";
+import { PizzaSection } from "../PizzaSection";
+import { BannerSection } from "../BannerSection";
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { Slot as SlotType } from "@/store/useCatalogStore";
@@ -66,9 +66,10 @@ export function Page({ pageNumber }: { pageNumber: number }) {
   const totalColumns = 4;
   const totalRows = Math.ceil(currentPage.slots.length / totalColumns);
 
-  const previousVisibleCount = pages
+  const previousVisibleCount = formas
+    .flatMap(f => f.pages)
     .filter(p => p.pageNumber < pageNumber)
-    .reduce((sum, p) => sum + p.slots.filter((s, idx) => !s.hidden && !(p.pageNumber === 1 && idx < 4) && !(p.pageNumber === 6 && idx < 8)).length, 0);
+    .reduce((sum, p) => sum + p.slots.filter(s => !s.hidden).length, 0);
 
   let visibleCounter = 0;
   const renderSlots = (startIndex: number) => {
@@ -96,8 +97,8 @@ export function Page({ pageNumber }: { pageNumber: number }) {
         }
         if (!placed) { c++; if (c >= totalColumns) { c = 0; r++; } }
       }
-      visibleCounter++;
-      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={previousVisibleCount + visibleCounter} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} />;
+      const currentSlotIndexInPage = currentPage.slots.slice(0, idx + 1).filter(s => !s.hidden).length;
+      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={previousVisibleCount + currentSlotIndexInPage} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} />;
     });
   };
 
@@ -116,11 +117,20 @@ export function Page({ pageNumber }: { pageNumber: number }) {
         style={pageStyle}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            selectPages([currentPage.id]); // Tıklandığında katman mağazasındaki sayfayı seç
+            if (e.ctrlKey || e.metaKey) {
+              // CTRL Basılı: Toggle (Çoklu Seçim)
+              if (selectedPageIds.includes(currentPage.id)) {
+                selectPages(selectedPageIds.filter((id) => id !== currentPage.id));
+              } else {
+                selectPages([...selectedPageIds, currentPage.id]);
+              }
+            } else {
+              // CTRL Basılı Değil: Tekli Seçim
+              selectPages([currentPage.id]);
+            }
           }
         }}
       >
-        {/* Sayfa arka planı artık Canvas.tsx tarafından render ediliyor, bu div kaldırıldı. */}
         <div className="safe-zone absolute z-10 flex flex-col" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
           
           {/* BANNER ALANI GÜNCELLENDİ */}

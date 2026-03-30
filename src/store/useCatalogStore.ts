@@ -21,40 +21,8 @@ export const defaultSpacing: SpacingData = { t: 8, r: 8, b: 8, l: 8, linked: tru
 export const defaultShadow: ShadowData = { x: 0, y: 4, blur: 6, spread: -1, color: "#000000", opacity: 10, active: false };
 
 // DEPRECATED: Will be replaced by useLayerStore
-export interface BackgroundSettings {
-  type: "color" | "image";
-  color: string;
-  opacity: number;
-  imageUrl: string | null;
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-  imageOpacity: number;
-  rotation: number;
-  isSpread?: boolean;
-  fitMode: 'cover' | 'contain' | 'repeat' | 'stretch';
-  flipX: boolean;
-  flipY: boolean;
-  blendMode: string;
-}
 
 // DEPRECATED: Will be replaced by useLayerStore
-export const defaultBackground: BackgroundSettings = {
-  type: "color",
-  color: "#ffffff",
-  opacity: 100,
-  imageUrl: null,
-  scale: 100,
-  offsetX: 0,
-  offsetY: 0,
-  imageOpacity: 100,
-  rotation: 0,
-  isSpread: false,
-  fitMode: 'cover',
-  flipX: false,
-  flipY: false,
-  blendMode: 'normal',
-};
 
 export interface ProductInfo {
   id?: string;
@@ -114,11 +82,7 @@ export interface CatalogSettings {
   shadows: {
     cell: ShadowData;
   };
-  // DEPRECATED: Will be replaced by useLayerStore
-  globalBackground: BackgroundSettings;
-  // DEPRECATED: Will be replaced by useLayerStore
-  isGlobalBackgroundActive: boolean;
-}
+    }
 
 export interface Slot {
   id: string;
@@ -144,19 +108,15 @@ export interface CatalogPage {
   slots: Slot[];
   footerText: string;
   footerLogo: string | null;
-  // DEPRECATED: Will be replaced by useLayerStore
-  background?: BackgroundSettings;
-}
+  }
 
 export interface Forma {
   id: number;
   name: string;
   pages: CatalogPage[];
-  // DEPRECATED: Will be replaced by useLayerStore
-  globalBackground?: BackgroundSettings;
-  // DEPRECATED: Will be replaced by useLayerStore
-  isGlobalBackgroundActive: boolean;
-}
+  // YENİ: Sayfa grupları (Excel hücre birleştirme mantığı)
+  pageMergeGroups: string[][]; // Her bir alt dizi birleştirilmiş sayfa ID'lerini tutar
+    }
 
 export interface CatalogState {
   activeTemplate: BrochureTemplate;
@@ -174,11 +134,7 @@ export interface CatalogState {
       pastPages: CatalogPage[][];
       futurePages: CatalogPage[][];
       sidebarState: { activePanel: string | null; activeTab: string | null; activeSubTab: string | null };
-      // DEPRECATED: Will be replaced by useLayerStore
-      globalBackground: BackgroundSettings;
-      // DEPRECATED: Will be replaced by useLayerStore
-      isGlobalActive: boolean;
-      // ContextualBar UI state'leri
+                  // ContextualBar UI state'leri
       contextualBarFormaId: string | null;
   contextualBarSelectedPages: number[];
 }
@@ -189,19 +145,10 @@ export interface CatalogActions {
   setActiveFormaId: (id: number) => void;
   setFormas: (formas: Forma[]) => void;
   setGlobalSettings: (settings: DeepPartial<CatalogSettings>) => void;
-  updateGlobalSettings: (settings: any) => void;
-  updateGlobalBackground: (bg: Partial<BackgroundSettings>) => void;
-  setGlobalActive: (active: boolean) => void;
-  setSelectedPage: (pageNumber: number | null) => void;
+  updateGlobalSettings: (settings: any) => void;  setSelectedPage: (pageNumber: number | null) => void;
   setContextualBarFormaId: (id: string | null) => void;
   setContextualBarSelectedPages: (pages: number[]) => void;
-  updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;
-  updatePageBackground: (pageNumber: number, bg: Partial<BackgroundSettings>) => void;
-  updatePageBackgrounds: (pageNumbers: number[], bg: Partial<BackgroundSettings>) => void;
-  updateFormaBackground: (formaId: number, updates: any) => void;
-  applyBackgroundToAllPages: (bg: BackgroundSettings) => void;
-  applyBackgroundToAllFormas: (bg: BackgroundSettings) => void;
-  swapSlotContents: (sourcePageNumber: number, sourceIndex: number, targetPageNumber: number, targetIndex: number) => void;
+  updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;  swapSlotContents: (sourcePageNumber: number, sourceIndex: number, targetPageNumber: number, targetIndex: number) => void;
   toggleZoom: () => void;
   setProductPool: (products: ProductInfo[]) => void;
   setMasterProductPool: (products: ProductInfo[]) => void;
@@ -227,6 +174,9 @@ export interface CatalogActions {
   updateSlotImageSettings: (pageNumber: number, slotId: string, settings: any) => void;
   setSidebarState: (panel: string | null, tab?: string | null, subTab?: string | null) => void;
   clearSelectionAndSelectPage: (pageNumber: number) => void;
+  // YENİ: Sayfa Gruplama İşlemleri
+  mergePages: (pageIds: string[]) => void;
+  unmergePages: (pageIds: string[]) => void;
 }
 
 const initialGlobalSettings: CatalogSettings = {
@@ -276,8 +226,8 @@ const initialGlobalSettings: CatalogSettings = {
   shadows: {
     cell: { ...defaultShadow, active: false }
   },
-  globalBackground: cloneDeep(defaultBackground),
-  isGlobalBackgroundActive: false,
+  
+  
 };
 
 const initialSidebarState = {
@@ -300,7 +250,7 @@ function buildPagesForTemplate(template: BrochureTemplate): CatalogPage[] {
     slots: createPageSlots(p.pageNumber, 16),
     footerText: "Sayfa altı notu...",
     footerLogo: null,
-    background: cloneDeep(defaultBackground),
+    
   }));
 }
 
@@ -308,58 +258,33 @@ function cloneDeep<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
-function normalizeBackgroundSettings(
-  current?: Partial<BackgroundSettings> | null,
-  incoming?: Partial<BackgroundSettings> | null
-): BackgroundSettings {
-  const merged = {
-    ...cloneDeep(defaultBackground),
-    ...(current ? cloneDeep(current) : {}),
-    ...(incoming ? cloneDeep(incoming) : {}),
-  };
-
-  const normalizeNumber = (value: unknown, fallback: number) =>
-    typeof value === "number" && Number.isFinite(value) ? value : fallback;
-
-  const normalizedImageUrl = typeof merged.imageUrl === "string" && merged.imageUrl.trim() !== ""
-    ? merged.imageUrl
-    : null;
-
-  return {
-    type: normalizedImageUrl ? "image" : "color",
-    color: typeof merged.color === "string" ? merged.color : defaultBackground.color,
-    opacity: Math.max(0, Math.min(100, normalizeNumber(merged.opacity, defaultBackground.opacity))),
-    imageUrl: normalizedImageUrl,
-    scale: normalizeNumber(merged.scale, defaultBackground.scale),
-    offsetX: normalizeNumber(merged.offsetX, defaultBackground.offsetX),
-    offsetY: normalizeNumber(merged.offsetY, defaultBackground.offsetY),
-    imageOpacity: normalizeNumber(merged.imageOpacity, defaultBackground.imageOpacity),
-    rotation: normalizeNumber(merged.rotation, defaultBackground.rotation),
-    isSpread: typeof merged.isSpread === "boolean" ? merged.isSpread : false,
-    fitMode: ['cover', 'contain', 'repeat', 'stretch'].includes(merged.fitMode) ? merged.fitMode : 'cover',
-    flipX: typeof merged.flipX === 'boolean' ? merged.flipX : false,
-    flipY: typeof merged.flipY === 'boolean' ? merged.flipY : false,
-    blendMode: typeof merged.blendMode === 'string' ? merged.blendMode : 'normal',
-  };
-}
 
 function buildFormasForTemplate(template: BrochureTemplate): Forma[] {
   const pages = buildPagesForTemplate(template);
   const splitIndex = Math.ceil(pages.length / 2);
+  
+  const createInitialGroups = (formPages: CatalogPage[]) => 
+    formPages.map(p => [p.id]);
+
+  const p1 = pages.slice(0, splitIndex);
+  const p2 = pages.slice(splitIndex);
+
   return [
     {
       id: 1,
       name: "Forma 1 (Kapaklar)",
-      pages: pages.slice(0, splitIndex),
-      globalBackground: cloneDeep(defaultBackground),
-      isGlobalBackgroundActive: false,
+      pages: p1,
+      pageMergeGroups: createInitialGroups(p1),
+      
+      
     },
     {
       id: 2,
       name: "Forma 2 (İç Sayfalar)",
-      pages: pages.slice(splitIndex),
-      globalBackground: cloneDeep(defaultBackground),
-      isGlobalBackgroundActive: false,
+      pages: p2,
+      pageMergeGroups: createInitialGroups(p2),
+      
+      
     },
   ];
 }
@@ -392,7 +317,7 @@ function deepMerge(target: any, source: any) {
 function normalizeCatalogPage(page: CatalogPage): CatalogPage {
   return {
     ...page,
-    background: normalizeBackgroundSettings(defaultBackground, page.background),
+    
   };
 }
 
@@ -400,8 +325,12 @@ function normalizeForma(forma: Forma): Forma {
   return {
     ...forma,
     pages: (forma.pages || []).map(normalizeCatalogPage),
-    globalBackground: normalizeBackgroundSettings(defaultBackground, forma.globalBackground),
-    isGlobalBackgroundActive: typeof forma.isGlobalBackgroundActive === "boolean" ? forma.isGlobalBackgroundActive : false,
+    
+    
+    // Her zaman pageMergeGroups'un dolu olmasını garantile
+    pageMergeGroups: (forma.pageMergeGroups && forma.pageMergeGroups.length > 0)
+      ? forma.pageMergeGroups
+      : (forma.pages || []).map(p => [p.id]),
   };
 }
 
@@ -423,8 +352,8 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       pastPages: [],
       futurePages: [],
       sidebarState: initialSidebarState,
-      globalBackground: cloneDeep(defaultBackground),
-      isGlobalActive: false,
+      
+      
       contextualBarFormaId: "1",
       contextualBarSelectedPages: [],
 
@@ -592,26 +521,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         globalSettings: { ...state.globalSettings, ...settings }
       })),
 
-      updateGlobalBackground: (bg) => set((state) => {
-        const newGlobalBg = normalizeBackgroundSettings(state.globalBackground, bg);
-        
-        // Eğer Global aktifse, globalSettings içindeki globalBackground'u da güncelle ki senkron kalsın
-        return {
-          globalBackground: newGlobalBg,
-          globalSettings: {
-            ...state.globalSettings,
-            globalBackground: newGlobalBg
-          }
-        };
-      }),
 
-      setGlobalActive: (active) => set((state) => ({ 
-        isGlobalActive: active,
-        globalSettings: {
-          ...state.globalSettings,
-          isGlobalBackgroundActive: active
-        }
-      })),
 
       updatePageFooter: (pageNum, data) => set((state) => ({
         formas: setActivePages(
@@ -619,156 +529,54 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           getActivePages(state).map((p) => p.pageNumber === pageNum ? { ...p, ...data } : p)
         )
       })),
-
-      updatePageBackground: (pageNumber, bg) => set((state) => {
-        const currentFormas = cloneDeep(state.formas);
-        const targetForma = currentFormas.find(f => f.pages.some(p => p.pageNumber === pageNumber));
-        if (!targetForma) return state;
-
-        const pagesInForma = targetForma.pages;
-        const currentPage = pagesInForma.find(p => p.pageNumber === pageNumber);
-
-        // Eğer güncellenen sayfanın resmi yayılmış durumdaysa, bağlı olduğu diğer sayfayı bul ve yaymayı iptal et.
-        if (currentPage?.background?.isSpread) {
-          // Bu mantık şimdilik basitçe tüm diğer sayfalarda arama yapıyor.
-          // İleride daha karmaşık spread grupları (örn. 3'lü) olursa revize edilmeli.
-          for (const forma of currentFormas) {
-            for (const page of forma.pages) {
-              if (page.pageNumber !== pageNumber && page.background?.isSpread && page.background?.imageUrl === currentPage.background.imageUrl) {
-                page.background.isSpread = false;
-              }
-            }
-          }
-        }
-
-        const newFormas = currentFormas.map((f) => {
-          if (f.id === targetForma.id) {
-            return {
-              ...f,
-              pages: f.pages.map((p) =>
-                p.pageNumber === pageNumber
-                  ? { ...p, background: normalizeBackgroundSettings(p.background, bg) }
-                  : p
-              ),
-            };
-          }
-          return f;
-        });
-
-        return {
-          formas: newFormas,
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(getActivePages(state))],
-          futurePages: [],
-        };
-      }),
-
-      updatePageBackgrounds: (pageNumbers, bg) => set((state) => {
-        if (pageNumbers.length === 0) return state;
-
-        const targetPageNumbers = new Set(pageNumbers);
-        const currentFormas = state.formas;
-        const newFormas = currentFormas.map((forma) => ({
-          ...forma,
-          pages: forma.pages.map((page) =>
-            targetPageNumbers.has(page.pageNumber)
-              ? { ...page, background: normalizeBackgroundSettings(page.background, bg) }
-              : page
-          ),
-        }));
-
-        return {
-          formas: newFormas,
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(getActivePages(state))],
-          futurePages: []
-        };
-      }),
-
-      updateFormaBackground: (formaId, updates) => set((state) => {
-        const currentFormas = state.formas;
-        const newFormas = currentFormas.map((f) => {
-          if (f.id === formaId) {
-            const newForma: Forma = { ...f, ...updates };
-            if (updates.globalBackground !== undefined) {
-              newForma.globalBackground = normalizeBackgroundSettings(f.globalBackground, updates.globalBackground);
-            }
-            return newForma;
-          }
-          return f;
-        });
-
-        return {
-          formas: newFormas,
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(getActivePages(state))],
-          futurePages: []
-        };
-      }),
-
-      applyBackgroundToAllPages: (bg) => set((state) => {
-        const currentPages = getActivePages(state);
-        const normalizedBg = normalizeBackgroundSettings(defaultBackground, bg);
-        const newPages = currentPages.map((p) => ({ ...p, background: cloneDeep(normalizedBg) }));
-
-        return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
-
-      applyBackgroundToAllFormas: (bg) => set((state) => {
-        const currentPages = getActivePages(state);
-        const normalizedBg = normalizeBackgroundSettings(defaultBackground, bg);
-        const formas = state.formas.map((f) => ({
-          ...f,
-          background: cloneDeep(normalizedBg),
-          pages: f.pages.map((p) => ({ ...p, background: cloneDeep(normalizedBg) })),
-        }));
-
-        return {
-          formas,
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
-
+      
       toggleZoom: () => set((state) => ({ isZoomed: !state.isZoomed })),
       setProductPool: (products) => set({ productPool: products }),
       setMasterProductPool: (products) => set({ masterProductPool: products }),
 
       autoFillSlots: () => set((state) => {
-        const currentPages = getActivePages(state);
-        const newPages = cloneDeep(currentPages);
-        const validSlots: any[] = [];
-        const sortedPages = [...newPages].sort((a, b) => a.pageNumber - b.pageNumber);
+        const newFormas = cloneDeep(state.formas);
+        const allPages = newFormas.flatMap(f => f.pages).sort((a, b) => a.pageNumber - b.pageNumber);
+        const allValidSlots: any[] = [];
         
-        sortedPages.forEach(p => {
-          let startIdx = (p.pageNumber === 1 ? 4 : p.pageNumber === 6 ? 8 : 0);
-          p.slots.forEach((s, idx) => { if (idx >= startIdx && !s.hidden) validSlots.push(s); });
+        allPages.forEach(p => {
+          p.slots.forEach((s) => {
+            if (!s.hidden) {
+              allValidSlots.push(s);
+            }
+          });
         });
         
-        validSlots.forEach(s => s.product = null);
+        // Önce tüm hücreleri temizle
+        allValidSlots.forEach(s => s.product = null);
         
+        // Ürünleri POS/SIRA değerine göre global sıraya yerleştir
         state.productPool.forEach((product) => {
           let posValue = 0;
           if (product.raw) {
             const keys = Object.keys(product.raw);
-            const posKey = keys.find(k => k.trim().toUpperCase() === "POS");
+            const posKey = keys.find(k => {
+              const uk = k.trim().toUpperCase();
+              return uk === "POS" || uk === "SIRA" || uk === "INDEX";
+            });
+            
             if (posKey) {
-              const rawString = String(product.raw[posKey]);
+              const rawValue = product.raw[posKey];
+              const rawString = String(rawValue);
               const match = rawString.match(/\d+/); 
               posValue = match ? parseInt(match[0], 10) : 0;
             }
           }
 
-          if (!isNaN(posValue) && posValue > 0 && posValue <= validSlots.length) {
-            const autoImage = product.image || `/images/products/${product.sku}.png`;
-            validSlots[posValue - 1].product = { ...product, image: autoImage };
+          if (!isNaN(posValue) && posValue > 0 && posValue <= allValidSlots.length) {
+            const autoImage = product.image || (product.sku ? `/images/products/${product.sku}.png` : null);
+            allValidSlots[posValue - 1].product = { ...product, image: autoImage || product.image };
           }
         });
         
         return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
+          formas: newFormas,
+          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(getActivePages(state))],
           futurePages: []
         };
       }),
@@ -1062,11 +870,61 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         };
       }),
 
-      clearSelectionAndSelectPage: (pageNumber: number) => set((state) => ({ 
-        selectedSlotIds: [], 
-        selectedTextElement: null, 
-        selectedPageNumber: pageNumber 
-      })),
+      clearSelectionAndSelectPage: (pageNumber: number) => {
+        const state = get();
+        state.clearSelection();
+        state.setSelectedPage(pageNumber);
+      },
+
+      mergePages: (pageIds: string[]) => set((state) => {
+        if (pageIds.length < 2) return state;
+
+        const newFormas = state.formas.map(forma => {
+          // Sadece seçili sayfaları içeren formayı güncelle
+          const hasSelectedPages = pageIds.some(id => forma.pages.some(p => p.id === id));
+          if (!hasSelectedPages) return forma;
+
+          // Seçili sayfaları mevcut gruplardan çıkar
+          const groups = forma.pageMergeGroups || forma.pages.map(p => [p.id]);
+          const remainingGroups = groups.filter(
+            group => !group.some(id => pageIds.includes(id))
+          );
+
+          // Yeni birleşmiş grubu ekle
+          return {
+            ...forma,
+            pageMergeGroups: [...remainingGroups, pageIds]
+          };
+        });
+
+        return { formas: newFormas };
+      }),
+
+      unmergePages: (pageIds: string[]) => set((state) => {
+        const newFormas = state.formas.map(forma => {
+          const hasSelectedPages = pageIds.some(id => forma.pages.some(p => p.id === id));
+          if (!hasSelectedPages) return forma;
+
+          // Seçili sayfaların bulunduğu grupları tespit et ve parçala
+          const groups = forma.pageMergeGroups || forma.pages.map(p => [p.id]);
+          const newGroups: string[][] = [];
+          groups.forEach(group => {
+            if (group.some(id => pageIds.includes(id))) {
+              // Grubu parçala: her ID kendi grubu olsun
+              group.forEach(id => newGroups.push([id]));
+            } else {
+              newGroups.push(group);
+            }
+          });
+
+          return {
+            ...forma,
+            pageMergeGroups: newGroups
+          };
+        });
+
+        return { formas: newFormas };
+      }),
     }),
     {
       name: "catalog-storage-v2",
@@ -1080,14 +938,8 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const mergedGlobal = deepMerge(baseState.globalSettings || initialGlobalSettings, incoming?.state?.globalSettings || {});
         const normalizedGlobalSettings: CatalogSettings = {
           ...mergedGlobal,
-          globalBackground: normalizeBackgroundSettings(
-            baseState.globalSettings?.globalBackground || initialGlobalSettings.globalBackground,
-            mergedGlobal.globalBackground
-          ),
-          isGlobalBackgroundActive:
-            typeof mergedGlobal.isGlobalBackgroundActive === "boolean"
-              ? mergedGlobal.isGlobalBackgroundActive
-              : initialGlobalSettings.isGlobalBackgroundActive,
+          
+          
         };
 
         const incomingState = { ...(incoming?.state || {}) };
@@ -1112,61 +964,85 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
             activeFormaId: incomingState.activeFormaId || baseState.activeFormaId || 1,
             activeTab: incomingState.activeTab || (incomingState.activeFormaId === 2 ? "inner" : "outer"),
             globalSettings: normalizedGlobalSettings,
-            globalBackground: normalizeBackgroundSettings(
-              baseState.globalBackground || initialGlobalSettings.globalBackground,
-              incomingState.globalBackground
-            ),
-            isGlobalActive: typeof incomingState.isGlobalActive === "boolean" ? incomingState.isGlobalActive : (baseState.isGlobalActive || false),
+            
+            
             contextualBarFormaId: incomingState.contextualBarFormaId || baseState.contextualBarFormaId || "1",
             contextualBarSelectedPages: incomingState.contextualBarSelectedPages || baseState.contextualBarSelectedPages || [],
           }
         };
       },
 
-      // Migration logic for old background data to new layer structure
-      onRehydrateStorage: (state) => {
-        if (state) {
-          const { addLayer } = useLayerStore.getState();
-            state.formas.forEach(forma => {
-            forma.pages.forEach(page => {
-              if (page.background && (page.background.imageUrl || (page.background.color !== defaultBackground.color && page.background.color !== "transparent")) ) {
-                const pageConfig = state.activeTemplate.pages.find(p => p.pageNumber === page.pageNumber);
-                if (!pageConfig) return; // Sayfa konfigürasyonu bulunamazsa devam etme
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
 
-                const newLayer: Layer = {
-                  id: uuidv4(),
-                  type: page.background.type === "image" ? "image" : "solid",
-                  bounds: { x: 0, y: 0, w: pageConfig.widthMm, h: state.activeTemplate.openHeightMm }, // Sayfa genişliği ve şablon yüksekliği
-                  transform: { rotation: page.background.rotation, scale: page.background.scale, flipX: page.background.flipX, flipY: page.background.flipY, offsetX: 0, offsetY: 0 },
-                  mask: { type: "page", targetIds: [page.id] },
-                  zIndex: 0, // En alta
-                  properties: page.background.type === "image"
-                    ? { imageUrl: page.background.imageUrl, opacity: page.background.imageOpacity }
-                    : { color: page.background.color, opacity: page.background.opacity },
-                };
-                addLayer(newLayer);
-                // Eski arka planı temizle (opsiyonel, persist etmemesi için)
-                delete page.background; 
+        const { addLayer, layers } = useLayerStore.getState();
+        const template = state.activeTemplate;
+        if (!template) return;
+
+        // Migration Helper
+        const migrateBackground = (bg: any, maskType: "page" | "spread" | "document", targetIds: string[], bounds: { x: number; y: number; w: number; h: number }) => {
+          // Eğer zaten bu maskeye sahip bir katman varsa (veya varsayılan beyaz renkteyse) geç
+          const isDefault = bg.type === "color" && bg.color === "#ffffff" && bg.opacity === 100 && !bg.imageUrl;
+          if (isDefault) return;
+
+          const newLayer: Layer = {
+            id: uuidv4(),
+            type: bg.type === "image" ? "image" : "solid",
+            name: `Migrated ${maskType === "page" ? "Page" : maskType === "spread" ? "Spread" : "Global"} BG`,
+            bounds: bounds,
+            transform: { rotation: bg.rotation || 0, scale: bg.scale || 100, flipX: bg.flipX || false, flipY: bg.flipY || false, offsetX: bg.offsetX || 0, offsetY: bg.offsetY || 0 },
+            mask: { type: maskType, targetIds, excludeGaps: maskType !== "page" },
+            zIndex: 0,
+            properties: bg.type === "image"
+              ? { imageUrl: bg.imageUrl, opacity: bg.imageOpacity ?? bg.opacity ?? 100, fitMode: bg.fitMode || "cover", blendMode: bg.blendMode || "normal" }
+              : { color: bg.color, opacity: bg.opacity ?? 100 },
+            visible: true
+          };
+          addLayer(newLayer);
+        };
+
+        let migrationCount = 0;
+
+        // 1. Global Background Migration (Broşür geneli)
+        if ((state as any).isGlobalActive && (state as any).globalBackground) {
+          migrateBackground((state as any).globalBackground, "document", [], { x: 0, y: 0, w: template.openWidthMm, h: template.openHeightMm });
+          (state as any).isGlobalActive = false;
+          migrationCount++;
+        }
+
+         // 2. Forma & Sayfa Bazlı Migrasyon
+        state.formas.forEach(forma => {
+          // Sayfa gruplarını garantiye al
+          if (!forma.pageMergeGroups) {
+            forma.pageMergeGroups = forma.pages.map(p => [p.id]);
+          }
+
+          // Forma spread arka planı
+          if ((forma as any).isGlobalBackgroundActive && (forma as any).globalBackground) {
+            migrateBackground((forma as any).globalBackground, "spread", forma.pages.map(p => p.id), { x: 0, y: 0, w: template.openWidthMm, h: template.openHeightMm });
+            (forma as any).isGlobalBackgroundActive = false;
+            migrationCount++;
+          }
+
+          // Tekil sayfa arka planları
+          forma.pages.forEach(page => {
+            if ((page as any).background) {
+              // Sayfa OFFSET hesaplama (mm)
+              const pageIndex = template.pages.findIndex(p => p.pageNumber === page.pageNumber);
+              if (pageIndex !== -1) {
+                const xOffset = template.pages.slice(0, pageIndex).reduce((sum, p) => sum + p.widthMm, 0);
+                const pageWidth = template.pages[pageIndex].widthMm;
+                
+                migrateBackground((page as any).background, "page", [page.id], { x: xOffset, y: 0, w: pageWidth, h: template.openHeightMm });
+                (page as any).background = undefined; // Legacy veriyi sil
+                migrationCount++;
               }
-            });
-
-            // Forma global arka planı için de benzer migration yapılabilir
-            if (forma.globalBackground && (forma.globalBackground.imageUrl || (forma.globalBackground.color !== defaultBackground.color && forma.globalBackground.color !== "transparent")) ) {
-              const newLayer: Layer = {
-                id: uuidv4(),
-                type: forma.globalBackground.type === "image" ? "image" : "solid",
-                bounds: { x: 0, y: 0, w: state.activeTemplate.openWidthMm, h: state.activeTemplate.openHeightMm }, // Forma genişliği ve yüksekliği
-                transform: { rotation: forma.globalBackground.rotation, scale: forma.globalBackground.scale, flipX: forma.globalBackground.flipX, flipY: forma.globalBackground.flipY, offsetX: 0, offsetY: 0 },
-                mask: { type: "document", targetIds: [] }, // Tüm dokümanı kapsayan katman
-                zIndex: 0, // En alta
-                properties: forma.globalBackground.type === "image"
-                  ? { imageUrl: forma.globalBackground.imageUrl, opacity: forma.globalBackground.imageOpacity }
-                  : { color: forma.globalBackground.color, opacity: forma.globalBackground.opacity },
-              };
-              addLayer(newLayer);
-              delete forma.globalBackground;
             }
           });
+        });
+
+        if (migrationCount > 0) {
+          console.log(`[LMS Migration] ${migrationCount} legacy background(s) migrated to layers.`);
         }
       }
     }

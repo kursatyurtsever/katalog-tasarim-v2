@@ -21,10 +21,22 @@ export interface Page {
 
 export interface Layer {
   id: string;
+  name?: string;
   type: 'image' | 'solid' | 'text' | 'shape'; // Added 'text' and 'shape' for common layer types
   bounds: { x: number; y: number; w: number; h: number };
   transform: { rotation: number; scale: number; flipX: boolean; flipY: boolean; offsetX: number; offsetY: number };
-  mask?: { type: 'page' | 'spread' | 'document'; targetIds: string[] }; // 'page' | 'spread' | 'document' for mask type, targetIds are page or spread IDs
+  mask?: { 
+    type: 'page' | 'spread' | 'document'; 
+    targetIds: string[]; 
+    excludeGaps?: boolean; // YENİ: Sayfa arası boşlukları (gap) çıkarıp çıkarmayacağı
+  }; 
   zIndex: number;
-  properties: any; // Specific properties based on layer type (e.g., imageUrl for image, color for solid)
+  visible?: boolean;
+  locked?: boolean; // YENİ: Katman kilitleme desteği
+  properties: {
+    opacity?: number;
+    blendMode?: string;
+    fitMode?: 'cover' | 'contain' | 'repeat' | 'stretch';
+    [key: string]: any;
+  }; // Specific properties based on layer type
 }
