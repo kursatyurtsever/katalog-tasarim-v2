@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCatalogStore, Slot as SlotType } from "@/store/useCatalogStore";
@@ -143,6 +144,11 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   const br = finalSettings.radiuses.cell.br || 0;
   const maxRadiusBottom = Math.max(bl, br) / 5;
 
+  const cellShadow = getShadowStyle(finalSettings.shadows.cell);
+  const boxShadow = isSelected 
+    ? `inset 0 0 0 3px #3b82f6${cellShadow !== 'none' ? `, ${cellShadow}` : ''}` 
+    : cellShadow;
+
   return (
     <div 
       id={`slot-${slot.id}`}
@@ -165,7 +171,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }} 
       onDragLeave={() => setIsOver(false)} 
       onDrop={handleDrop} 
-      className={`product-slot relative overflow-hidden border border-solid transition-all h-full min-w-0 min-h-0 cursor-pointer ${isSelected ? "z-30" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300"}`} 
+      className={`product-slot relative border border-solid transition-all h-full min-w-0 min-h-0 cursor-pointer ${isSelected ? "z-30" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300"}`} 
       style={{ 
         gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`, 
         gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`, 
@@ -173,9 +179,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
         backgroundColor: hexToRgba(finalSettings.colors.cellBg.c, finalSettings.colors.cellBg.o), 
         borderColor: hexToRgba(finalSettings.colors.cellBorder.c, finalSettings.colors.cellBorder.o), 
         borderWidth: `${finalSettings.borderWidth}px`, 
-        boxShadow: isSelected 
-          ? `0 0 0 4px #3b82f6, ${getShadowStyle(finalSettings.shadows.cell)}` 
-          : getShadowStyle(finalSettings.shadows.cell), 
+        boxShadow: boxShadow,
         padding: getPaddingStyle(finalSettings.spacings.cell) 
       }}
     >
@@ -210,7 +214,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
             // YENİ: Tek tıkla Seç, Çift Tıkla Düzenle Mantığı
             onClick={(e) => {
               e.stopPropagation();
-              if (!selectedSlotIds.includes(slot.id)) toggleSlotSelection(slot.id, false);
+              toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
               setSelectedTextElement({ slotId: slot.id, elementType: 'price' });
             }}
             onDoubleClick={(e) => {
@@ -248,7 +252,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
               // YENİ: Tek tıkla Seç, Çift Tıkla Düzenle Mantığı
               onClick={(e) => {
                 e.stopPropagation();
-                if (!selectedSlotIds.includes(slot.id)) toggleSlotSelection(slot.id, false);
+                toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
                 setSelectedTextElement({ slotId: slot.id, elementType: 'name' });
               }}
               onDoubleClick={(e) => {
