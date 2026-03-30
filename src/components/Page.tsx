@@ -1,6 +1,7 @@
 "use client";
 
-import { defaultBackground, useCatalogStore } from "@/store/useCatalogStore";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { useLayerStore } from "@/store/useLayerStore";
 import { Slot } from "./Slot";
 import { PizzaSection } from "./PizzaSection";
 import { BannerSection } from "./BannerSection"; // YENİ EKLENDİ
@@ -11,14 +12,15 @@ import type { Slot as SlotType } from "@/store/useCatalogStore";
 export function Page({ pageNumber }: { pageNumber: number }) {
   const formas = useCatalogStore((state) => state.formas);
   const activeFormaId = useCatalogStore((state) => state.activeFormaId);
-  const globalBackground = useCatalogStore((state) => state.globalBackground);
-  const isGlobalActive = useCatalogStore((state) => state.isGlobalActive);
   const template = useCatalogStore((state) => state.activeTemplate);
   const gridGap = useCatalogStore((state) => state.globalSettings?.gridGap ?? 0);
   const updatePageFooter = useCatalogStore((state) => state.updatePageFooter);
   const mergeSelected = useCatalogStore((state) => state.mergeSelected);
   const unmergeSlot = useCatalogStore((state) => state.unmergeSlot);
   const clearSlot = useCatalogStore((state) => state.clearSlot);
+  const selectPages = useLayerStore((state) => state.selectPages);
+  const selectedPageIds = useLayerStore((state) => state.selectedPageIds);
+
 
   const activeForma = formas.find((f) => f.id === activeFormaId);
   const pages = activeForma?.pages || [];
@@ -49,123 +51,16 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
   if (!currentPage || !pageConfig) return null;
 
-  // Zemin Hiyerarşisi (Fallback) Hesaplama
-  // 1. Broşür Global (isGlobalActive)
-  // 2. Sayfa Özel (currentPage.background)
-  // 3. Forma Özel (activeForma.globalBackground)
-  
-  let bg = defaultBackground;
-  let isUsingGlobal = false;
-
-  if (isGlobalActive) {
-    bg = { ...defaultBackground, ...globalBackground };
-    isUsingGlobal = true;
-  } else {
-    // Sayfa zemininde veri var mı kontrol et (default değilse)
-    const pageBg = currentPage.background;
-    const hasPageBg = !!(pageBg?.imageUrl || (pageBg?.color && pageBg.color.toLowerCase() !== "#ffffff" && pageBg.color !== "transparent"));
-
-    if (hasPageBg && pageBg) {
-      bg = { ...defaultBackground, ...pageBg };
-    } else {
-      // Sayfa boşsa formaya bak
-      const formaBg = activeForma?.globalBackground;
-      if (formaBg && (formaBg.imageUrl || (formaBg.color && formaBg.color.toLowerCase() !== "#ffffff" && formaBg.color !== "transparent"))) {
-        bg = { ...defaultBackground, ...formaBg };
-      } else {
-        // Hepsi boşsa varsayılan beyaz
-        bg = { ...defaultBackground, color: "#ffffff", opacity: 100 };
-      }
-    }
-  }
-
-  const hexToRgba = (hex: string, opacity: number) => {
-    if (hex === "transparent") return "transparent";
-    let r = 0, g = 0, b = 0;
-    const cleanHex = hex.replace("#", "");
-    if (cleanHex.length === 3) {
-      r = parseInt(cleanHex[0] + cleanHex[0], 16);
-      g = parseInt(cleanHex[1] + cleanHex[1], 16);
-      b = parseInt(cleanHex[2] + cleanHex[2], 16);
-    } else if (cleanHex.length === 6) {
-      r = parseInt(cleanHex.substring(0, 2), 16);
-      g = parseInt(cleanHex.substring(2, 4), 16);
-      b = parseInt(cleanHex.substring(4, 6), 16);
-    }
-    return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
-  };
-
   const pageStyle = {
     width: `${pageConfig.widthMm}mm`,
-    height: "297mm",
+    height: `${template.openHeightMm}mm`,
     boxSizing: "border-box" as const,
-    backgroundColor: "transparent",
+    backgroundColor: "transparent", // Sayfalar artık şeffaf
   };
 
-  // Spread (Yayılma) hesaplaması
-  const isSpread = bg.isSpread && bg.type === "image" && bg.imageUrl;
-  
-  // Forma içindeki sayfaların sırasını bulalım (Sol/Sağ ayrımı için)
-  const pageIndexInForma = pages.findIndex(p => p.pageNumber === pageNumber);
-  const isLeftPage = pageIndexInForma % 2 === 0; // 0, 2, 4... sol sayfa (forma bazında)
+  const isSelected = selectedPageIds.includes(currentPage.id);
 
-  const pageBackgroundColorStyle = {
-    backgroundColor: hexToRgba(bg.color, bg.opacity),
-    // Eğer global aktifse ve Canvas zaten bu zemini basıyorsa, Page'de tekrar basmaya gerek yok.
-    display: isUsingGlobal ? "none" : "block"
-  };
 
-  // Yayılmış modda ölçek ve pan hesaplamalarını düzelt
-  // background-size: Genişlik, iki sayfanın toplam genişliğinin ölçeklenmiş halidir.
-  // background-position:
-  // - X: Ölçeği hesaba katmalı ve sayfa konumuna (sol/sağ) göre ayarlanmalıdır.
-  // - Y: Direkt offsetY olarak kullanılır.
-  const spreadScale = bg.scale / 100;
-  const spreadWidth = 200 * spreadScale;
-  const spreadHeight = 100 * spreadScale;
-  
-  // Pan X'i ölçeğe göre ayarla. Ölçek büyüdükçe, Pan X'in etkisi azalmalı.
-  // İki sayfa olduğu için pozisyonu 0-100 aralığında düşünelim.
-  // Sol sayfa: 0 ila 50, Sağ sayfa: 50 ila 100.
-  // OffsetX, bu 200% genişliğindeki alan içindeki kaydırmayı temsil eder.
-  const panXForSpread = bg.offsetX;
-  const panYForSpread = bg.offsetY;
-
-  // Yeni özellikler için CSS property'lerini hazırla
-  const backgroundSize = {
-    cover: 'cover',
-    contain: 'contain',
-    repeat: 'auto', // background-repeat 'repeat' olacak
-    stretch: '100% 100%',
-  }[bg.fitMode];
-
-  const backgroundRepeat = bg.fitMode === 'repeat' ? 'repeat' : 'no-repeat';
-
-  // flipX ve flipY için transform scale değerleri
-  const scaleX = bg.flipX ? -1 : 1;
-  const scaleY = bg.flipY ? -1 : 1;
-
-  // Tüm transform'ları birleştir
-  const transform = `rotate(${bg.rotation}deg) scale(${scaleX}, ${scaleY})`;
-
-  const pageBackgroundImageStyle = {
-    backgroundImage: bg.type === "image" && bg.imageUrl ? `url(${bg.imageUrl})` : undefined,
-    backgroundRepeat: backgroundRepeat,
-    opacity: bg.imageOpacity / 100,
-    transform: transform,
-    transformOrigin: "center",
-    mixBlendMode: bg.blendMode as any, // type assertion
-
-    ...(isSpread
-      ? {
-          backgroundSize: '200% 100%', // İki sayfayı kaplayacak şekilde
-          backgroundPosition: `${isLeftPage ? '0%' : '100%'} 50%`,
-        }
-      : {
-          backgroundSize: backgroundSize,
-          backgroundPosition: `${bg.offsetX}px ${bg.offsetY}px`,
-        }),
-  };
 
   const [mt, mr, , ml] = pageConfig.safeZone;
   const totalColumns = 4;
@@ -216,26 +111,16 @@ export function Page({ pageNumber }: { pageNumber: number }) {
         </div>, document.body
       )}
       <div
-        id={`page-${pageNumber}`}
-        className="physical-page relative shrink-0 overflow-hidden shadow-lg"
+        id={`page-${currentPage.id}`}
+        className={`physical-page relative shrink-0 overflow-hidden shadow-lg ${isSelected ? "ring-2 ring-blue-500" : ""}`}
         style={pageStyle}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            useCatalogStore.getState().clearSelectionAndSelectPage(currentPage.pageNumber);
+            selectPages([currentPage.id]); // Tıklandığında katman mağazasındaki sayfayı seç
           }
         }}
       >
-        <div 
-          className="absolute inset-0 pointer-events-none z-0" 
-          style={pageBackgroundColorStyle}
-        >
-          {bg.type === 'image' && bg.imageUrl && (
-            <div 
-              className="absolute inset-0" 
-              style={pageBackgroundImageStyle} 
-            />
-          )}
-        </div>
+        {/* Sayfa arka planı artık Canvas.tsx tarafından render ediliyor, bu div kaldırıldı. */}
         <div className="safe-zone absolute z-10 flex flex-col" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
           
           {/* BANNER ALANI GÜNCELLENDİ */}

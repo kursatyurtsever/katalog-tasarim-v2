@@ -2,6 +2,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Template1, availableTemplates } from "@/lib/templates";
 import type { BrochureTemplate } from "@/lib/templates";
+import { useLayerStore } from "./useLayerStore";
+import { Layer } from "../types/document";
+import { v4 as uuidv4 } from "uuid";
 
 import { TypographyData } from "@/components/TypographyPicker";
 import { BorderRadiusData } from "@/components/BorderRadiusPicker";
@@ -17,6 +20,7 @@ export const defaultRadius: BorderRadiusData = { tl: 8, tr: 8, bl: 8, br: 8, lin
 export const defaultSpacing: SpacingData = { t: 8, r: 8, b: 8, l: 8, linked: true };
 export const defaultShadow: ShadowData = { x: 0, y: 4, blur: 6, spread: -1, color: "#000000", opacity: 10, active: false };
 
+// DEPRECATED: Will be replaced by useLayerStore
 export interface BackgroundSettings {
   type: "color" | "image";
   color: string;
@@ -34,6 +38,7 @@ export interface BackgroundSettings {
   blendMode: string;
 }
 
+// DEPRECATED: Will be replaced by useLayerStore
 export const defaultBackground: BackgroundSettings = {
   type: "color",
   color: "#ffffff",
@@ -109,7 +114,9 @@ export interface CatalogSettings {
   shadows: {
     cell: ShadowData;
   };
+  // DEPRECATED: Will be replaced by useLayerStore
   globalBackground: BackgroundSettings;
+  // DEPRECATED: Will be replaced by useLayerStore
   isGlobalBackgroundActive: boolean;
 }
 
@@ -137,6 +144,7 @@ export interface CatalogPage {
   slots: Slot[];
   footerText: string;
   footerLogo: string | null;
+  // DEPRECATED: Will be replaced by useLayerStore
   background?: BackgroundSettings;
 }
 
@@ -144,7 +152,9 @@ export interface Forma {
   id: number;
   name: string;
   pages: CatalogPage[];
+  // DEPRECATED: Will be replaced by useLayerStore
   globalBackground?: BackgroundSettings;
+  // DEPRECATED: Will be replaced by useLayerStore
   isGlobalBackgroundActive: boolean;
 }
 
@@ -160,14 +170,16 @@ export interface CatalogState {
   isZoomed: boolean;
   selectedSlotIds: string[];
   selectedPageNumber: number | null;
-  selectedTextElement: { slotId: string, elementType: 'name' | 'price' | 'badge' } | null;
-  pastPages: CatalogPage[][];
-  futurePages: CatalogPage[][];
-  sidebarState: { activePanel: string | null; activeTab: string | null; activeSubTab: string | null };
-  globalBackground: BackgroundSettings;
-  isGlobalActive: boolean;
-  // ContextualBar UI state'leri
-  contextualBarFormaId: string | null;
+      selectedTextElement: { slotId: string, elementType: 'name' | 'price' | 'badge' } | null;
+      pastPages: CatalogPage[][];
+      futurePages: CatalogPage[][];
+      sidebarState: { activePanel: string | null; activeTab: string | null; activeSubTab: string | null };
+      // DEPRECATED: Will be replaced by useLayerStore
+      globalBackground: BackgroundSettings;
+      // DEPRECATED: Will be replaced by useLayerStore
+      isGlobalActive: boolean;
+      // ContextualBar UI state'leri
+      contextualBarFormaId: string | null;
   contextualBarSelectedPages: number[];
 }
 
@@ -1109,6 +1121,53 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
             contextualBarSelectedPages: incomingState.contextualBarSelectedPages || baseState.contextualBarSelectedPages || [],
           }
         };
+      },
+
+      // Migration logic for old background data to new layer structure
+      onRehydrateStorage: (state) => {
+        if (state) {
+          const { addLayer } = useLayerStore.getState();
+            state.formas.forEach(forma => {
+            forma.pages.forEach(page => {
+              if (page.background && (page.background.imageUrl || (page.background.color !== defaultBackground.color && page.background.color !== "transparent")) ) {
+                const pageConfig = state.activeTemplate.pages.find(p => p.pageNumber === page.pageNumber);
+                if (!pageConfig) return; // Sayfa konfigürasyonu bulunamazsa devam etme
+
+                const newLayer: Layer = {
+                  id: uuidv4(),
+                  type: page.background.type === "image" ? "image" : "solid",
+                  bounds: { x: 0, y: 0, w: pageConfig.widthMm, h: state.activeTemplate.openHeightMm }, // Sayfa genişliği ve şablon yüksekliği
+                  transform: { rotation: page.background.rotation, scale: page.background.scale, flipX: page.background.flipX, flipY: page.background.flipY, offsetX: 0, offsetY: 0 },
+                  mask: { type: "page", targetIds: [page.id] },
+                  zIndex: 0, // En alta
+                  properties: page.background.type === "image"
+                    ? { imageUrl: page.background.imageUrl, opacity: page.background.imageOpacity }
+                    : { color: page.background.color, opacity: page.background.opacity },
+                };
+                addLayer(newLayer);
+                // Eski arka planı temizle (opsiyonel, persist etmemesi için)
+                delete page.background; 
+              }
+            });
+
+            // Forma global arka planı için de benzer migration yapılabilir
+            if (forma.globalBackground && (forma.globalBackground.imageUrl || (forma.globalBackground.color !== defaultBackground.color && forma.globalBackground.color !== "transparent")) ) {
+              const newLayer: Layer = {
+                id: uuidv4(),
+                type: forma.globalBackground.type === "image" ? "image" : "solid",
+                bounds: { x: 0, y: 0, w: state.activeTemplate.openWidthMm, h: state.activeTemplate.openHeightMm }, // Forma genişliği ve yüksekliği
+                transform: { rotation: forma.globalBackground.rotation, scale: forma.globalBackground.scale, flipX: forma.globalBackground.flipX, flipY: forma.globalBackground.flipY, offsetX: 0, offsetY: 0 },
+                mask: { type: "document", targetIds: [] }, // Tüm dokümanı kapsayan katman
+                zIndex: 0, // En alta
+                properties: forma.globalBackground.type === "image"
+                  ? { imageUrl: forma.globalBackground.imageUrl, opacity: forma.globalBackground.imageOpacity }
+                  : { color: forma.globalBackground.color, opacity: forma.globalBackground.opacity },
+              };
+              addLayer(newLayer);
+              delete forma.globalBackground;
+            }
+          });
+        }
       }
     }
   )

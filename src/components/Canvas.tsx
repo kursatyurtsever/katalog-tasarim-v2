@@ -2,12 +2,15 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { defaultBackground, useCatalogStore } from "@/store/useCatalogStore";
+import { useLayerStore } from "@/store/useLayerStore";
 import { Page } from "./Page";
+import Image from "next/image"; // Import Image component for next/image
 
 const MM_TO_PX = 96 / 25.4;
 
 export function Canvas() {
   const formas = useCatalogStore((state) => state.formas);
+  const layers = useLayerStore((state) => state.layers);
   const activeFormaId = useCatalogStore((state) => state.activeFormaId);
   const globalSettings = useCatalogStore((state) => state.globalSettings);
   const isZoomed = useCatalogStore((state) => state.isZoomed);
@@ -17,40 +20,10 @@ export function Canvas() {
 
   const activeForma = formas.find((f) => f.id === activeFormaId);
   const pages = activeForma?.pages || [];
+  // globalBg ve formaBg tanımları artık doğrudan kullanılmıyor, ancak migration için gerekebilir.
   const globalBg = { ...defaultBackground, ...(globalSettings.globalBackground || {}) };
-  const formaBg = { ...defaultBackground, ...(activeForma?.globalBackground || {}) };
-  const shouldRenderGlobalBackground = globalSettings.isGlobalBackgroundActive;
-  const hasGlobalImage = !!globalBg.imageUrl;
-  const hasVisibleGlobalColor =
-    globalBg.type === "color" &&
-    globalBg.opacity > 0 &&
-    (globalBg.color !== defaultBackground.color || globalBg.opacity !== defaultBackground.opacity);
-  const hasVisibleGlobalBackground = shouldRenderGlobalBackground && (hasGlobalImage || hasVisibleGlobalColor);
+  // const formaBg = { ...defaultBackground, ...(activeForma?.globalBackground || {}) }; // Artık kullanılmıyor
 
-  // YENİ: Global zemin aktifse ve Canvas'ta görünmesi isteniyorsa style objesini oluştur
-  const globalBackgroundColorStyle = hasVisibleGlobalBackground ? {
-    backgroundColor: hasVisibleGlobalColor ? globalBg.color : "transparent",
-    opacity: Math.max(0, Math.min(1, globalBg.opacity / 100)),
-  } : undefined;
-
-  const globalBackgroundImageStyle = hasVisibleGlobalBackground && hasGlobalImage ? {
-    backgroundImage: `url(${globalBg.imageUrl})`,
-    backgroundSize: globalBg.isSpread ? "cover" : `${globalBg.scale}%`,
-    backgroundPosition: globalBg.isSpread ? "center" : `${globalBg.offsetX}px ${globalBg.offsetY}px`,
-    backgroundRepeat: "no-repeat" as const,
-    opacity: Math.max(0, Math.min(1, globalBg.imageOpacity / 100)),
-    transform: `rotate(${globalBg.rotation}deg) scale(${globalBg.flipX ? -1 : 1}, ${globalBg.flipY ? -1 : 1})`,
-    transformOrigin: "center",
-    mixBlendMode: globalBg.blendMode as any,
-  } : undefined;
-
-  const hasFormaImage = !!formaBg.imageUrl;
-  const hasVisibleFormaColor =
-    formaBg.type === "color" &&
-    formaBg.opacity > 0 &&
-    (formaBg.color !== defaultBackground.color || formaBg.opacity !== defaultBackground.opacity);
-  const hasVisibleFormaBackground = hasFormaImage || hasVisibleFormaColor;
-  
   const [scale, setScale] = useState(1);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -107,19 +80,99 @@ export function Canvas() {
             : `translate(-50%, -50%) scale(${scale})`,
         }}
       >
-        {/* Global Arka Plan Katmanları (Renk ve Resim Ayrı) */}
-        {globalBackgroundColorStyle && (
-          <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={globalBackgroundColorStyle}
-          />
-        )}
-        {globalBackgroundImageStyle && (
-           <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={globalBackgroundImageStyle}
-          />
-        )}
+        {/* Katmanları render etme (en altta) */}
+        {layers.map((layer) => {
+          // Katmanın hangi sayfalara maskeleneceğini belirle
+          const maskedPageIds = layer.mask?.targetIds || [];
+          let clipPath = "none";
+
+          if (maskedPageIds.length > 0) {
+            // Maskelenecek sayfaların toplam bounding box'ını hesapla
+            const boundingBox = maskedPageIds.reduce((acc, pageId) => {
+              const formaPage = activeForma?.pages.find((p) => p.id === pageId);
+              const pageConfig = template.pages.find((p) => p.pageNumber === formaPage?.pageNumber);
+
+              if (!formaPage || !pageConfig) return acc; // Sayfa veya konfigürasyon bulunamazsa atla
+
+              // Sayfanın Canvas içindeki X koordinatını hesapla
+              const pageOffsetX = activeForma?.pages.slice(0, activeForma.pages.findIndex(p => p.id === pageId))
+                .reduce((sum, p) => {
+                  const pTemplate = template.pages.find(tp => tp.pageNumber === p.pageNumber);
+                  return sum + (pTemplate?.widthMm || 0);
+                }, 0) || 0;
+
+              const pageX = pageOffsetX * MM_TO_PX;
+              const pageY = 0; // Sayfa Y koordinatı canvas'ın üstüne göre 0
+              const pageRenderedWidth = pageConfig.widthMm * MM_TO_PX;
+              const pageRenderedHeight = template.openHeightMm * MM_TO_PX;
+
+              if (acc.minX === null || pageX < acc.minX) acc.minX = pageX;
+              if (acc.minY === null || pageY < acc.minY) acc.minY = pageY;
+              if (acc.maxX === null || (pageX + pageRenderedWidth) > acc.maxX) acc.maxX = pageX + pageRenderedWidth;
+              if (acc.maxY === null || (pageY + pageRenderedHeight) > acc.maxY) acc.maxY = pageY + pageRenderedHeight;
+
+              return acc;
+            }, { minX: null as number | null, minY: null as number | null, maxX: null as number | null, maxY: null as number | null });
+
+            if (boundingBox.minX !== null && boundingBox.minY !== null && boundingBox.maxX !== null && boundingBox.maxY !== null) {
+              // Canvas'ın toplam piksel boyutları
+              const canvasWidthPx = totalWidthMm * MM_TO_PX;
+              const canvasHeightPx = physicalHeight * MM_TO_PX;
+
+              // clip-path: inset() değerleri (top, right, bottom, left)
+              const topClip = boundingBox.minY;
+              const rightClip = canvasWidthPx - boundingBox.maxX;
+              const bottomClip = canvasHeightPx - boundingBox.maxY;
+              const leftClip = boundingBox.minX;
+
+              clipPath = `inset(${topClip}px ${rightClip}px ${bottomClip}px ${leftClip}px)`;
+            }
+          }
+
+          const layerStyle: React.CSSProperties = {
+            position: "absolute",
+            left: `${layer.bounds.x * MM_TO_PX}px`,
+            top: `${layer.bounds.y * MM_TO_PX}px`,
+            width: `${layer.bounds.w * MM_TO_PX}px`,
+            height: `${layer.bounds.h * MM_TO_PX}px`,
+            zIndex: layer.zIndex, // Z-index katman verisinden gelsin
+            clipPath: clipPath,
+            transform: `rotate(${layer.transform.rotation}deg) scale(${layer.transform.flipX ? -1 : 1}, ${layer.transform.flipY ? -1 : 1})`,
+            transformOrigin: "center",
+            boxSizing: "border-box",
+          };
+
+          if (layer.type === "solid") {
+            return (
+              <div
+                key={layer.id}
+                style={{
+                  ...layerStyle,
+                  backgroundColor: layer.properties.color,
+                  opacity: layer.properties.opacity / 100,
+                }}
+              />
+            );
+          } else if (layer.type === "image") {
+            return (
+              <Image
+                key={layer.id}
+                src={layer.properties.imageUrl}
+                alt="Layer Image"
+                // Image component'i width/height prop'larını doğrudan piksel olarak bekler
+                width={layer.bounds.w * MM_TO_PX}
+                height={layer.bounds.h * MM_TO_PX}
+                style={{
+                  ...layerStyle,
+                  // transform zaten layerStyle içinde ayarlandı
+                  objectFit: "cover", // Resmin bounds'a sığdırılması
+                  opacity: layer.properties.opacity / 100,
+                }}
+              />
+            );
+          }
+          return null;
+        })}
 
         <div className="relative z-10 flex h-full w-full flex-row items-stretch bg-transparent">
           {order.map((n) => (

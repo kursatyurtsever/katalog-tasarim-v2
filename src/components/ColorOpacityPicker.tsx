@@ -11,6 +11,7 @@ interface Props {
   thickness?: number;
   onThicknessChange?: (thickness: number) => void;
   type?: 'fill' | 'border'; 
+  disabled?: boolean;
 }
 
 export function ColorOpacityPicker({ color, opacity, onChange, thickness, onThicknessChange, type = 'fill' }: Props) {
