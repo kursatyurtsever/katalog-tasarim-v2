@@ -62,7 +62,7 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
 
 
-  const [mt, mr, , ml] = pageConfig.safeZone;
+  const [mt, mr, mb, ml] = pageConfig.safeZone;
   const totalColumns = 4;
   const totalRows = Math.ceil(currentPage.slots.length / totalColumns);
 
@@ -131,7 +131,7 @@ export function Page({ pageNumber }: { pageNumber: number }) {
           }
         }}
       >
-        <div className="safe-zone absolute z-10 flex flex-col" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
+<div className="safe-zone absolute z-10 flex flex-col pointer-events-none" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
           
           {/* BANNER ALANI GÜNCELLENDİ */}
           {pageNumber === 1 && (
@@ -191,6 +191,19 @@ export function Page({ pageNumber }: { pageNumber: number }) {
           </div>
 
         </div>
+        {/* INDESIGN GÜVENLİ ALAN (SAFE ZONE / MARGIN) ÇİZGİSİ */}
+        <div
+          data-hide-on-export="true"
+          className="pointer-events-none absolute print:hidden z-50"
+          style={{
+            top: `${mt}mm`,
+            bottom: `${mb}mm`,
+            left: `${ml}mm`,
+            right: `${mr}mm`,
+            border: "1px solid magenta",
+            boxSizing: "border-box",
+          }}
+        />
       </div>
     </>
   );

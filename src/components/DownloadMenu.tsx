@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import html2canvas from "html2canvas";
+import { toJpeg, toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useBannerStore } from "@/store/useBannerStore"; // YENİ EKLENDİ
@@ -19,25 +19,28 @@ export function DownloadMenu() {
 
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const captureCurrentView = async (format: "jpeg" | "png") => {
+const captureCurrentView = async (format: "jpeg" | "png") => {
     const pages = Array.from(document.querySelectorAll('.physical-page')) as HTMLElement[];
     if (pages.length === 0) return null;
 
     const options = {
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
+      quality: 1.0,
+      pixelRatio: 2,
       backgroundColor: "#ffffff",
-      ignoreElements: (element: Element) => {
-        return element.hasAttribute('data-hide-on-export');
-      },
-      logging: false,
+      filter: (node: HTMLElement) => {
+        if (node?.hasAttribute && node.hasAttribute('data-hide-on-export')) {
+          return false;
+        }
+        return true;
+      }
     };
 
     const pageImages = [];
     for (const page of pages) {
-      const canvas = await html2canvas(page, options);
-      const dataUrl = canvas.toDataURL(`image/${format}`, 1.0);
+      // html2canvas yerine modern html-to-image kullanıyoruz
+      const dataUrl = format === "jpeg" 
+        ? await toJpeg(page, options)
+        : await toPng(page, options);
         
       pageImages.push({
         dataUrl,

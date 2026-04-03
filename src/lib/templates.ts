@@ -22,16 +22,18 @@ export const Template1: BrochureTemplate = {
   pageCount: 6,
   foldCount: 2,
   foldType: "roll-fold",
-  openWidthMm: 631,
-  openHeightMm: 297,
-  bleedMm: 2,
+  openWidthMm: 627, // INDESIGN'DAN ALINDI (Önceki 631'di)
+  openHeightMm: 297, // INDESIGN'DAN ALINDI
+  bleedMm: 2, // INDESIGN'DAN ALINDI (Taşma payı)
   pages: [
-    { pageNumber: 5, widthMm: 209, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 6, widthMm: 210, safeZone: [10, 5, 10, 5] },
-    { pageNumber: 1, widthMm: 212, safeZone: [10, 10, 10, 5] },
-    { pageNumber: 2, widthMm: 212, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 3, widthMm: 210, safeZone: [10, 5, 10, 5] },
-    { pageNumber: 4, widthMm: 209, safeZone: [10, 10, 10, 5] },
+    // DIŞ YÜZ (Sol Arka, Orta Arka, Ön Kapak) -> Toplam: 627mm
+    { pageNumber: 5, widthMm: 207, safeZone: [10, 10, 10, 10] }, // İçe giren kapak kısa olur
+    { pageNumber: 6, widthMm: 210, safeZone: [10, 10, 10, 10] },
+    { pageNumber: 1, widthMm: 210, safeZone: [10, 10, 10, 10] },
+    // İÇ YÜZ (Sol İç, Orta İç, Sağ İç) -> Toplam: 627mm
+    { pageNumber: 2, widthMm: 210, safeZone: [10, 10, 10, 10] },
+    { pageNumber: 3, widthMm: 210, safeZone: [10, 10, 10, 10] },
+    { pageNumber: 4, widthMm: 207, safeZone: [10, 10, 10, 10] }, // İçe giren kapak kısa olur
   ],
 };
 

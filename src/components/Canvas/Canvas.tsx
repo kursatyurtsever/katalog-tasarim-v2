@@ -60,24 +60,26 @@ export function Canvas() {
       ref={wrapperRef}
       className={`flex-1 relative w-full h-full min-w-0 min-h-0 bg-slate-300 ${isZoomed ? "overflow-auto" : "overflow-hidden"}`}
     >
-      <div
+<div
         id="canvas"
         onClick={() => {
           clearCatalogSelection();
-          disableAllImageEditModes(); // YENİ: Boşluğa tıklanınca serbest konumu kapat
+          disableAllImageEditModes();
         }}
         className={`canvas relative shadow-2xl transition-transform duration-200 ${isZoomed ? "mx-auto mt-20 mb-8" : "absolute top-1/2 left-1/2 origin-center"}`}
         style={{
           boxSizing: "border-box",
-          width: `${totalWidthMm}mm`,
-          height: `${physicalHeight}mm`,
-          padding: `${bleedMm}mm`,
+          width: `${totalWidthMm}mm`, // Bleed DAHİL: 627 + 4 = 631mm
+          height: `${physicalHeight}mm`, // Bleed DAHİL: 297 + 4 = 301mm
+          padding: `${bleedMm}mm`, // İçeriği 2mm içeri it
+          backgroundColor: "#ffffff", // Beyaz zemin
+          outline: "0.5px dashed rgba(255, 0, 0, 0.4)", // INDESIGN: Kırmızı Taşma Çizgisi (Bleed)
+          outlineOffset: "-1px",
           transform: isZoomed
             ? "scale(1)"
             : `translate(-50%, -50%) scale(${scale})`,
         }}
       >
-        {/* Yeni Katman Sistemi: LayerStack tüm filtreleme ve render işini devraldı */}
         <LayerStack forma={activeForma} />
 
         <div className="relative z-10 flex h-full w-full flex-row items-stretch bg-transparent">
@@ -86,11 +88,15 @@ export function Canvas() {
           ))}
         </div>
 
+        {/* INDESIGN: Siyah Kesim Çizgisi (Trim Box) */}
         <div
-          className="pointer-events-none absolute print:hidden"
+          className="pointer-events-none absolute print:hidden z-50"
           style={{
-            top: `${bleedMm}mm`, bottom: `${bleedMm}mm`, left: `${bleedMm}mm`, right: `${bleedMm}mm`,
-            border: "1px dashed red", zIndex: 50,
+            top: `${bleedMm}mm`, 
+            bottom: `${bleedMm}mm`, 
+            left: `${bleedMm}mm`, 
+            right: `${bleedMm}mm`,
+            border: "0.5px solid rgba(0, 0, 0, 0.2)", 
             boxSizing: "border-box",
           }}
         />

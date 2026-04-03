@@ -111,7 +111,13 @@ export function ContextualBar() {
         id: newId,
         type: 'solid',
         name: 'Arka Plan (Renk)',
-        bounds: { x: 0, y: 0, w: activeTemplate?.openWidthMm || 210, h: activeTemplate?.openHeightMm || 297 },
+        // HATA ÇÖZÜMÜ 5: w ve h değerlerine bleedMm * 2 ekledik
+        bounds: { 
+          x: 0, 
+          y: 0, 
+          w: (activeTemplate?.openWidthMm || 210) + ((activeTemplate?.bleedMm || 0) * 2), 
+          h: (activeTemplate?.openHeightMm || 297) + ((activeTemplate?.bleedMm || 0) * 2) 
+        },
         transform: { rotation: 0, scale: 100, flipX: false, flipY: false, offsetX: 0, offsetY: 0 },
         mask: { type: maskType, targetIds },
         zIndex: 0, // En alta dayalı

@@ -241,38 +241,43 @@ export const useLayerStore = create<LayerState & LayerActions>((set, get) => ({
     let maxX = -Infinity;
 
     groupIds.forEach(pid => {
-      // 1. Sayfanın bulunduğu formayı bul
-      const forma = catalogState.formas.find(f => f.pages.some(p => p.id === pid));
-      if (!forma) return;
+        const forma = catalogState.formas.find(f => f.pages.some(p => p.id === pid));
+        if (!forma) return;
 
-      // 2. Forma içindeki indexi bul (Canvas bu sıraya göre render eder)
-      const targetIndex = forma.pages.findIndex(p => p.id === pid);
-      if (targetIndex === -1) return;
+        const targetIndex = forma.pages.findIndex(p => p.id === pid);
+        if (targetIndex === -1) return;
 
-      // 3. X Offset'i hesapla (Aynı formadaki önceki sayfaların genişlikleri toplamı)
-      const xOffset = forma.pages.slice(0, targetIndex).reduce((sum: number, p: any) => {
-        const pTemplate = template.pages.find((tp: any) => tp.pageNumber === p.pageNumber);
-        return sum + (pTemplate?.widthMm || 210);
-      }, 0);
+        const xOffset = forma.pages.slice(0, targetIndex).reduce((sum: number, p: any) => {
+          const pTemplate = template.pages.find((tp: any) => tp.pageNumber === p.pageNumber);
+          return sum + (pTemplate?.widthMm || 210);
+        }, 0);
 
-      const pc = template.pages.find((tp: any) => tp.pageNumber === forma.pages[targetIndex].pageNumber);
-      const pageWidth = pc ? pc.widthMm : 210;
+        const pc = template.pages.find((tp: any) => tp.pageNumber === forma.pages[targetIndex].pageNumber);
+        const pageWidth = pc ? pc.widthMm : 210;
 
-      minX = Math.min(minX, xOffset);
-      maxX = Math.max(maxX, xOffset + pageWidth);
-    });
+        // HATA ÇÖZÜMÜ 3: Katman genişliklerine de taşma payını ekliyoruz
+        let startX = xOffset + template.bleedMm;
+        let endX = startX + pageWidth;
 
-    if (minX === Infinity || maxX === -Infinity) {
-      console.error('[LMS] Coordinate calculation failed for IDs:', groupIds);
-      return;
-    }
+        if (targetIndex === 0) startX -= template.bleedMm; // İlk sayfanın sol taşması
+        if (targetIndex === forma.pages.length - 1) endX += template.bleedMm; // Son sayfanın sağ taşması
 
-    const newLayer: Layer = {
-      id: uuidv4(),
-      type: type === 'base' ? 'solid' : 'image',
-      name: type === 'base' ? 'Zemin Rengi' : 'Zemin Görseli',
-      bounds: { x: minX, y: 0, w: maxX - minX, h: template.openHeightMm },
-      transform: { rotation: 0, scale: 100, flipX: false, flipY: false, offsetX: 0, offsetY: 0 },
+        minX = Math.min(minX, startX);
+        maxX = Math.max(maxX, endX);
+      });
+
+      if (minX === Infinity || maxX === -Infinity) {
+        console.error('[LMS] Coordinate calculation failed for IDs:', groupIds);
+        return;
+      }
+
+      const newLayer: Layer = {
+        id: uuidv4(),
+        type: type === 'base' ? 'solid' : 'image',
+        name: type === 'base' ? 'Zemin Rengi' : 'Zemin Görseli',
+        // HATA ÇÖZÜMÜ 4: Yüksekliği bleed alanlarını kapsayacak şekilde büyüttük
+        bounds: { x: minX, y: 0, w: maxX - minX, h: template.openHeightMm + (template.bleedMm * 2) },
+        transform: { rotation: 0, scale: 100, flipX: false, flipY: false, offsetX: 0, offsetY: 0 },
       mask: {
         type: groupIds.length > 1 ? 'spread' : 'page',
         targetIds: [...groupIds],
