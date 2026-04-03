@@ -2,11 +2,11 @@
 
 import { useCatalogStore } from "@/store/useCatalogStore";
 import {
-  Package, DollarSign, Image as ImageIcon,
+  Image as ImageIcon,
   Square, Box, Copy, ClipboardPaste, Eraser, Settings2,
   Wand2, Combine,
-  Type, AlignLeft, AlignCenter, AlignRight, // YENİ: Metin ikonları
-  Maximize // YENİ: Yayma ikonu
+  Type, AlignLeft, AlignCenter, AlignRight,
+  Maximize
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ColorOpacityPicker } from "./ColorOpacityPicker";
@@ -31,14 +31,58 @@ function deepMerge(target: any, source: any) {
   return output;
 }
 
+// 1. DIVIDER DIŞARI ALINDI
+const Divider = () => <div className="w-px h-5 bg-slate-200 mx-1"></div>;
+
+// 2. ICON BUTTON DIŞARI ALINDI VE TİPLENDİRİLDİ
+interface IconButtonProps {
+  icon: any;
+  label: string;
+  onClick?: (e: React.MouseEvent) => void;
+  disabled?: boolean;
+  danger?: boolean;
+  isActive?: boolean;
+  popoverId?: string;
+  activePopover?: string | null;
+  onTogglePopover?: (id: string | null) => void;
+}
+
+const IconButton = ({ icon: Icon, label, onClick, disabled = false, danger = false, isActive = false, popoverId, activePopover, onTogglePopover }: IconButtonProps) => (
+  <div className="relative group flex items-center justify-center">
+    <button 
+      onClick={(e) => {
+        if (popoverId && onTogglePopover) {
+          onTogglePopover(activePopover === popoverId ? null : popoverId);
+        } else if (onClick) {
+          onClick(e);
+        }
+      }}
+      disabled={disabled}
+      className={`p-1.5 rounded transition-all flex items-center justify-center
+        ${disabled ? 'text-slate-300 cursor-not-allowed' :
+          danger ? 'text-slate-500 hover:text-red-500 hover:bg-red-50' :
+          isActive ? 'text-blue-600 bg-blue-50' :
+          'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}
+        `}
+    >
+      <Icon size={14} strokeWidth={2.5} />
+    </button>
+    {activePopover !== popoverId && (
+      <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">
+        {label}
+      </span>
+    )}
+  </div>
+);
+
 export function ContextualBar() {
   const {
     selectedSlotIds, clearSlotSettings, copySlotSettings, pasteSlotSettings,
-    copiedSlotSettings, globalSettings, setGlobalSettings, updateGlobalSettings,
+    copiedSlotSettings, globalSettings, setGlobalSettings,
     formas, activeFormaId, selectedPageNumber,
     updateSlotImageSettings, updateSlotCustomSettings,
     toggleSlotCustomSettings,
-    selectedTextElement, setSelectedTextElement, // YENİ: Metin seçimi eklendi
+    selectedTextElement, setSelectedTextElement,
     setSidebarState,
     contextualBarFormaId, contextualBarSelectedPages, setContextualBarFormaId, setContextualBarSelectedPages,
     setActiveFormaId,
@@ -56,18 +100,14 @@ export function ContextualBar() {
 
   const displayScopeText = () => {
     if (isGlobalApplyActive) return "Tüm Broşüre Uygula";
-
     if (!currentFormaScope) return "Kapsam Seçilmedi";
 
     let scopeText = currentFormaScope.name;
     if (contextualBarSelectedPages.length === 0) {
-      // Tüm forma seçili
       scopeText += " (Tüm Sayfalar)";
     } else if (contextualBarSelectedPages.length === 1) {
-      // Tek sayfa seçili
       scopeText += ` (Sayfa ${contextualBarSelectedPages[0]})`;
     } else if (contextualBarSelectedPages.length > 1) {
-      // Birden fazla sayfa seçili
       const pageNumbers = [...contextualBarSelectedPages].sort((a, b) => a - b).join(", ");
       scopeText += ` (Sayfa ${pageNumbers})`;
     }
@@ -75,7 +115,6 @@ export function ContextualBar() {
   };
 
   const handleBackgroundColorChange = (color: string, opacity: number) => {
-    // 1. Hedef maskeyi belirle
     let maskType: 'page' | 'spread' | 'document' = 'page';
     let targetIds: string[] = [];
 
@@ -93,7 +132,6 @@ export function ContextualBar() {
       targetIds = currentFormaScope.pages.map(p => p.id);
     }
 
-    // 2. Mevcut maske ve tiple eşleşen bir 'solid' katman var mı bak
     const existingLayer = layers.find(l => 
       l.type === 'solid' && 
       l.mask &&
@@ -102,16 +140,13 @@ export function ContextualBar() {
     );
 
     if (existingLayer) {
-      // Güncelle
       updateLayerProperties(existingLayer.id, { color, opacity });
     } else {
-      // Yeni Oluştur
       const newId = uuidv4();
       const newLayer: Layer = {
         id: newId,
         type: 'solid',
         name: 'Arka Plan (Renk)',
-        // HATA ÇÖZÜMÜ 5: w ve h değerlerine bleedMm * 2 ekledik
         bounds: { 
           x: 0, 
           y: 0, 
@@ -120,7 +155,7 @@ export function ContextualBar() {
         },
         transform: { rotation: 0, scale: 100, flipX: false, flipY: false, offsetX: 0, offsetY: 0 },
         mask: { type: maskType, targetIds },
-        zIndex: 0, // En alta dayalı
+        zIndex: 0,
         properties: { color, opacity },
         visible: true,
       };
@@ -182,12 +217,6 @@ export function ContextualBar() {
     ? deepMerge(globalSettings, selectedSlot.customSettings)
     : globalSettings;
 
-  const selectedPage = selectedPageNumber !== null
-    ? pages.find((p) => p.pageNumber === selectedPageNumber)
-    : null;
-
-
-
   const imgEditMode = selectedSlot?.imageSettings?.editMode ?? activeSettings.imageEditMode;
   const imgScale = selectedSlot?.imageSettings?.scale ?? activeSettings.imageScale;
 
@@ -211,36 +240,6 @@ export function ContextualBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const Divider = () => <div className="w-px h-5 bg-slate-200 mx-1"></div>;
-
-  const IconButton = ({ icon: Icon, label, onClick, disabled = false, danger = false, isActive = false, popoverId }: any) => (
-    <div className="relative group flex items-center justify-center">
-      <button 
-        onClick={(e) => {
-          if (popoverId) {
-            setActivePopover(activePopover === popoverId ? null : popoverId);
-          } else if (onClick) {
-            onClick(e);
-          }
-        }}
-        disabled={disabled}
-        className={`p-1.5 rounded transition-all flex items-center justify-center
-          ${disabled ? 'text-slate-300 cursor-not-allowed' :
-            danger ? 'text-slate-500 hover:text-red-500 hover:bg-red-50' :
-            isActive ? 'text-blue-600 bg-blue-50' :
-            'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}
-          `}
-      >
-        <Icon size={14} strokeWidth={2.5} />
-      </button>
-      {activePopover !== popoverId && (
-        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">
-          {label}
-        </span>
-      )}
-    </div>
-  );
-
   // ==========================================
   // 1. DURUM: EĞER BİR METİN SEÇİLİYSE (TEXT TOOLBAR)
   // ==========================================
@@ -259,8 +258,6 @@ export function ContextualBar() {
 
     return (
       <div ref={barRef} className="h-12 bg-indigo-50/80 border-b border-indigo-200 flex items-center justify-center px-4 gap-2 shrink-0 shadow-sm z-40 relative">
-        
-        {/* Hangi Metnin Düzenlendiği Bilgisi */}
         <div className="flex items-center gap-1.5 pr-2 mr-1">
           <Type size={14} className="text-indigo-600" />
           <span className="text-[11px] font-black text-indigo-800 uppercase tracking-widest">
@@ -269,7 +266,6 @@ export function ContextualBar() {
         </div>
         <Divider />
 
-        {/* FONT AİLESİ */}
         <select 
           value={currentFont.fontFamily} 
           onChange={(e) => handleFontUpdate({ ...currentFont, fontFamily: e.target.value })} 
@@ -282,7 +278,6 @@ export function ContextualBar() {
           <option value="Oswald">Oswald</option>
         </select>
 
-        {/* FONT KALINLIĞI */}
         <select 
           value={currentFont.fontWeight} 
           onChange={(e) => handleFontUpdate({ ...currentFont, fontWeight: e.target.value })} 
@@ -294,7 +289,6 @@ export function ContextualBar() {
           <option value="900">Çok Kalın</option>
         </select>
 
-        {/* PUNTO BÜYÜKLÜĞÜ */}
         <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded p-1" title="Punto">
           <span className="text-[10px] text-slate-400 font-bold pl-1">PT</span>
           <input 
@@ -305,7 +299,6 @@ export function ContextualBar() {
           />
         </div>
 
-        {/* YAZI RENGİ */}
         <div className="relative group flex items-center justify-center ml-1" onClick={() => setActivePopover(null)}>
           <ColorOpacityPicker 
             color={currentFont.color} 
@@ -317,7 +310,6 @@ export function ContextualBar() {
 
         <Divider />
 
-        {/* YATAY HİZALAMA */}
         <div className="flex items-center bg-white border border-slate-200 rounded overflow-hidden">
           <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'left' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'left' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`} title="Sola Hizala"><AlignLeft size={14} /></button>
           <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'center' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'center' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`} title="Ortala"><AlignCenter size={14} /></button>
@@ -326,18 +318,15 @@ export function ContextualBar() {
 
         <Divider />
 
-        {/* DİKEY HİZALAMA */}
         <div className="flex items-center bg-white border border-slate-200 rounded overflow-hidden">
           <button onClick={() => handleFontUpdate({ ...currentFont, verticalAlign: 'top' })} className={`px-2 py-1.5 transition-colors ${currentFont.verticalAlign === 'top' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`} title="Üste Hizala"><span className="text-[10px] font-bold">ÜST</span></button>
           <button onClick={() => handleFontUpdate({ ...currentFont, verticalAlign: 'middle' })} className={`px-2 py-1.5 transition-colors ${currentFont.verticalAlign === 'middle' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`} title="Ortaya Hizala"><span className="text-[10px] font-bold">ORTA</span></button>
           <button onClick={() => handleFontUpdate({ ...currentFont, verticalAlign: 'bottom' })} className={`px-2 py-1.5 transition-colors ${currentFont.verticalAlign === 'bottom' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`} title="Alta Hizala"><span className="text-[10px] font-bold">ALT</span></button>
         </div>
 
-        {/* SADECE FİYAT İÇİN EKSTRALAR */}
         {isPrice && (
           <>
             <Divider />
-            {/* KÜSURAT BÜYÜKLÜĞÜ */}
             <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded p-1" title="Küsürat Büyüklüğü (%)">
               <span className="text-[10px] text-slate-400 font-bold pl-1">,00</span>
               <input 
@@ -351,7 +340,6 @@ export function ContextualBar() {
 
             <Divider />
 
-            {/* FİYAT GENİŞLİK VE YÜKSEKLİK */}
             <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded p-1 px-2" title="Fiyat Kutusu Boyutları">
               <div className="flex items-center gap-0.5" title="Genişlik (%)">
                 <span className="text-[9px] text-slate-400 font-bold">G:</span>
@@ -376,7 +364,6 @@ export function ContextualBar() {
 
             <Divider />
 
-            {/* FİYAT ZEMİN RENGİ */}
             <div className="relative group flex items-center justify-center" onClick={() => setActivePopover(null)}>
               <ColorOpacityPicker 
                 color={activeSettings.colors.priceBg.c} 
@@ -388,7 +375,6 @@ export function ContextualBar() {
 
             <Divider />
 
-            {/* FİYAT KONTURU */}
             <div className="relative group flex items-center justify-center" onClick={() => setActivePopover(null)}>
               <ColorOpacityPicker 
                 type="border"
@@ -401,9 +387,15 @@ export function ContextualBar() {
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">Fiyat Konturu</span>
             </div>
 
-            {/* FİYAT KÖŞE OVALLİĞİ */}
             <div className="relative">
-              <IconButton icon={Square} popoverId="priceRadius" isActive={activePopover === 'priceRadius'} label="Fiyat Köşeleri" />
+              <IconButton 
+                icon={Square} 
+                popoverId="priceRadius" 
+                activePopover={activePopover} 
+                onTogglePopover={setActivePopover}
+                isActive={activePopover === 'priceRadius'} 
+                label="Fiyat Köşeleri" 
+              />
               {activePopover === 'priceRadius' && (
                 <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 shadow-xl rounded-lg p-3 w-64 z-50" onClick={(e) => e.stopPropagation()}>
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fiyat Köşe Ovalliği</span>
@@ -415,7 +407,6 @@ export function ContextualBar() {
         )}
 
         <Divider />
-        {/* DETAYLI AYARLAR (Koşullu: Custom ise customCell/price, değilse price) */}
         <button 
           onClick={() => {
             if (selectedSlot?.isCustom) {
@@ -445,8 +436,14 @@ export function ContextualBar() {
         <Divider />
 
         <div className="flex items-center gap-2 relative">
-          {/* RESİM AYARLARI */}
-          <IconButton icon={ImageIcon} label="Resim Ayarları" popoverId="imageSettings" isActive={activePopover === "imageSettings"} />
+          <IconButton 
+            icon={ImageIcon} 
+            label="Resim Ayarları" 
+            popoverId="imageSettings" 
+            activePopover={activePopover}
+            onTogglePopover={setActivePopover}
+            isActive={activePopover === "imageSettings"} 
+          />
           {activePopover === "imageSettings" && selectedSlot && (
             <div className="absolute top-10 left-0 w-64 bg-white border border-slate-200 rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ürün Görseli Ayarları</span>
@@ -468,21 +465,25 @@ export function ContextualBar() {
             </div>
           )}
           
-          {/* ZEMİN RENGİ */}
           <div className="relative group flex items-center justify-center" onClick={() => setActivePopover(null)}>
             <ColorOpacityPicker color={activeSettings?.colors?.cellBg?.c || "#ffffff"} opacity={activeSettings?.colors?.cellBg?.o ?? 100} onChange={(c, o) => handleSettingUpdate({ colors: { cellBg: { c, o } } })} />
             <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">Zemin Rengi</span>
           </div>
 
-          {/* KENARLIK RENGİ VE KALINLIĞI */}
           <div className="relative group flex items-center justify-center" onClick={() => setActivePopover(null)}>
             <ColorOpacityPicker type="border" color={activeSettings?.colors?.cellBorder?.c || "#e2e8f0"} opacity={activeSettings?.colors?.cellBorder?.o ?? 100} thickness={activeSettings?.borderWidth ?? 1} onChange={(c, o) => handleSettingUpdate({ colors: { cellBorder: { c, o } } })} onThicknessChange={(thickness) => handleSettingUpdate({ borderWidth: thickness })} />
             <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">Kenarlık</span>
           </div>
 
-          {/* KÖŞE OVALLİĞİ POPOVER */}
           <div className="relative">
-            <IconButton icon={Square} popoverId="borderRadius" isActive={activePopover === 'borderRadius'} label="Köşe Ovalliği" />
+            <IconButton 
+              icon={Square} 
+              popoverId="borderRadius" 
+              activePopover={activePopover}
+              onTogglePopover={setActivePopover}
+              isActive={activePopover === 'borderRadius'} 
+              label="Köşe Ovalliği" 
+            />
             {activePopover === 'borderRadius' && (
               <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 shadow-xl rounded-lg p-3 w-64 z-50 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Köşe Ovalliği {selectedSlot?.isCustom ? "(Özel)" : "(Global)"}</span>
@@ -491,9 +492,15 @@ export function ContextualBar() {
             )}
           </div>
 
-          {/* HÜCRE GÖLGESİ POPOVER */}
           <div className="relative">
-            <IconButton icon={Box} label="Hücre Gölgesi" popoverId="boxShadow" isActive={activePopover === 'boxShadow'} />
+            <IconButton 
+              icon={Box} 
+              label="Hücre Gölgesi" 
+              popoverId="boxShadow" 
+              activePopover={activePopover}
+              onTogglePopover={setActivePopover}
+              isActive={activePopover === 'boxShadow'} 
+            />
             {activePopover === 'boxShadow' && (
               <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 shadow-xl rounded-lg p-3 w-64 z-50 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Hücre Gölgesi {selectedSlot?.isCustom ? "(Özel)" : "(Global)"}</span>
@@ -505,7 +512,6 @@ export function ContextualBar() {
 
         <Divider />
 
-        {/* STİL KOPYALAMA GRUBU */}
         <div className="flex items-center gap-0.5 relative">
           <IconButton icon={Copy} label="Stili Kopyala" onClick={copySlotSettings} />
           <IconButton icon={ClipboardPaste} label="Stili Yapıştır" onClick={pasteSlotSettings} disabled={!copiedSlotSettings} />
@@ -547,7 +553,6 @@ export function ContextualBar() {
     return (
       <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-40 relative">
         <div className="flex flex-row items-center gap-4 w-full">
-          {/* 1. Global Kontrol (Sol) */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold text-slate-700">Tüm Broşüre Uygula</span>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -555,9 +560,7 @@ export function ContextualBar() {
                 type="checkbox"
                 className="sr-only peer"
                 checked={!!isGlobalApplyActive}
-                onChange={(e) => {
-                  
-                }}
+                onChange={() => {}}
               />
               <div className="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
@@ -565,7 +568,6 @@ export function ContextualBar() {
 
           <Divider />
 
-          {/* 2. Kapsam Seçimi (Orta-Sol) */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold text-slate-700">Düzenleme Kapsamı:</span>
             <select
@@ -576,12 +578,11 @@ export function ContextualBar() {
                 if (newFormaId) {
                   setActiveFormaId(newFormaId);
                   setContextualBarFormaId(e.target.value);
-                  setContextualBarSelectedPages([]); // Forma değiştiğinde sayfa seçimini sıfırla
+                  setContextualBarSelectedPages([]);
                 }
 
                 const selectedForma = formas.find(f => f.id === newFormaId);
                 if (selectedForma && selectedForma.pages.length > 0) {
-                  // Sayfaları pageNumber'a göre sırala ve ilkini al
                   const firstPage = selectedForma.pages.slice().sort((a, b) => a.pageNumber - b.pageNumber)[0];
                   const pageElement = document.getElementById(`page-${firstPage.pageNumber}`);
                   if (pageElement) {
@@ -598,8 +599,7 @@ export function ContextualBar() {
             </select>
           </div>
 
-          {/* 3. Sayfa Seçimi (Orta) */}
-          {currentFormaScope && ( // Sadece bir forma seçiliyse Sayfa Seçimi pill'lerini göster
+          {currentFormaScope && (
             <div className="flex items-center gap-1">
               <span className="text-[11px] font-bold text-slate-700">Sayfa Seçimi:</span>
               <div className={`flex gap-1 ${isGlobalApplyActive || !currentFormaScope ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -607,13 +607,13 @@ export function ContextualBar() {
                   onClick={() => {
                     if (currentFormaScope) {
                       if (contextualBarSelectedPages.length === currentFormaScope.pages.length) {
-                        setContextualBarSelectedPages([]); // Hepsi seçiliyse temizle
-                        selectPages([]); // LayerStore'u da temizle
+                        setContextualBarSelectedPages([]);
+                        selectPages([]);
                       } else {
                         const allNumbers = currentFormaScope.pages.map(p => p.pageNumber);
-                        setContextualBarSelectedPages(allNumbers); // Hepsini seç
+                        setContextualBarSelectedPages(allNumbers);
                         const allIds = currentFormaScope.pages.map(p => p.id);
-                        selectPages(allIds); // LayerStore'u da senkronize et
+                        selectPages(allIds);
                       }
                     }
                   }}
@@ -644,7 +644,6 @@ export function ContextualBar() {
 
                       setContextualBarSelectedPages(newSelectedPages);
                       
-                      // LayerStore ile senkronize et
                       if (targetForma) {
                          const layerPageIds = newSelectedPages
                            .map(num => targetForma.pages.find(p => p.pageNumber === num)?.id)
@@ -668,7 +667,6 @@ export function ContextualBar() {
 
           <Divider />
 
-          {/* Dinamik Durum Metni (Sağ) */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">
               {displayScopeText()}
@@ -677,7 +675,6 @@ export function ContextualBar() {
 
           <Divider />
 
-          {/* Zemin Rengi */}
           <div className="relative group flex items-center justify-center" onClick={() => setActivePopover(null)}>
             <ColorOpacityPicker
               color={initialBackgroundColor?.color || "#ffffff"}
@@ -689,14 +686,12 @@ export function ContextualBar() {
 
           <Divider />
 
-          {/* Formaya Yay (Spread) Butonu */}
           <div className="flex items-center gap-1">
              <IconButton 
                 icon={Maximize} 
                 label="Formaya Yay (Spread)" 
                 isActive={initialBackgroundColor !== null && layers.some(l => l.type === 'solid' && l.mask?.type === 'spread' && l.properties.color === initialBackgroundColor.color)}
                 onClick={() => {
-                  // Mevcut seçili kapsamdaki layer'ı bul
                   const targetIds = contextualBarSelectedPages.map(num => currentFormaScope?.pages.find(p => p.pageNumber === num)?.id).filter(Boolean) as string[];
                   const pageLayer = layers.find(l => l.type === 'solid' && l.mask?.type === 'page' && JSON.stringify(l.mask.targetIds) === JSON.stringify(targetIds));
                   
@@ -710,7 +705,6 @@ export function ContextualBar() {
              />
           </div>
 
-          {/* Detaylı Ayarlar Butonu */}
           <button
             onClick={() => {
               setSidebarState("settings", "background", null);
