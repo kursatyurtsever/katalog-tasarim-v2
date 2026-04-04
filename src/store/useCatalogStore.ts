@@ -1,3 +1,4 @@
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Template1, availableTemplates } from "@/lib/templates";
@@ -10,6 +11,8 @@ import { TypographyData } from "@/components/TypographyPicker";
 import { BorderRadiusData } from "@/components/BorderRadiusPicker";
 import { SpacingData } from "@/components/SpacingPicker";
 import { ShadowData } from "@/components/ShadowPicker";
+import { useHistoryStore } from "./useHistoryStore";
+import { useUIStore } from "./useUIStore";
 
 export type DeepPartial<T> = T extends object ? {
     [P in keyof T]?: DeepPartial<T[P]>;
@@ -19,10 +22,6 @@ export const defaultTypography: TypographyData = { fontFamily: "Inter", fontWeig
 export const defaultRadius: BorderRadiusData = { tl: 8, tr: 8, bl: 8, br: 8, linked: true };
 export const defaultSpacing: SpacingData = { t: 8, r: 8, b: 8, l: 8, linked: true };
 export const defaultShadow: ShadowData = { x: 0, y: 4, blur: 6, spread: -1, color: "#000000", opacity: 10, active: false };
-
-// DEPRECATED: Will be replaced by useLayerStore
-
-// DEPRECATED: Will be replaced by useLayerStore
 
 export interface ProductInfo {
   id?: string;
@@ -36,6 +35,7 @@ export interface ProductInfo {
 }
 
 export interface CatalogSettings {
+  defaultGrid: { rows: number; cols: number }; // EKLENDİ
   gridGap: number;
   borderWidth: number;
   priceBorderWidth: number;
@@ -82,7 +82,7 @@ export interface CatalogSettings {
   shadows: {
     cell: ShadowData;
   };
-    }
+}
 
 export interface Slot {
   id: string;
@@ -93,7 +93,6 @@ export interface Slot {
   mergedInto?: string | null;
   isCustom?: boolean; 
   customSettings?: DeepPartial<CatalogSettings>;
-  // YENİ: Resim ayarları hücrenin global statüsünden bağımsız tutuluyor
   imageSettings?: {
     scale?: number;
     posX?: number;
@@ -108,15 +107,15 @@ export interface CatalogPage {
   slots: Slot[];
   footerText: string;
   footerLogo: string | null;
-  }
+  gridSettings?: { rows: number; cols: number }; // EKLENDİ (Sayfaya özel ezilebilir grid)
+}
 
 export interface Forma {
   id: number;
   name: string;
   pages: CatalogPage[];
-  // YENİ: Sayfa grupları (Excel hücre birleştirme mantığı)
-  pageMergeGroups: string[][]; // Her bir alt dizi birleştirilmiş sayfa ID'lerini tutar
-    }
+  pageMergeGroups: string[][];
+}
 
 export interface CatalogState {
   activeTemplate: BrochureTemplate;
@@ -127,16 +126,6 @@ export interface CatalogState {
   masterProductPool: ProductInfo[]; 
   globalSettings: CatalogSettings;
   copiedSlotSettings: DeepPartial<CatalogSettings> | null;
-  isZoomed: boolean;
-  selectedSlotIds: string[];
-  selectedPageNumber: number | null;
-      selectedTextElement: { slotId: string, elementType: 'name' | 'price' | 'badge' } | null;
-      pastPages: CatalogPage[][];
-      futurePages: CatalogPage[][];
-      sidebarState: { activePanel: string | null; activeTab: string | null; activeSubTab: string | null };
-                  // ContextualBar UI state'leri
-      contextualBarFormaId: string | null;
-  contextualBarSelectedPages: number[];
 }
 
 export interface CatalogActions {
@@ -145,19 +134,14 @@ export interface CatalogActions {
   setActiveFormaId: (id: number) => void;
   setFormas: (formas: Forma[]) => void;
   setGlobalSettings: (settings: DeepPartial<CatalogSettings>) => void;
-  updateGlobalSettings: (settings: any) => void;  setSelectedPage: (pageNumber: number | null) => void;
-  setContextualBarFormaId: (id: string | null) => void;
-  setContextualBarSelectedPages: (pages: number[]) => void;
-  updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;  swapSlotContents: (sourcePageNumber: number, sourceIndex: number, targetPageNumber: number, targetIndex: number) => void;
-  toggleZoom: () => void;
+  updateGlobalSettings: (settings: any) => void;
+  updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;
+  swapSlotContents: (sourcePageNumber: number, sourceIndex: number, targetPageNumber: number, targetIndex: number) => void;
   setProductPool: (products: ProductInfo[]) => void;
   setMasterProductPool: (products: ProductInfo[]) => void;
   autoFillSlots: () => void;
   clearProducts: () => void;
   resetCatalog: () => void;
-  toggleSlotSelection: (id: string, isMulti: boolean) => void;
-  clearSelection: () => void;
-  setSelectedTextElement: (element: { slotId: string, elementType: 'name' | 'price' | 'badge' } | null) => void;
   disableAllImageEditModes: () => void;
   mergeSelected: (pageNumber: number, targetSlotId: string) => { success: boolean; error?: string };
   unmergeSlot: (pageNumber: number, slotId: string) => void;
@@ -172,14 +156,14 @@ export interface CatalogActions {
   setSlotProduct: (pageNumber: number, slotId: string, product: ProductInfo) => void;
   updateSlotProduct: (pageNumber: number, slotId: string, updates: Partial<ProductInfo>) => void;
   updateSlotImageSettings: (pageNumber: number, slotId: string, settings: any) => void;
-  setSidebarState: (panel: string | null, tab?: string | null, subTab?: string | null) => void;
-  clearSelectionAndSelectPage: (pageNumber: number) => void;
-  // YENİ: Sayfa Gruplama İşlemleri
   mergePages: (pageIds: string[]) => void;
   unmergePages: (pageIds: string[]) => void;
+  getActivePages: () => CatalogPage[];
+  setActivePages: (pages: CatalogPage[]) => void;
 }
 
 const initialGlobalSettings: CatalogSettings = {
+  defaultGrid: { rows: 4, cols: 4 }, // EKLENDİ (Varsayılan 4x4)
   gridGap: 0,
   borderWidth: 1,
   priceBorderWidth: 0,
@@ -226,14 +210,6 @@ const initialGlobalSettings: CatalogSettings = {
   shadows: {
     cell: { ...defaultShadow, active: false }
   },
-  
-  
-};
-
-const initialSidebarState = {
-  activePanel: "products",
-  activeTab: null as string | null,
-  activeSubTab: null as string | null,
 };
 
 function createPageSlots(pageNumber: number, count: number): Slot[] {
@@ -250,14 +226,12 @@ function buildPagesForTemplate(template: BrochureTemplate): CatalogPage[] {
     slots: createPageSlots(p.pageNumber, 16),
     footerText: "Sayfa altı notu...",
     footerLogo: null,
-    
   }));
 }
 
 function cloneDeep<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
-
 
 function buildFormasForTemplate(template: BrochureTemplate): Forma[] {
   const pages = buildPagesForTemplate(template);
@@ -275,28 +249,14 @@ function buildFormasForTemplate(template: BrochureTemplate): Forma[] {
       name: "Forma 1 (Kapaklar)",
       pages: p1,
       pageMergeGroups: createInitialGroups(p1),
-      
-      
     },
     {
       id: 2,
       name: "Forma 2 (İç Sayfalar)",
       pages: p2,
       pageMergeGroups: createInitialGroups(p2),
-      
-      
     },
   ];
-}
-
-function getActivePages(state: CatalogState): CatalogPage[] {
-  return state.formas.find((f) => f.id === state.activeFormaId)?.pages || [];
-}
-
-function setActivePages(state: CatalogState, pages: CatalogPage[]): Forma[] {
-  return state.formas.map((forma) =>
-    forma.id === state.activeFormaId ? { ...forma, pages } : forma
-  );
 }
 
 function isObject(item: any) { return (item && typeof item === 'object' && !Array.isArray(item)); }
@@ -314,26 +274,6 @@ function deepMerge(target: any, source: any) {
   return output;
 }
 
-function normalizeCatalogPage(page: CatalogPage): CatalogPage {
-  return {
-    ...page,
-    
-  };
-}
-
-function normalizeForma(forma: Forma): Forma {
-  return {
-    ...forma,
-    pages: (forma.pages || []).map(normalizeCatalogPage),
-    
-    
-    // Her zaman pageMergeGroups'un dolu olmasını garantile
-    pageMergeGroups: (forma.pageMergeGroups && forma.pageMergeGroups.length > 0)
-      ? forma.pageMergeGroups
-      : (forma.pages || []).map(p => [p.id]),
-  };
-}
-
 export const useCatalogStore = create<CatalogState & CatalogActions>()(
   persist(
     (set, get) => ({
@@ -345,121 +285,47 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       masterProductPool: [],
       globalSettings: cloneDeep(initialGlobalSettings),
       copiedSlotSettings: null,
-      isZoomed: false,
-      selectedSlotIds: [],
-      selectedPageNumber: null,
-      selectedTextElement: null,
-      pastPages: [],
-      futurePages: [],
-      sidebarState: initialSidebarState,
-      
-      
-      contextualBarFormaId: "1",
-      contextualBarSelectedPages: [],
 
-      undo: () => set((state) => {
-        if (!state.pastPages || state.pastPages.length === 0) return state;
-        const previous = state.pastPages[state.pastPages.length - 1];
-        const newPast = state.pastPages.slice(0, -1);
-        const currentPages = getActivePages(state);
-        return {
-          pastPages: newPast,
-          futurePages: [cloneDeep(currentPages), ...(state.futurePages || [])],
-          formas: setActivePages(state, previous),
-          selectedSlotIds: [],
-          selectedPageNumber: null,
-        };
-      }),
+      getActivePages: () => {
+        const state = get();
+        return state.formas.find((f) => f.id === state.activeFormaId)?.pages || [];
+      },
 
-      redo: () => set((state) => {
-        if (!state.futurePages || state.futurePages.length === 0) return state;
-        const next = state.futurePages[0];
-        const newFuture = state.futurePages.slice(1);
-        const currentPages = getActivePages(state);
-        return {
-          pastPages: [...(state.pastPages || []), cloneDeep(currentPages)],
-          futurePages: newFuture,
-          formas: setActivePages(state, next),
-          selectedSlotIds: [],
-          selectedPageNumber: null,
-        };
-      }),
+      setActivePages: (pages) => {
+        const { activeFormaId, formas } = get();
+        const newFormas = formas.map((forma) =>
+          forma.id === activeFormaId ? { ...forma, pages } : forma
+        );
+        set({ formas: newFormas });
+      },
 
-      toggleSlotSelection: (id, isMulti) => set((state) => {
-        const currentPages = getActivePages(state);
-        const newPages = cloneDeep(currentPages);
-        newPages.forEach(p => p.slots.forEach(s => {
-          if (s.isCustom && s.customSettings) {
-            s.customSettings.imageEditMode = false;
-            if (s.customSettings.badge) s.customSettings.badge.isFreePosition = false;
-          }
-        }));
-
-        let newSelectedIds = [];
-        if (isMulti) {
-          if (state.selectedSlotIds.includes(id)) newSelectedIds = state.selectedSlotIds.filter((x) => x !== id);
-          else newSelectedIds = [...state.selectedSlotIds, id];
-        } else {
-          newSelectedIds = state.selectedSlotIds[0] === id && state.selectedSlotIds.length === 1 ? [] : [id];
+      undo: () => {
+        const { past, future } = useHistoryStore.getState();
+        const { getActivePages, setActivePages } = get();
+        const currentPages = getActivePages();
+        if (past.length > 0) {
+            const previousState = past[past.length - 1];
+            const newPast = past.slice(0, past.length - 1);
+            useHistoryStore.setState({ past: newPast, future: [currentPages, ...future] });
+            setActivePages(previousState);
         }
-        
-        return { 
-          selectedSlotIds: newSelectedIds,
-          selectedPageNumber: null,
-          selectedTextElement: null,
-          formas: setActivePages(state, newPages),
-          globalSettings: { ...state.globalSettings, imageEditMode: false }
-        };
-      }),
+      },
 
-      clearSelection: () => set((state) => {
-        const currentPages = getActivePages(state);
-        const newPages = cloneDeep(currentPages);
-        newPages.forEach(p => p.slots.forEach(s => {
-          if (s.isCustom && s.customSettings) {
-            s.customSettings.imageEditMode = false;
-            if (s.customSettings.badge) s.customSettings.badge.isFreePosition = false;
-          }
-        }));
-        
-        return { 
-          selectedSlotIds: [],
-          selectedPageNumber: null,
-          selectedTextElement: null,
-          formas: setActivePages(state, newPages),
-          globalSettings: { ...state.globalSettings, imageEditMode: false }
-        };
-      }),
-
-      setSelectedPage: (pageNumber) => set((state) => {
-        const updates: any = {
-          selectedPageNumber: pageNumber,
-          selectedSlotIds: [],
-          selectedTextElement: null,
-        };
-
-        // Eğer bir sayfa seçiliyse ve ContextualBar'daki forma/sayfa seçimi henüz yapılmadıysa veya o formadaysak güncelle
-        if (pageNumber !== null) {
-          updates.contextualBarSelectedPages = [pageNumber];
-          // Sayfanın hangi formaya ait olduğunu bulalım
-          const forma = state.formas.find(f => f.pages.some(p => p.pageNumber === pageNumber));
-          if (forma) {
-            updates.contextualBarFormaId = forma.id.toString();
-          }
+      redo: () => {
+        const { past, future } = useHistoryStore.getState();
+        const { getActivePages, setActivePages } = get();
+        const currentPages = getActivePages();
+        if (future.length > 0) {
+            const nextState = future[0];
+            const newFuture = future.slice(1);
+            useHistoryStore.setState({ past: [...past, currentPages], future: newFuture });
+            setActivePages(nextState);
         }
+      },
 
-        return updates;
-      }),
-
-      setSelectedTextElement: (element) => set({ selectedTextElement: element }),
-
-      setContextualBarFormaId: (id) => set({ contextualBarFormaId: id }),
-      setContextualBarSelectedPages: (pages) => set({ contextualBarSelectedPages: pages }),
-
-      disableAllImageEditModes: () => set((state) => ({
-        formas: setActivePages(
-          state,
-          getActivePages(state).map(page => ({
+      disableAllImageEditModes: () => {
+        const { getActivePages, setActivePages } = get();
+        const newPages = getActivePages().map(page => ({
             ...page,
             slots: page.slots.map(slot => {
               if (slot.imageSettings?.editMode) {
@@ -470,30 +336,19 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
               }
               return slot;
             })
-          }))
-        )
-      })),
+          }));
+        setActivePages(newPages);
+      },
 
       setActiveTab: (tab) => set((state) => ({
         activeTab: tab,
         activeFormaId: tab === "inner" ? 2 : 1,
-        selectedSlotIds: [],
-        selectedPageNumber: null,
-        selectedTextElement: null,
       })),
 
-      setActiveFormaId: (id) => set((state) => {
-        const forma = state.formas.find(f => f.id === id);
-        return {
-          activeFormaId: id,
-          activeTab: id === 2 ? "inner" : "outer",
-          selectedSlotIds: [],
-          selectedPageNumber: null,
-          selectedTextElement: null,
-          contextualBarFormaId: id.toString(),
-          contextualBarSelectedPages: [] // Forma değişince sayfaları sıfırla (tüm forma seçili olsun diye boş bırakıyoruz veya ilk sayfayı seçebiliriz)
-        };
-      }),
+      setActiveFormaId: (id) => set((state) => ({
+        activeFormaId: id,
+        activeTab: id === 2 ? "inner" : "outer",
+      })),
 
       setFormas: (formas) => set(() => ({ formas })),
 
@@ -505,12 +360,8 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           formas: buildFormasForTemplate(tmpl),
           activeFormaId: 1,
           activeTab: "outer",
-          selectedSlotIds: [],
-          selectedPageNumber: null,
-          selectedTextElement: null,
-          pastPages: [],
-          futurePages: []
         });
+        useHistoryStore.getState().clearHistory();
       },
       
       setGlobalSettings: (settings) => set((state) => ({ 
@@ -521,21 +372,21 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         globalSettings: { ...state.globalSettings, ...settings }
       })),
 
-
-
-      updatePageFooter: (pageNum, data) => set((state) => ({
-        formas: setActivePages(
-          state,
-          getActivePages(state).map((p) => p.pageNumber === pageNum ? { ...p, ...data } : p)
-        )
-      })),
+      updatePageFooter: (pageNum, data) => {
+          const { getActivePages, setActivePages } = get();
+          const newPages = getActivePages().map((p) => p.pageNumber === pageNum ? { ...p, ...data } : p);
+          setActivePages(newPages);
+      },
       
-      toggleZoom: () => set((state) => ({ isZoomed: !state.isZoomed })),
       setProductPool: (products) => set({ productPool: products }),
       setMasterProductPool: (products) => set({ masterProductPool: products }),
 
-      autoFillSlots: () => set((state) => {
-        const newFormas = cloneDeep(state.formas);
+      autoFillSlots: () => {
+        const { formas, productPool, getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        saveState(cloneDeep(getActivePages()));
+
+        const newFormas = cloneDeep(formas);
         const allPages = newFormas.flatMap(f => f.pages).sort((a, b) => a.pageNumber - b.pageNumber);
         const allValidSlots: any[] = [];
         
@@ -547,11 +398,9 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           });
         });
         
-        // Önce tüm hücreleri temizle
         allValidSlots.forEach(s => s.product = null);
         
-        // Ürünleri POS/SIRA değerine göre global sıraya yerleştir
-        state.productPool.forEach((product) => {
+        productPool.forEach((product) => {
           let posValue = 0;
           if (product.raw) {
             const keys = Object.keys(product.raw);
@@ -574,121 +423,69 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           }
         });
         
-        return {
-          formas: newFormas,
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(getActivePages(state))],
-          futurePages: []
-        };
-      }),
+        set({ formas: newFormas });
+      },
 
-      clearProducts: () => set((state) => {
-        const currentPages = getActivePages(state);
+      clearProducts: () => {
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
         const newPages = cloneDeep(currentPages);
         newPages.forEach(p => p.slots.forEach(s => s.product = null));
-        return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
+        setActivePages(newPages);
+      },
 
-      clearSlot: (pageNumber, slotId) => set((state) => {
-        const currentPages = getActivePages(state);
-        const newPages = cloneDeep(currentPages);
-        const page = newPages.find(p => p.pageNumber === pageNumber);
-        if (page) { const slot = page.slots.find(s => s.id === slotId); if (slot) slot.product = null; }
-        return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
+      resetCatalog: () => {
+        const { getActivePages, activeTemplate } = get();
+        const { saveState, clearHistory } = useHistoryStore.getState();
+        saveState(cloneDeep(getActivePages()));
+        set({
+          formas: buildFormasForTemplate(activeTemplate),
+          activeFormaId: 1,
+          activeTab: "outer",
+          globalSettings: cloneDeep(initialGlobalSettings),
+        });
+        clearHistory();
+      },
 
-      setSlotProduct: (pageNumber, slotId, product) => set((state) => {
-        const currentPages = getActivePages(state);
-        const newPages = cloneDeep(currentPages);
-        const page = newPages.find(p => p.pageNumber === pageNumber);
-        if (page) { const slot = page.slots.find(s => s.id === slotId); if (slot) slot.product = product; }
-        return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
+      swapSlotContents: (sPageNum, sIdx, tPageNum, tIdx) => {
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
 
-      updateSlotProduct: (pageNumber, slotId, updates) => set((state) => {
-        const currentPages = getActivePages(state);
-        const newPages = cloneDeep(currentPages);
-        const page = newPages.find(p => p.pageNumber === pageNumber);
-        if (page) { const slot = page.slots.find(s => s.id === slotId); if (slot && slot.product) slot.product = { ...slot.product, ...updates }; }
-        return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
-
-      updateSlotImageSettings: (pageNumber, slotId, settings) => set((state) => ({
-        formas: setActivePages(
-          state,
-          getActivePages(state).map((p) => p.pageNumber === pageNumber ? {
-            ...p,
-            slots: p.slots.map(s => s.id === slotId ? {
-              ...s,
-              imageSettings: { ...(s.imageSettings || {}), ...settings }
-            } : s)
-          } : p)
-        )
-      })),
-
-      setSidebarState: (panel, tab = null, subTab = null) => set(() => ({
-        sidebarState: { activePanel: panel, activeTab: tab, activeSubTab: subTab }
-      })),
-
-      resetCatalog: () => set((state) => ({
-        formas: buildFormasForTemplate(state.activeTemplate),
-        activeFormaId: 1,
-        activeTab: "outer",
-        selectedSlotIds: [],
-        selectedPageNumber: null,
-        selectedTextElement: null,
-        globalSettings: cloneDeep(initialGlobalSettings),
-        pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(getActivePages(state))],
-        futurePages: []
-      })),
-
-      swapSlotContents: (sPageNum, sIdx, tPageNum, tIdx) => set((state) => {
-        const currentPages = getActivePages(state);
         const newPages = cloneDeep(currentPages);
         const sPage = newPages.find(p => p.pageNumber === sPageNum), tPage = newPages.find(p => p.pageNumber === tPageNum);
-        if (!sPage || !tPage) return state;
+        if (!sPage || !tPage) return;
         const sourceSlot = sPage.slots[sIdx];
         const targetSlot = tPage.slots[tIdx];
 
-        // 1. Ürün takası
         const tempProduct = sourceSlot.product;
         sourceSlot.product = targetSlot.product;
         targetSlot.product = tempProduct;
 
-        // 2. Resim Ayarları (Büyütme/Kaydırma) takası
         const tempImgSettings = sourceSlot.imageSettings;
         sourceSlot.imageSettings = targetSlot.imageSettings;
         targetSlot.imageSettings = tempImgSettings;
 
-        return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
+        setActivePages(newPages);
+      },
 
       mergeSelected: (pageNumber, targetSlotId) => {
-        const state = get();
-        const currentPages = getActivePages(state);
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const { selectedSlotIds, clearSelection } = useUIStore.getState();
+
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
         const pageIndex = currentPages.findIndex((p) => p.pageNumber === pageNumber);
         if (pageIndex < 0) return { success: false, error: "Sayfa bulunamadı." };
+
         const page = currentPages[pageIndex];
-        const selected = state.selectedSlotIds;
+        const selected = selectedSlotIds;
         
         const targetSlot = page.slots.find(s => s.id === targetSlotId);
         const targetProduct = targetSlot ? targetSlot.product : null;
@@ -761,101 +558,124 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
 
         const newPages = [...currentPages];
         newPages[pageIndex] = { ...page, slots: newSlots };
-        set({
-          formas: setActivePages(state, newPages),
-          selectedSlotIds: [],
-          selectedPageNumber: null,
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        });
+        
+        setActivePages(newPages);
+        clearSelection();
+
         return { success: true };
       },
 
       unmergeSlot: (pageNumber, slotId) => {
-        const state = get();
-        const currentPages = getActivePages(state);
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const { clearSelection } = useUIStore.getState();
+
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
         const pageIndex = currentPages.findIndex((p) => p.pageNumber === pageNumber);
         if (pageIndex < 0) return;
+
         const page = currentPages[pageIndex];
         const newSlots = [...page.slots];
         const survivorIdx = newSlots.findIndex((s) => s.id === slotId);
         newSlots[survivorIdx] = { ...newSlots[survivorIdx], colSpan: 1, rowSpan: 1 };
         newSlots.forEach((s, i) => { if (s.mergedInto === slotId) newSlots[i] = { ...s, hidden: false, mergedInto: null, product: null }; });
+
         const newPages = [...currentPages];
         newPages[pageIndex] = { ...page, slots: newSlots };
-        set({
-          formas: setActivePages(state, newPages),
-          selectedSlotIds: [],
-          selectedPageNumber: null,
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        });
+        
+        setActivePages(newPages);
+        clearSelection();
       },
 
-      toggleSlotCustomSettings: (enabled) => set((state) => {
-        const currentPages = getActivePages(state);
-        const newPages = cloneDeep(currentPages);
-        state.selectedSlotIds.forEach(id => {
-          newPages.forEach(p => p.slots.forEach(s => { if (s.id === id) { s.isCustom = enabled; if (enabled && !s.customSettings) s.customSettings = JSON.parse(JSON.stringify(state.globalSettings)); } }));
-        });
-        return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
+      toggleSlotCustomSettings: (enabled) => {
+        const { getActivePages, setActivePages, globalSettings } = get();
+        const { saveState } = useHistoryStore.getState();
+        const { selectedSlotIds } = useUIStore.getState();
 
-      updateSlotCustomSettings: (settings) => set((state) => {
-        const currentPages = getActivePages(state);
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
         const newPages = cloneDeep(currentPages);
-        state.selectedSlotIds.forEach(id => {
+        selectedSlotIds.forEach(id => {
+          newPages.forEach(p => p.slots.forEach(s => { if (s.id === id) { s.isCustom = enabled; if (enabled && !s.customSettings) s.customSettings = JSON.parse(JSON.stringify(globalSettings)); } }));
+        });
+
+        setActivePages(newPages);
+      },
+
+      updateSlotCustomSettings: (settings) => {
+        const { getActivePages, setActivePages } = get();
+        const { selectedSlotIds } = useUIStore.getState();
+
+        const currentPages = getActivePages();
+        const newPages = cloneDeep(currentPages);
+        selectedSlotIds.forEach(id => {
           newPages.forEach(p => p.slots.forEach(s => { 
             if (s.id === id && s.isCustom) {
               s.customSettings = deepMerge(s.customSettings || {}, settings);
             } 
           }));
         });
-        return { formas: setActivePages(state, newPages) };
-      }),
 
-      copySlotSettings: () => set((state) => {
-        if (state.selectedSlotIds.length !== 1) return state;
+        setActivePages(newPages);
+      },
+
+      copySlotSettings: () => {
+        const { getActivePages, globalSettings } = get();
+        const { selectedSlotIds } = useUIStore.getState();
+
+        if (selectedSlotIds.length !== 1) return;
+
         let settingsToCopy = null;
-        getActivePages(state).forEach(p => p.slots.forEach(s => {
-          if (s.id === state.selectedSlotIds[0]) {
-            settingsToCopy = s.isCustom && s.customSettings ? s.customSettings : state.globalSettings;
+        getActivePages().forEach(p => p.slots.forEach(s => {
+          if (s.id === selectedSlotIds[0]) {
+            settingsToCopy = s.isCustom && s.customSettings ? s.customSettings : globalSettings;
           }
         }));
-        return { copiedSlotSettings: settingsToCopy ? JSON.parse(JSON.stringify(settingsToCopy)) : null };
-      }),
 
-      pasteSlotSettings: () => set((state) => {
-        if (!state.copiedSlotSettings || state.selectedSlotIds.length === 0) return state;
-        const currentPages = getActivePages(state);
+        set({ copiedSlotSettings: settingsToCopy ? JSON.parse(JSON.stringify(settingsToCopy)) : null });
+      },
+
+      pasteSlotSettings: () => {
+        const { getActivePages, setActivePages, copiedSlotSettings } = get();
+        const { saveState } = useHistoryStore.getState();
+        const { selectedSlotIds } = useUIStore.getState();
+
+        if (!copiedSlotSettings || selectedSlotIds.length === 0) return;
+
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
         const newPages = cloneDeep(currentPages);
-        state.selectedSlotIds.forEach(id => {
+        selectedSlotIds.forEach(id => {
           newPages.forEach(p => p.slots.forEach(s => {
             if (s.id === id) {
               s.isCustom = true;
-              const copied = JSON.parse(JSON.stringify(state.copiedSlotSettings));
+              const copied = JSON.parse(JSON.stringify(copiedSlotSettings));
               copied.imageEditMode = false;
               if (copied.badge) copied.badge.isFreePosition = false;
               s.customSettings = copied;
             }
           }));
         });
-        return {
-          formas: setActivePages(state, newPages),
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)],
-          futurePages: []
-        };
-      }),
 
-      clearSlotSettings: () => set((state) => {
-        if (state.selectedSlotIds.length === 0) return state;
-        const currentPages = getActivePages(state);
+        setActivePages(newPages);
+      },
+
+      clearSlotSettings: () => {
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const { selectedSlotIds } = useUIStore.getState();
+
+        if (selectedSlotIds.length === 0) return;
+
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
         const newPages = cloneDeep(currentPages);
-        state.selectedSlotIds.forEach(id => {
+        selectedSlotIds.forEach(id => {
           newPages.forEach(p => p.slots.forEach(s => {
             if (s.id === id) {
               s.isCustom = false;
@@ -863,34 +683,70 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
             }
           }));
         });
-        return { 
-          formas: setActivePages(state, newPages), 
-          pastPages: [...(state.pastPages || []).slice(-20), cloneDeep(currentPages)], 
-          futurePages: [] 
-        };
-      }),
 
-      clearSelectionAndSelectPage: (pageNumber: number) => {
-        const state = get();
-        state.clearSelection();
-        state.setSelectedPage(pageNumber);
+        setActivePages(newPages);
+      },
+
+      clearSlot: (pageNumber, slotId) => {
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
+        const newPages = cloneDeep(currentPages);
+        const page = newPages.find(p => p.pageNumber === pageNumber);
+        if (page) { const slot = page.slots.find(s => s.id === slotId); if (slot) slot.product = null; }
+        setActivePages(newPages);
+      },
+
+      setSlotProduct: (pageNumber, slotId, product) => {
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
+        const newPages = cloneDeep(currentPages);
+        const page = newPages.find(p => p.pageNumber === pageNumber);
+        if (page) { const slot = page.slots.find(s => s.id === slotId); if (slot) slot.product = product; }
+        setActivePages(newPages);
+      },
+
+      updateSlotProduct: (pageNumber, slotId, updates) => {
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages));
+
+        const newPages = cloneDeep(currentPages);
+        const page = newPages.find(p => p.pageNumber === pageNumber);
+        if (page) { const slot = page.slots.find(s => s.id === slotId); if (slot && slot.product) slot.product = { ...slot.product, ...updates }; }
+        setActivePages(newPages);
+      },
+
+      updateSlotImageSettings: (pageNumber, slotId, settings) => {
+        const { getActivePages, setActivePages } = get();
+        const newPages = getActivePages().map((p) => p.pageNumber === pageNumber ? {
+            ...p,
+            slots: p.slots.map(s => s.id === slotId ? {
+              ...s,
+              imageSettings: { ...(s.imageSettings || {}), ...settings }
+            } : s)
+          } : p);
+          setActivePages(newPages);
       },
 
       mergePages: (pageIds: string[]) => set((state) => {
         if (pageIds.length < 2) return state;
 
         const newFormas = state.formas.map(forma => {
-          // Sadece seçili sayfaları içeren formayı güncelle
           const hasSelectedPages = pageIds.some(id => forma.pages.some(p => p.id === id));
           if (!hasSelectedPages) return forma;
 
-          // Seçili sayfaları mevcut gruplardan çıkar
           const groups = forma.pageMergeGroups || forma.pages.map(p => [p.id]);
           const remainingGroups = groups.filter(
             group => !group.some(id => pageIds.includes(id))
           );
 
-          // Yeni birleşmiş grubu ekle
           return {
             ...forma,
             pageMergeGroups: [...remainingGroups, pageIds]
@@ -905,12 +761,10 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           const hasSelectedPages = pageIds.some(id => forma.pages.some(p => p.id === id));
           if (!hasSelectedPages) return forma;
 
-          // Seçili sayfaların bulunduğu grupları tespit et ve parçala
           const groups = forma.pageMergeGroups || forma.pages.map(p => [p.id]);
           const newGroups: string[][] = [];
           groups.forEach(group => {
             if (group.some(id => pageIds.includes(id))) {
-              // Grubu parçala: her ID kendi grubu olsun
               group.forEach(id => newGroups.push([id]));
             } else {
               newGroups.push(group);
@@ -928,24 +782,18 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
     }),
     {
       name: "catalog-storage-v2",
-      // Persist edilmiş eski state'i yeni defaultlarla güvenli şekilde birleştir
       merge: (persisted, current) => {
-        // persisted veya current undefined ise fallback
         const incoming = (persisted as any) || {};
         const base = current as any;
         const baseState = base?.state || {};
-        // globalSettings deep merge
         const mergedGlobal = deepMerge(baseState.globalSettings || initialGlobalSettings, incoming?.state?.globalSettings || {});
         const normalizedGlobalSettings: CatalogSettings = {
           ...mergedGlobal,
-          
-          
         };
 
         const incomingState = { ...(incoming?.state || {}) };
         const formas = (incomingState.formas || baseState.formas || buildFormasForTemplate(baseState.activeTemplate || Template1)).map(normalizeForma);
 
-        // Eski persist yapısından kalan pages state'i varsa migrasyon amaçlı aktif formaya uygula
         if (!incomingState.formas && Array.isArray(incomingState.pages)) {
           incomingState.formas = (formas || []).map((f: Forma) =>
             f.id === (incomingState.activeFormaId || baseState.activeFormaId || 1)
@@ -964,87 +812,25 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
             activeFormaId: incomingState.activeFormaId || baseState.activeFormaId || 1,
             activeTab: incomingState.activeTab || (incomingState.activeFormaId === 2 ? "inner" : "outer"),
             globalSettings: normalizedGlobalSettings,
-            
-            
-            contextualBarFormaId: incomingState.contextualBarFormaId || baseState.contextualBarFormaId || "1",
-            contextualBarSelectedPages: incomingState.contextualBarSelectedPages || baseState.contextualBarSelectedPages || [],
           }
         };
       },
-
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
-
-        const { addLayer, layers } = useLayerStore.getState();
-        const template = state.activeTemplate;
-        if (!template) return;
-
-        // Migration Helper
-        const migrateBackground = (bg: any, maskType: "page" | "spread" | "document", targetIds: string[], bounds: { x: number; y: number; w: number; h: number }) => {
-          // Eğer zaten bu maskeye sahip bir katman varsa (veya varsayılan beyaz renkteyse) geç
-          const isDefault = bg.type === "color" && bg.color === "#ffffff" && bg.opacity === 100 && !bg.imageUrl;
-          if (isDefault) return;
-
-          const newLayer: Layer = {
-            id: uuidv4(),
-            type: bg.type === "image" ? "image" : "solid",
-            name: `Migrated ${maskType === "page" ? "Page" : maskType === "spread" ? "Spread" : "Global"} BG`,
-            bounds: bounds,
-            transform: { rotation: bg.rotation || 0, scale: bg.scale || 100, flipX: bg.flipX || false, flipY: bg.flipY || false, offsetX: bg.offsetX || 0, offsetY: bg.offsetY || 0 },
-            mask: { type: maskType, targetIds, excludeGaps: maskType !== "page" },
-            zIndex: 0,
-            properties: bg.type === "image"
-              ? { imageUrl: bg.imageUrl, opacity: bg.imageOpacity ?? bg.opacity ?? 100, fitMode: bg.fitMode || "cover", blendMode: bg.blendMode || "normal" }
-              : { color: bg.color, opacity: bg.opacity ?? 100 },
-            visible: true
-          };
-          addLayer(newLayer);
-        };
-
-        let migrationCount = 0;
-
-        // 1. Global Background Migration (Broşür geneli)
-        if ((state as any).isGlobalActive && (state as any).globalBackground) {
-          migrateBackground((state as any).globalBackground, "document", [], { x: 0, y: 0, w: template.openWidthMm, h: template.openHeightMm });
-          (state as any).isGlobalActive = false;
-          migrationCount++;
-        }
-
-         // 2. Forma & Sayfa Bazlı Migrasyon
-        state.formas.forEach(forma => {
-          // Sayfa gruplarını garantiye al
-          if (!forma.pageMergeGroups) {
-            forma.pageMergeGroups = forma.pages.map(p => [p.id]);
-          }
-
-          // Forma spread arka planı
-          if ((forma as any).isGlobalBackgroundActive && (forma as any).globalBackground) {
-            migrateBackground((forma as any).globalBackground, "spread", forma.pages.map(p => p.id), { x: 0, y: 0, w: template.openWidthMm, h: template.openHeightMm });
-            (forma as any).isGlobalBackgroundActive = false;
-            migrationCount++;
-          }
-
-          // Tekil sayfa arka planları
-          forma.pages.forEach(page => {
-            if ((page as any).background) {
-              // Sayfa OFFSET hesaplama (mm)
-              const pageIndex = template.pages.findIndex(p => p.pageNumber === page.pageNumber);
-              if (pageIndex !== -1) {
-                const xOffset = template.pages.slice(0, pageIndex).reduce((sum, p) => sum + p.widthMm, 0);
-                const pageWidth = template.pages[pageIndex].widthMm;
-                
-                migrateBackground((page as any).background, "page", [page.id], { x: xOffset, y: 0, w: pageWidth, h: template.openHeightMm });
-                (page as any).background = undefined; // Legacy veriyi sil
-                migrationCount++;
-              }
-            }
-          });
-        });
-
-        if (migrationCount > 0) {
-          console.log(`[LMS Migration] ${migrationCount} legacy background(s) migrated to layers.`);
-        }
-      }
     }
   )
 );
+
+function normalizeForma(forma: Forma): Forma {
+    return {
+      ...forma,
+      pages: (forma.pages || []).map(normalizeCatalogPage),
+      pageMergeGroups: (forma.pageMergeGroups && forma.pageMergeGroups.length > 0)
+        ? forma.pageMergeGroups
+        : (forma.pages || []).map(p => [p.id]),
+    };
+  }
+
+function normalizeCatalogPage(page: CatalogPage): CatalogPage {
+return {
+    ...page,
+};
+}

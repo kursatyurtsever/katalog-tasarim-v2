@@ -4,7 +4,14 @@ import { useState } from "react";
 import { toJpeg, toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { useCatalogStore } from "@/store/useCatalogStore";
-import { useBannerStore } from "@/store/useBannerStore"; // YENİ EKLENDİ
+import { useUIStore } from "@/store/useUIStore";
+import { useBannerStore } from "@/store/useBannerStore";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function DownloadMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,13 +20,12 @@ export function DownloadMenu() {
   const activeTab = useCatalogStore((state) => state.activeTab);
   const setActiveTab = useCatalogStore((state) => state.setActiveTab);
   
-  // YENİ EKLENDİ: Seçimleri temizleme komutları
-  const clearSelection = useCatalogStore((state) => state.clearSelection);
+  const clearSelection = useUIStore((state) => state.clearSelection);
   const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
 
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const captureCurrentView = async (format: "jpeg" | "png") => {
+  const captureCurrentView = async (format: "jpeg" | "png") => {
     const pages = Array.from(document.querySelectorAll('.physical-page')) as HTMLElement[];
     if (pages.length === 0) return null;
 
@@ -37,7 +43,6 @@ const captureCurrentView = async (format: "jpeg" | "png") => {
 
     const pageImages = [];
     for (const page of pages) {
-      // html2canvas yerine modern html-to-image kullanıyoruz
       const dataUrl = format === "jpeg" 
         ? await toJpeg(page, options)
         : await toPng(page, options);
@@ -81,10 +86,9 @@ const captureCurrentView = async (format: "jpeg" | "png") => {
     setIsOpen(false);
     setIsExporting(true);
 
-    // YENİ EKLENDİ: Çıktı başlamadan hemen önce tüm mavi seçim çerçevelerini kaldır!
     clearSelection();
     clearBannerSelection();
-    await delay(100); // React'in çerçeveleri ekrandan silmesi için 0.1 sn salise bekle
+    await delay(100); 
 
     const originalTab = activeTab;
 
@@ -140,27 +144,26 @@ const captureCurrentView = async (format: "jpeg" | "png") => {
 
   return (
     <div className="relative z-[9999]">
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isExporting}
-        className={`flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold rounded shadow-md transition-colors ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
-      >
-        {isExporting ? "İndirme hazırlanıyor" : "İndir ▼"}
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-24 bg-white border border-slate-200 rounded shadow-lg overflow-hidden flex flex-col">
-          <button onClick={() => handleExport("pdf")} className="px-4 py-2 text-left text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-slate-100">
-            PDF
-          </button>
-          <button onClick={() => handleExport("jpeg")} className="px-4 py-2 text-left text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-slate-100">
-            JPEG
-          </button>
-          <button onClick={() => handleExport("png")} className="px-4 py-2 text-left text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            PNG
-          </button>
-        </div>
-      )}
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        {/* asChild KULLANMADAN, SINIFLARI DOĞRUDAN TRIGGER'A VERDİK */}
+        <DropdownMenuTrigger
+          disabled={isExporting}
+          className={`flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold rounded shadow-md transition-colors outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isExporting ? "Hazırlanıyor..." : "İndir ▼"}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-32 bg-white z-[9999] shadow-xl border-slate-200">
+          <DropdownMenuItem onClick={() => handleExport("pdf")} className="cursor-pointer font-bold text-slate-700 hover:bg-blue-50 focus:bg-blue-50">
+            PDF Olarak İndir
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleExport("jpeg")} className="cursor-pointer font-bold text-slate-700 hover:bg-blue-50 focus:bg-blue-50">
+            JPEG Olarak İndir
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleExport("png")} className="cursor-pointer font-bold text-slate-700 hover:bg-blue-50 focus:bg-blue-50">
+            PNG Olarak İndir
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Layer } from '../types/document';
 import { v4 as uuidv4 } from 'uuid';
+import { useUIStore } from './useUIStore';
 import { useCatalogStore } from './useCatalogStore';
 
 interface LayerState {
@@ -105,7 +106,7 @@ export const useLayerStore = create<LayerState & LayerActions>((set, get) => ({
       
       // Async call to avoid infinite loops during render phase if called improperly
       setTimeout(() => {
-        useCatalogStore.getState().setContextualBarSelectedPages(numericIds);
+        useUIStore.getState().setContextualBarSelectedPages(numericIds);
       }, 0);
 
       return { selectedPageIds: newSelection };

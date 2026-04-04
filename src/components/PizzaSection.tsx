@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { usePizzaStore } from '../store/usePizzaStore';
-import { useCatalogStore } from '@/store/useCatalogStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useBannerStore } from '@/store/useBannerStore';
 import { TypographyData } from './TypographyPicker';
 import { BorderRadiusData } from './BorderRadiusPicker';
@@ -15,7 +15,7 @@ export function PizzaSection() {
   
   const { colors, fonts, tableLineWidth, radiuses, spacings, shadows, isSelected, selectPizza } = usePizzaStore();
   
-  const clearCatalogSelection = useCatalogStore((state) => state.clearSelection);
+  const clearCatalogSelection = useUIStore((state) => state.clearSelection);
   const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

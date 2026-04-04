@@ -1,20 +1,21 @@
+
 "use client";
 
 import { useMemo, useState, useRef } from "react";
 import { useCatalogStore } from "@/store/useCatalogStore";
-
-interface Props { isOpen: boolean; onToggle: () => void; }
+import { useUIStore } from "@/store/useUIStore";
 
 const parsePrice = (price: any) => { 
   if (!price) return 0; 
   return parseFloat(String(price).replace(",", ".")); 
 };
 
-export function ProductInfoSettings({ isOpen, onToggle }: Props) {
+export function ProductInfoSettings() {
   const { 
-    formas, activeFormaId, selectedSlotIds, updateSlotProduct, setSlotProduct,
+    formas, activeFormaId, updateSlotProduct, setSlotProduct,
     masterProductPool, setMasterProductPool, productPool, setProductPool 
   } = useCatalogStore();
+  const { selectedSlotIds } = useUIStore();
   const activeForma = formas.find((f) => f.id === activeFormaId);
   const pages = activeForma?.pages || [];
   
@@ -195,129 +196,120 @@ export function ProductInfoSettings({ isOpen, onToggle }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-md border border-slate-200 shadow-sm mb-4 relative z-30">
-      <button onClick={onToggle} className={`w-full flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 transition-colors ${isOpen ? "rounded-t-md" : "rounded-md"}`}>
-        <span className="text-[11px] font-black text-white uppercase tracking-widest">Ürün Bilgileri</span>
-        <span className="text-white text-white/70 text-xs">{isOpen ? "▲" : "▼"}</span>
-      </button>
-      
-      {isOpen && (
-        <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-4 rounded-b-md">
-          {selectedSlotIds.length !== 1 ? (
-            <div className="text-[10px] text-center text-slate-500 font-bold p-4 bg-white rounded border border-slate-200 shadow-sm">
-              Lütfen tablodan sadece BİR adet hücre seçin.
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between bg-white p-2 rounded border border-slate-200 shadow-sm mb-3">
-                <span className="text-[10px] font-black text-slate-600">Seçili Hücre: #{selectedGlobalNumber}</span>
-              </div>
+    <div className="space-y-4">
+      {selectedSlotIds.length !== 1 ? (
+        <div className="text-[10px] text-center text-slate-500 font-bold p-4 bg-white rounded border border-slate-200 shadow-sm">
+          Lütfen tablodan sadece BİR adet hücre seçin.
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between bg-white p-2 rounded border border-slate-200 shadow-sm mb-3">
+            <span className="text-[10px] font-black text-slate-600">Seçili Hücre: #{selectedGlobalNumber}</span>
+          </div>
 
-              <div className="space-y-3">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-slate-500">Ürün Adı (BEZEICHNUNG)</span>
+              <textarea 
+                rows={2}
+                value={selectedSlot?.product?.name || ""} 
+                onChange={(e) => handleProductUpdate({ name: e.target.value }, { BEZEICHNUNG: e.target.value })} 
+                className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500 resize-none"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Ürün Adı (BEZEICHNUNG)</span>
-                  <textarea 
-                    rows={2}
-                    value={selectedSlot?.product?.name || ""} 
-                    onChange={(e) => handleProductUpdate({ name: e.target.value }, { BEZEICHNUNG: e.target.value })} 
-                    className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500 resize-none"
+                  <span className="text-[9px] font-bold text-slate-500">Satış Fiyatı (VK_NETTO)</span>
+                  <input 
+                    type="text" 
+                    value={selectedSlot?.product?.price || ""} 
+                    onChange={(e) => handleProductUpdate({ price: e.target.value }, { VK_NETTO: e.target.value })} 
+                    className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
                   />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-bold text-slate-500">Satış Fiyatı (VK_NETTO)</span>
-                      <input 
-                        type="text" 
-                        value={selectedSlot?.product?.price || ""} 
-                        onChange={(e) => handleProductUpdate({ price: e.target.value }, { VK_NETTO: e.target.value })} 
-                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-bold text-slate-500">Alış Fiyatı (EK)</span>
-                      <input 
-                        type="text" 
-                        value={selectedSlot?.product?.raw?.EK || ""} 
-                        onChange={(e) => handleProductUpdate({}, { EK: e.target.value })} 
-                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
-                      />
-                    </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-slate-500">Alış Fiyatı (EK)</span>
+                  <input 
+                    type="text" 
+                    value={selectedSlot?.product?.raw?.EK || ""} 
+                    onChange={(e) => handleProductUpdate({}, { EK: e.target.value })} 
+                    className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
+                  />
                 </div>
+            </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-bold text-slate-500">Ürün Kodu (ARTNR)</span>
-                      <input 
-                        type="text" 
-                        value={selectedSlot?.product?.sku || ""} 
-                        onChange={(e) => handleProductUpdate({ sku: e.target.value }, { ARTNR: e.target.value })} 
-                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-bold text-slate-500">Kâr Oranı (KAR_%)</span>
-                      <div className={`w-full text-[10px] font-bold border rounded p-1.5 flex items-center justify-center h-[34px] ${hasCost ? (isLoss ? 'bg-red-50 border-red-200 text-red-600' : 'bg-green-50 border-green-200 text-green-600') : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                        {hasCost ? `%${profit.toFixed(1)}` : "Maliyet Yok"}
-                      </div>
-                    </div>
+            <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-slate-500">Ürün Kodu (ARTNR)</span>
+                  <input 
+                    type="text" 
+                    value={selectedSlot?.product?.sku || ""} 
+                    onChange={(e) => handleProductUpdate({ sku: e.target.value }, { ARTNR: e.target.value })} 
+                    className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
+                  />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-bold text-slate-500">Kategori (ARTGRP)</span>
-                      <input 
-                        type="text" 
-                        value={selectedSlot?.product?.category || ""} 
-                        onChange={(e) => handleProductUpdate({ category: e.target.value }, { ARTGRP: e.target.value })} 
-                        className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-bold text-slate-500">Sıra (POS)</span>
-                      <div className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded p-1.5 cursor-not-allowed">
-                        {masterProductPool.some(p => p.sku === selectedSlot?.product?.sku) ? selectedSlot?.product?.raw?.POS : `${nextPos} (Yeni)`}
-                      </div>
-                    </div>
-                </div>
-
-                {/* GÖRSEL SEÇME ALANI */}
-                <div className="space-y-1 pt-1">
-                  <span className="text-[9px] font-bold text-slate-500">Görsel Seç</span>
-                  <input type="file" accept="image/*" className="hidden" id="image-upload" ref={fileInputRef} onChange={handleFileChange} />
-                  <label htmlFor="image-upload" className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-300 hover:border-blue-400 rounded p-1.5 cursor-pointer shadow-sm transition-all">
-                    {selectedFile ? selectedFile.name : "Bilgisayardan Görsel Seç"}
-                  </label>
-                </div>
-
-                {/* ONAY EKRANI VEYA KAYDET BUTONU */}
-                {showConfirm ? (
-                  <div className="bg-amber-50 border border-amber-300 rounded p-3 mt-4 space-y-3 shadow-inner">
-                    <p className="text-[10px] font-bold text-amber-800 text-center leading-tight">
-                      ⚠️ DİKKAT: Bu Ürün Kodu (ARTNR) ile sistemde zaten bir resim var. <br/> <span className="text-red-600">Üzerine kaydedilecek!</span>
-                    </p>
-                    <div className="flex gap-2">
-                      <button onClick={executeSave} className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded transition-colors shadow-sm">
-                        Yine de Onayla
-                      </button>
-                      <button onClick={() => setShowConfirm(false)} className="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-bold rounded transition-colors shadow-sm">
-                        Vazgeç
-                      </button>
-                    </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-slate-500">Kâr Oranı (KAR_%)</span>
+                  <div className={`w-full text-[10px] font-bold border rounded p-1.5 flex items-center justify-center h-[34px] ${hasCost ? (isLoss ? "bg-red-50 border-red-200 text-red-600" : "bg-green-50 border-green-200 text-green-600") : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                    {hasCost ? `%${profit.toFixed(1)}` : "Maliyet Yok"}
                   </div>
-                ) : (
-                  <button 
-                    onClick={handleSaveClick}
-                    disabled={!selectedSlot?.product?.name || isSaving}
-                    className={`w-full py-2.5 rounded text-[11px] font-bold text-white transition-all shadow-sm mt-4 ${(!selectedSlot?.product?.name || isSaving) ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}
-                  >
-                    {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-slate-500">Kategori (ARTGRP)</span>
+                  <input 
+                    type="text" 
+                    value={selectedSlot?.product?.category || ""} 
+                    onChange={(e) => handleProductUpdate({ category: e.target.value }, { ARTGRP: e.target.value })} 
+                    className="w-full text-[10px] font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-slate-500">Sıra (POS)</span>
+                  <div className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded p-1.5 cursor-not-allowed">
+                    {masterProductPool.some(p => p.sku === selectedSlot?.product?.sku) ? selectedSlot?.product?.raw?.POS : `${nextPos} (Yeni)`}
+                  </div>
+                </div>
+            </div>
+
+            {/* GÖRSEL SEÇME ALANI */}
+            <div className="space-y-1 pt-1">
+              <span className="text-[9px] font-bold text-slate-500">Görsel Seç</span>
+              <input type="file" accept="image/*" className="hidden" id="image-upload" ref={fileInputRef} onChange={handleFileChange} />
+              <label htmlFor="image-upload" className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-300 hover:border-blue-400 rounded p-1.5 cursor-pointer shadow-sm transition-all">
+                {selectedFile ? selectedFile.name : "Bilgisayardan Görsel Seç"}
+              </label>
+            </div>
+
+            {/* ONAY EKRANI VEYA KAYDET BUTONU */}
+            {showConfirm ? (
+              <div className="bg-amber-50 border border-amber-300 rounded p-3 mt-4 space-y-3 shadow-inner">
+                <p className="text-[10px] font-bold text-amber-800 text-center leading-tight">
+                  ⚠️ DİKKAT: Bu Ürün Kodu (ARTNR) ile sistemde zaten bir resim var. <br/> <span className="text-red-600">Üzerine kaydedilecek!</span>
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={executeSave} className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded transition-colors shadow-sm">
+                    Yine de Onayla
                   </button>
-                )}
+                  <button onClick={() => setShowConfirm(false)} className="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-bold rounded transition-colors shadow-sm">
+                    Vazgeç
+                  </button>
+                </div>
               </div>
-            </>
-          )}
-        </div>
+            ) : (
+              <button 
+                onClick={handleSaveClick}
+                disabled={!selectedSlot?.product?.name || isSaving}
+                className={`w-full py-2.5 rounded text-[11px] font-bold text-white transition-all shadow-sm mt-4 ${(!selectedSlot?.product?.name || isSaving) ? "bg-slate-300 cursor-not-allowed" : "bg-slate-800 hover:bg-slate-700"}`}
+              >
+                {isSaving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

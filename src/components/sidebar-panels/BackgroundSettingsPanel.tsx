@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useRef, useState } from "react";
@@ -21,12 +22,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 
-interface Props {
-  isOpen: boolean;
-  onToggle: () => void;
-}
-
-export function BackgroundSettingsPanel({ isOpen, onToggle }: Props) {
+export function BackgroundSettingsPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -46,13 +42,12 @@ export function BackgroundSettingsPanel({ isOpen, onToggle }: Props) {
     activeFormaId,
     mergePages,
     unmergePages,
-    contextualBarFormaId,
   } = useCatalogStore();
 
   // 1. DATA SELECTORS & HELPERS
   const activeForma = useMemo(
-    () => formas.find((f) => f.id === (contextualBarFormaId ? parseInt(contextualBarFormaId) : activeFormaId)),
-    [formas, activeFormaId, contextualBarFormaId]
+    () => formas.find((f) => f.id === activeFormaId),
+    [formas, activeFormaId]
   );
 
   const currentGroups = useMemo(() => activeForma?.pageMergeGroups || [], [activeForma]);
@@ -210,24 +205,7 @@ export function BackgroundSettingsPanel({ isOpen, onToggle }: Props) {
 
   // 3. UI RENDERERS
   return (
-    <div className="bg-white rounded-md border border-slate-700 shadow-sm mb-4 relative z-30">
-      <button
-        onClick={onToggle}
-        className={`w-full flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 transition-colors ${
-          isOpen ? "rounded-t-md" : "rounded-md"
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <Layers className="w-3.5 h-3.5 text-blue-400" />
-          <span className="text-[11px] font-black text-white uppercase tracking-widest">
-            Zemin Yönetimi
-          </span>
-        </div>
-        <span className="text-white text-xs">{isOpen ? "▲" : "▼"}</span>
-      </button>
-
-      {isOpen && (
-        <div className="p-4 bg-slate-50 border-t border-slate-700 space-y-4 rounded-b-md">
+    <div className="space-y-4">
           
           {/* A. HÜCRE BİRLEŞTİRME (EXCEL MANTIĞI) */}
           <section className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
@@ -539,9 +517,7 @@ export function BackgroundSettingsPanel({ isOpen, onToggle }: Props) {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
+            </div>
     </div>
   );
 }

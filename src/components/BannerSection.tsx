@@ -1,7 +1,7 @@
 "use client";
 
 import { useBannerStore } from "@/store/useBannerStore";
-import { useCatalogStore } from "@/store/useCatalogStore";
+import { useUIStore } from "@/store/useUIStore";
 import { usePizzaStore } from "@/store/usePizzaStore";
 import { useEffect, useState } from "react";
 
@@ -18,7 +18,7 @@ export function BannerSection() {
     selectedBannerCellIds, toggleBannerCellSelection, updateBannerCell 
   } = useBannerStore();
 
-  const clearCatalogSelection = useCatalogStore((state) => state.clearSelection);
+  const clearCatalogSelection = useUIStore((state) => state.clearSelection);
   const clearPizzaSelection = usePizzaStore((state) => state.clearSelection);
   
   const { cells } = bannerSettings;

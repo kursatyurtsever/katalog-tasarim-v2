@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useCatalogStore } from "@/store/useCatalogStore";
+import { useUIStore } from "@/store/useUIStore";
 import { useLayerStore } from "@/store/useLayerStore";
 import { Page } from "./Page";
 import { LayerStack } from "./LayerStack";
@@ -13,9 +14,9 @@ export function Canvas() {
   const layers = useLayerStore((state) => state.layers);
   const activeFormaId = useCatalogStore((state) => state.activeFormaId);
   const globalSettings = useCatalogStore((state) => state.globalSettings);
-  const isZoomed = useCatalogStore((state) => state.isZoomed);
+  const isZoomed = useUIStore((state) => state.isZoomed);
   const template = useCatalogStore((state) => state.activeTemplate);
-  const clearCatalogSelection = useCatalogStore((state) => state.clearSelection);
+  const clearCatalogSelection = useUIStore((state) => state.clearSelection);
   const disableAllImageEditModes = useCatalogStore((state) => state.disableAllImageEditModes);
 
   const activeForma = formas.find((f) => f.id === activeFormaId);

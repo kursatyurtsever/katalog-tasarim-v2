@@ -1,6 +1,7 @@
 "use client";
 
 import { useCatalogStore } from "@/store/useCatalogStore";
+import { useUIStore } from "@/store/useUIStore";
 import { useLayerStore } from "@/store/useLayerStore";
 import { Slot } from "../Slot";
 import { PizzaSection } from "../PizzaSection";
@@ -36,7 +37,7 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
   const handleContextMenu = (e: React.MouseEvent, slot: SlotType) => {
     e.preventDefault();
-    const selected = useCatalogStore.getState().selectedSlotIds;
+    const selected = useUIStore.getState().selectedSlotIds;
     const canMerge = selected.length > 1 && selected.includes(slot.id);
     const canUnmerge = slot.colSpan > 1 || slot.rowSpan > 1;
     const hasProduct = !!slot.product;
@@ -62,9 +63,14 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
 
 
-  const [mt, mr, mb, ml] = pageConfig.safeZone;
-  const totalColumns = 4;
-  const totalRows = Math.ceil(currentPage.slots.length / totalColumns);
+const [mt, mr, mb, ml] = pageConfig.safeZone;
+  
+  // EKLENDİ: Dinamik Grid Hesaplaması (Önce sayfa ayarı, yoksa global ayar, en son fallback)
+  const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings?.defaultGrid?.cols || 4;
+  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings?.defaultGrid?.rows || 4;
+  
+  // Gerçekte slot sayısı / kolon sayısından hesaplanan satır sayısı veya konfigüre edilen satır sayısı
+  const totalRows = Math.max(configuredRows, Math.ceil(currentPage.slots.length / totalColumns));
 
   const previousVisibleCount = formas
     .flatMap(f => f.pages)
@@ -141,7 +147,8 @@ export function Page({ pageNumber }: { pageNumber: number }) {
           )}
           
           {pageNumber === 6 && <div className="absolute top-0 left-0 w-full z-10" style={{ height: `calc(((100% / ${totalRows}) * 2) - 5mm)` }}><PizzaSection /></div>}
-          <div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{renderSlots(pageNumber === 1 ? 4 : pageNumber === 6 ? 8 : 0)}</div>
+<div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{/* Banner 1 tam satır (totalColumns kadar), Pizza 2 tam satır (totalColumns * 2 kadar) kaplıyor varsayımıyla */}
+{renderSlots(pageNumber === 1 ? totalColumns : pageNumber === 6 ? (totalColumns * 2) : 0)}</div>
         </div>
         <div className="absolute w-full flex items-end gap-5 z-50" style={{ bottom: "10mm", left: "0", paddingLeft: "10mm", paddingRight: "10mm", height: "12mm" }}>
           
