@@ -10,6 +10,8 @@ export const defaultSpacing: SpacingData = { t: 0, r: 0, b: 0, l: 0, linked: tru
 export const defaultShadow: ShadowData = { x: 0, y: 4, blur: 6, spread: -1, color: "#000000", opacity: 10, active: false };
 
 interface PizzaStore {
+  title: string;
+  updateTitle: (title: string) => void;
   // YENİ EKLENEN DURUMLAR (STATE)
   isSelected: boolean;
   selectPizza: () => void;
@@ -59,6 +61,8 @@ interface PizzaStore {
 }
 
 export const usePizzaStore = create<PizzaStore>((set) => ({
+  title: "PIZZA-MENÜ",
+  updateTitle: (title) => set({ title }),
   // YENİ EKLENEN FONKSİYONLAR
   isSelected: false,
   selectPizza: () => set({ isSelected: true }),

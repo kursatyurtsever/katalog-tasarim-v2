@@ -9,11 +9,12 @@ import { BorderRadiusData } from './BorderRadiusPicker';
 import { SpacingData } from './SpacingPicker';
 import { ShadowData } from './ShadowPicker';
 
-export function PizzaSection() {
+export function PizzaSection({ instanceData, slotId, pageNumber }: { instanceData?: any, slotId?: string, pageNumber?: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   
-  const { colors, fonts, tableLineWidth, radiuses, spacings, shadows, isSelected, selectPizza } = usePizzaStore();
+  // İleride instance tabanlı olacak ama şimdilik uygulamanın çökmemesi için Global Store kullanıyoruz.
+  const { title, colors, fonts, tableLineWidth, radiuses, spacings, shadows, isSelected, selectPizza } = usePizzaStore();
   
   const clearCatalogSelection = useUIStore((state) => state.clearSelection);
   const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
@@ -194,7 +195,7 @@ export function PizzaSection() {
       
       <div className="w-full shrink-0 border-b-2 pb-2 flex" style={{ borderColor: hexToRgba(colors.border.c, colors.border.o) }}>
         <EditableText
-          initialValue="Pizzakartons KRAFT !!!"
+          initialValue={title}
           font={fonts.title}
           className="w-full"
         />

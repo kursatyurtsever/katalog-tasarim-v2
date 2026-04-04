@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCatalogStore } from "@/store/useCatalogStore";
@@ -5,7 +6,7 @@ import { useUIStore } from "@/store/useUIStore"; // UI Store eklendi
 import {
   Image as ImageIcon,
   Square, Box, Copy, ClipboardPaste, Eraser, Settings2,
-  Wand2, Combine,
+  Wand2, Combine, Layers,
   Type, AlignLeft, AlignCenter, AlignRight,
   Maximize
 } from "lucide-react";
@@ -100,6 +101,7 @@ export function ContextualBar() {
     globalSettings, setGlobalSettings, formas, activeTemplate,
     updateSlotImageSettings, updateSlotCustomSettings, toggleSlotCustomSettings,
     clearSlotSettings, copySlotSettings, pasteSlotSettings, setActiveFormaId,
+    toggleSlotRole,
     activeFormaId,        // <--- Buraya taşındı
     copiedSlotSettings    // <--- Buraya eklendi
   } = useCatalogStore();
@@ -438,7 +440,17 @@ export function ContextualBar() {
           <IconButton icon={Eraser} label="Temizle" onClick={clearSlotSettings} danger />
         </div>
 
-        <Divider /> 
+        <Divider />
+
+        <div className="flex items-center gap-0.5 relative">
+          {selectedSlot?.role === 'free' ? (
+            <IconButton icon={Box} label="Ürün Alanına Çevir" onClick={() => toggleSlotRole('product')} isActive={false} />
+          ) : (
+            <IconButton icon={Layers} label="Serbest Alan Yap" onClick={() => toggleSlotRole('free')} isActive={false} />
+          )}
+        </div>
+
+        <Divider />
 
         <Button 
           variant="outline"

@@ -1,10 +1,13 @@
+
 "use client";
 
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useBannerStore } from "@/store/useBannerStore";
 import { usePizzaStore } from "@/store/usePizzaStore";
-import { useState, useEffect } from "react";
+import { BannerSection } from "./BannerSection";
+import { PizzaSection } from "./PizzaSection";
+import { useState, useEffect, forwardRef } from "react";
 import { TypographyData } from "./TypographyPicker";
 import { BorderRadiusData } from "./BorderRadiusPicker";
 import { SpacingData } from "./SpacingPicker";
@@ -52,10 +55,10 @@ const getFontStyle = (font: TypographyData): React.CSSProperties => {
   return { fontFamily: font.fontFamily, fontWeight: font.fontWeight, fontSize: `${font.fontSize}px`, lineHeight: font.lineHeight, letterSpacing: `${font.letterSpacing}px`, textAlign: font.textAlign, textTransform: font.textTransform, textDecoration: font.textDecoration, color: hexToRgba(font.color, font.opacity), display: 'flex', justifyContent, alignItems };
 };
 
-export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu, gridPosition }: SlotProps) {
+export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, slotIndex, globalNumber, onContextMenu, gridPosition }, ref) => {
   // useCatalogStore içindekiler
   const { 
-    globalSettings, swapSlotContents, setSlotProduct, 
+    globalSettings, swapSlotContents, setSlotProduct, setSlotModule,
     updateSlotProduct, updateSlotCustomSettings, updateSlotImageSettings,
     disableAllImageEditModes // <--- Buraya taşındı
   } = useCatalogStore();
@@ -63,7 +66,8 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   // useUIStore içindekiler
   const { 
     selectedSlotIds, toggleSlotSelection, 
-    setSelectedTextElement, selectedTextElement 
+    setSelectedTextElement, selectedTextElement, 
+    editingContent, setEditingContent
     // disableAllImageEditModes buradan silindi
   } = useUIStore();
   
@@ -96,6 +100,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   }, [imgDrag.isDragging, imgDrag.startX, imgDrag.startY, imgDrag.initialPosX, imgDrag.initialPosY, imgDrag.currentX, imgDrag.currentY, pageNumber, slot.id, updateSlotImageSettings]);
 
   const isSelected = selectedSlotIds.includes(slot.id);
+  const isEditing = editingContent?.slotId === slot.id;
   
   function deepMerge(target: any, source: any) {
     if (!target || !source) return target || source;
@@ -125,10 +130,24 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); setIsOver(false);
-    const newProductData = e.dataTransfer.getData("newProductFromSidebar");
-    if (newProductData) { setSlotProduct(pageNumber, slot.id, JSON.parse(newProductData)); return; }
-    const sPage = parseInt(e.dataTransfer.getData("sourcePage")), sIndex = parseInt(e.dataTransfer.getData("sourceIndex"));
-    if (!isNaN(sPage) && (sPage !== pageNumber || sIndex !== slotIndex)) swapSlotContents(sPage, sIndex, pageNumber, slotIndex);
+    
+    const newModuleType = e.dataTransfer.getData("newModuleType");
+    if (newModuleType) {
+      // Eğer hücre 'product' ise önce onu 'free' yapıp içini temizle
+      if (slot.role !== 'free') {
+        useCatalogStore.getState().toggleSlotRole('free'); // O an seçiliyse free yapar
+        // Veya manuel olarak objeyi de güncelleyebiliriz ama en garantisi action çağırmak
+      }
+      useCatalogStore.getState().setSlotModule(pageNumber, slot.id, newModuleType as any);
+      return;
+    }
+
+    if (slot.role !== 'free') {
+      const newProductData = e.dataTransfer.getData("newProductFromSidebar");
+      if (newProductData) { setSlotProduct(pageNumber, slot.id, JSON.parse(newProductData)); return; }
+      const sPage = parseInt(e.dataTransfer.getData("sourcePage")), sIndex = parseInt(e.dataTransfer.getData("sourceIndex"));
+      if (!isNaN(sPage) && (sPage !== pageNumber || sIndex !== slotIndex)) swapSlotContents(sPage, sIndex, pageNumber, slotIndex);
+    }
   };
 
   const handleImgMouseDown = (e: React.MouseEvent) => {
@@ -141,49 +160,79 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
   const displayY = imgDrag.isDragging ? imgDrag.currentY : (imgSettings.posY || 0);
   const displayScale = (imgSettings.scale || 100) / 100;
 
-  const cellShadow = getShadowStyle(finalSettings.shadows.cell);
-  const boxShadow = isSelected 
-    ? `inset 0 0 0 3px #3b82f6${cellShadow !== 'none' ? `, ${cellShadow}` : ''}` 
-    : cellShadow;
+  const boxShadow = getShadowStyle(finalSettings.shadows.cell);
 
   return (
     <div 
+      ref={ref}
       id={`slot-${slot.id}`}
       onClick={(e) => {
         e.stopPropagation();
-        // Eğer resim düzenleme veya serbest konum modu aktifse tıklamayı engelleme, 
-        // ama diğer her durumda (hücre boş olsa bile) SEÇİM YAP.
-        if (isSelected && (isImgEditMode || finalSettings.badge?.isFreePosition)) return;
         
+        // 1. Eğer halihazırda bu slotun içeriği düzenleniyorsa, tıklamayı modüle bırak
+        if (editingContent?.slotId === slot.id) return;
+
+        // 2. Başka bir şey düzenleniyorsa düzenleme modunu kapat
+        if (editingContent) setEditingContent(null);
+
+        // 3. Çoklu seçim (Ctrl/Meta) desteğini geri getir
         clearBannerSelection();
         clearPizzaSelection();
         disableAllImageEditModes();
-        setSelectedTextElement(null); 
         
+        // useUIStore'dan gelen toggleSlotSelection'ı Ctrl desteğiyle çağır
         toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
-      }} 
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        if (slot.role === 'free' && slot.moduleData) {
+          setEditingContent({ slotId: slot.id, contentType: slot.moduleData.type });
+        } else if (slot.role === 'product') {
+          setEditingContent({ slotId: slot.id, contentType: 'product' });
+        }
+      }}
       onContextMenu={(e) => onContextMenu(e, slot)} 
       draggable={!!slot.product && !isSelected && !isImgEditMode} 
       onDragStart={(e) => { e.dataTransfer.setData("sourcePage", String(pageNumber)); e.dataTransfer.setData("sourceIndex", String(slotIndex)); }} 
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }} 
-      onDragLeave={() => setIsOver(false)} 
-      onDrop={handleDrop} 
-      className={`product-slot relative border border-solid transition-all h-full w-full min-w-[50px] min-h-[50px] cursor-pointer pointer-events-auto ${isSelected ? "z-30" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300"}`} 
-      style={{ 
-        gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`, 
-        gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`, 
-        borderRadius: getRadiusStyle(finalSettings.radiuses.cell), 
-        backgroundColor: hexToRgba(finalSettings.colors.cellBg.c, finalSettings.colors.cellBg.o), 
-        borderColor: hexToRgba(finalSettings.colors.cellBorder.c, finalSettings.colors.cellBorder.o), 
-        borderWidth: `${finalSettings.borderWidth}px`, 
-        boxShadow: boxShadow,
-        padding: getPaddingStyle(finalSettings.spacings.cell) 
-      }}
+       onDragLeave={() => setIsOver(false)} 
+       onDrop={handleDrop} 
+       className={`product-slot pointer-events-auto relative border border-solid transition-all h-full w-full min-w-[50px] min-h-[50px] cursor-pointer ${ isSelected ? "z-50 ring-4 ring-inset ring-blue-500 shadow-2xl" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300 z-10"}`}
+       style={{ 
+         gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`, 
+         gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`, 
+         borderRadius: getRadiusStyle(finalSettings.radiuses.cell), 
+         backgroundColor: hexToRgba(finalSettings.colors.cellBg.c, finalSettings.colors.cellBg.o), 
+         borderColor: hexToRgba(finalSettings.colors.cellBorder.c, finalSettings.colors.cellBorder.o), 
+         borderWidth: `${finalSettings.borderWidth}px`, 
+         boxShadow: isSelected ? 'none' : boxShadow,
+         padding: getPaddingStyle(finalSettings.spacings.cell) 
+       }}
     >
       {/* GLOBAL SIRA NUMARASI - HER ZAMAN GÖRÜNÜR */}
       <div className="absolute top-0 left-0 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none z-[50]">{globalNumber}</div>
-      
-      {!slot.product && (
+
+      {/* SERBEST ALAN RENDERI */}
+      {slot.role === 'free' && (
+        <div className="w-full h-full flex flex-col relative z-[20] overflow-hidden bg-white pointer-events-auto">
+          {!slot.moduleData ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-300 pointer-events-none">
+              <span className="text-slate-400 font-bold text-[14px] uppercase tracking-widest flex flex-col items-center gap-2">
+                SERBEST ALAN
+              </span>
+              <span className="text-[9px] text-slate-400 mt-1">Modül Sürükleyin</span>
+            </div>
+          ) : (
+            <div className={`absolute inset-0 ${editingContent?.slotId === slot.id ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+              {slot.moduleData.type === 'banner' && <BannerSection instanceData={slot.moduleData} slotId={slot.id} pageNumber={pageNumber} />}
+              {slot.moduleData.type === 'pizza' && <PizzaSection instanceData={slot.moduleData} slotId={slot.id} pageNumber={pageNumber} />}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* NORMAL ÜRÜN RENDERI */}
+      {slot.role !== 'free' && !slot.product && (
         <div className="w-full h-full flex items-center justify-center pointer-events-none">
            <span className="text-[10px] text-slate-200 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Boş Hücre</span>
         </div>
@@ -191,7 +240,7 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
 
       {slot.product && (
         <div 
-          className={`w-full h-full flex flex-col relative min-w-0 min-h-0 ${isSelected ? "opacity-75" : ""}`}
+          className={`w-full h-full flex flex-col relative min-w-0 min-h-0 ${editingContent?.slotId === slot.id ? 'opacity-100' : (isSelected ? 'opacity-75' : '')}`}
         >
           {/* FİYAT ALANI */}
           <div 
@@ -243,4 +292,4 @@ export function Slot({ slot, pageNumber, slotIndex, globalNumber, onContextMenu,
       )}
     </div>
   );
-}
+});

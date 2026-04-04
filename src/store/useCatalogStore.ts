@@ -98,7 +98,9 @@ export interface Slot {
     posX?: number;
     posY?: number;
     editMode?: boolean;
-  }; 
+  };
+  role?: 'product' | 'free';
+  moduleData?: any;
 }
 
 export interface CatalogPage {
@@ -160,6 +162,8 @@ export interface CatalogActions {
   unmergePages: (pageIds: string[]) => void;
   getActivePages: () => CatalogPage[];
   setActivePages: (pages: CatalogPage[]) => void;
+  toggleSlotRole: (role: 'product' | 'free') => void;
+  setSlotModule: (pageNumber: number, slotId: string, moduleType: 'banner' | 'pizza' | null) => void;
 }
 
 const initialGlobalSettings: CatalogSettings = {
@@ -215,7 +219,7 @@ const initialGlobalSettings: CatalogSettings = {
 function createPageSlots(pageNumber: number, count: number): Slot[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `page-${pageNumber}-slot-${i + 1}`,
-    colSpan: 1, rowSpan: 1, product: null, hidden: false, mergedInto: null, isCustom: false,
+    colSpan: 1, rowSpan: 1, product: null, hidden: false, mergedInto: null, isCustom: false, role: 'product'
   }));
 }
 
@@ -392,7 +396,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         
         allPages.forEach(p => {
           p.slots.forEach((s) => {
-            if (!s.hidden) {
+if (!s.hidden && s.role === 'product') {
               allValidSlots.push(s);
             }
           });
@@ -495,9 +499,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const coords: Record<string, { r: number; c: number; w: number; h: number }> = {};
         let r = 0, c = 0;
         
-        let startIndex = (page.pageNumber === 1 ? 4 : page.pageNumber === 6 ? 8 : 0);
-        
-        page.slots.slice(startIndex).filter(s => !s.hidden).forEach((slot) => {
+        page.slots.filter(s => !s.hidden).forEach((slot) => {
           let placed = false;
           while (!placed) {
             if (!grid[r]) grid[r] = Array(maxCols).fill(null);
@@ -779,6 +781,70 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
 
         return { formas: newFormas };
       }),
+
+      toggleSlotRole: (role) => {
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const { selectedSlotIds, clearSelection } = useUIStore.getState();
+
+        if (selectedSlotIds.length === 0) return;
+
+        const currentPages = getActivePages();
+        saveState(JSON.parse(JSON.stringify(currentPages)));
+
+        const newPages = JSON.parse(JSON.stringify(currentPages));
+        selectedSlotIds.forEach(id => {
+          newPages.forEach((p: any) => p.slots.forEach((s: any) => {
+            if (s.id === id) {
+              s.role = role;
+              // Serbest alana geçerken ürünü temizle, ürün alanına geçerken modül verisini temizle
+              if (role === 'free') s.product = null;
+              else s.moduleData = null;
+            }
+          }));
+        });
+
+        setActivePages(newPages);
+        // Rol değiştikten sonra seçim kalsın ki kullanıcı anında farkı görsün.
+      },
+
+      setSlotModule: (pageNumber, slotId, moduleType) => {
+        const { getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        const currentPages = getActivePages();
+        saveState(JSON.parse(JSON.stringify(currentPages)));
+
+        const newPages = JSON.parse(JSON.stringify(currentPages));
+        const page = newPages.find((p: any) => p.pageNumber === pageNumber);
+        if (!page) return;
+        const slot = page.slots.find((s: any) => s.id === slotId);
+        if (!slot || slot.role !== 'free') return;
+
+        if (moduleType === null) {
+          slot.moduleData = null;
+        } else if (moduleType === 'banner') {
+          // Banner başlangıç verisi (instance)
+          slot.moduleData = {
+            type: 'banner',
+            cells: Array.from({ length: 32 }, (_, i) => ({
+              id: `banner-inst-${i}`, text: "", colSpan: 1, rowSpan: 1, hidden: false, mergedInto: null,
+              font: { fontFamily: "Inter", fontWeight: "700", fontSize: 14, lineHeight: 1.2, letterSpacing: 0, textAlign: "center", verticalAlign: "middle", textTransform: "none", textDecoration: "none", color: "#1e293b", opacity: 100, decimalScale: 100 },
+              padding: { t: 0, r: 0, b: 0, l: 0, linked: true },
+              bgColor: { c: "#ffffff", o: 0 },
+              border: { t: 0, r: 0, b: 0, l: 0, linked: true, color: { c: "#e2e8f0", o: 100 }, style: "solid" },
+              image: null
+            }))
+          };
+        } else if (moduleType === 'pizza') {
+          // Pizza başlangıç verisi (instance)
+          slot.moduleData = {
+            type: 'pizza',
+            title: "Pizzakartons KRAFT !!!",
+            prices: Array(19).fill("")
+          };
+        }
+        setActivePages(newPages);
+      },
     }),
     {
       name: "catalog-storage-v2",

@@ -9,6 +9,7 @@ export interface UIState {
   sidebarState: { activePanel: string | null; activeTab: string | null; activeSubTab: string | null };
   contextualBarFormaId: string | null;
   contextualBarSelectedPages: number[];
+  editingContent: { slotId: string, contentType: 'product' | 'banner' | 'pizza' } | null;
 }
 
 export interface UIActions {
@@ -21,6 +22,7 @@ export interface UIActions {
   setContextualBarFormaId: (id: string | null) => void;
   setContextualBarSelectedPages: (pages: number[]) => void;
   clearSelectionAndSelectPage: (pageNumber: number) => void;
+  setEditingContent: (content: { slotId: string, contentType: 'product' | 'banner' | 'pizza' } | null) => void;
 }
 
 const initialSidebarState = {
@@ -37,6 +39,7 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
   sidebarState: initialSidebarState,
   contextualBarFormaId: "1",
   contextualBarSelectedPages: [],
+  editingContent: null,
 
   toggleZoom: () => set((state) => ({ isZoomed: !state.isZoomed })),
 
@@ -81,6 +84,8 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
 
   setContextualBarFormaId: (id) => set({ contextualBarFormaId: id }),
   setContextualBarSelectedPages: (pages) => set({ contextualBarSelectedPages: pages }),
+
+  setEditingContent: (content) => set({ editingContent: content }),
 
   setSidebarState: (panel, tab = null, subTab = null) => set(() => ({
     sidebarState: { activePanel: panel, activeTab: tab, activeSubTab: subTab }

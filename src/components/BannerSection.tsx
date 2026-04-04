@@ -1,6 +1,6 @@
 "use client";
 
-import { useBannerStore } from "@/store/useBannerStore";
+import { useBannerStore, BannerCell } from "@/store/useBannerStore";
 import { useUIStore } from "@/store/useUIStore";
 import { usePizzaStore } from "@/store/usePizzaStore";
 import { useEffect, useState } from "react";
@@ -12,15 +12,14 @@ function hexToRgba(hex: string, opacity: number) {
   return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
 }
 
-export function BannerSection() {
-  const { 
-    bannerSettings, undo, 
-    selectedBannerCellIds, toggleBannerCellSelection, updateBannerCell 
-  } = useBannerStore();
+export function BannerSection({ instanceData, slotId, pageNumber }: { instanceData?: any, slotId?: string, pageNumber?: number }) {
+  
 
   const clearCatalogSelection = useUIStore((state) => state.clearSelection);
   const clearPizzaSelection = usePizzaStore((state) => state.clearSelection);
   
+  // İleride instance tabanlı olacak ama şimdilik uygulamanın çökmemesi için Global Store kullanıyoruz.
+  const { bannerSettings, undo, selectedBannerCellIds, toggleBannerCellSelection, updateBannerCell } = useBannerStore();
   const { cells } = bannerSettings;
 
   // Çift tıklandığında hangi hücrenin düzenlendiğini tutacağımız yerel state
@@ -37,7 +36,7 @@ export function BannerSection() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, editingCellId]);
 
-  const visibleCells = cells.filter(c => !c.hidden);
+  const visibleCells = cells.filter((c: BannerCell) => !c.hidden);
 
   return (
     <div 
@@ -47,7 +46,7 @@ export function BannerSection() {
         gridTemplateRows: "repeat(4, minmax(0, 1fr))",
       }}
     >
-      {visibleCells.map(cell => {
+      {visibleCells.map((cell: BannerCell) => {
         const font = cell.font;
         const pad = cell.padding;
         const b = cell.border;

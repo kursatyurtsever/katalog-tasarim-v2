@@ -4,8 +4,6 @@ import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useLayerStore } from "@/store/useLayerStore";
 import { Slot } from "../Slot";
-import { PizzaSection } from "../PizzaSection";
-import { BannerSection } from "../BannerSection";
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { Slot as SlotType } from "@/store/useCatalogStore";
@@ -21,6 +19,7 @@ export function Page({ pageNumber }: { pageNumber: number }) {
   const clearSlot = useCatalogStore((state) => state.clearSlot);
   const selectPages = useLayerStore((state) => state.selectPages);
   const selectedPageIds = useLayerStore((state) => state.selectedPageIds);
+  const setEditingContent = useUIStore((state) => state.setEditingContent);
 
 
   const activeForma = formas.find((f) => f.id === activeFormaId);
@@ -75,9 +74,8 @@ const [mt, mr, mb, ml] = pageConfig.safeZone;
   const previousVisibleCount = formas
     .flatMap(f => f.pages)
     .filter(p => p.pageNumber < pageNumber)
-    .reduce((sum, p) => sum + p.slots.filter(s => !s.hidden).length, 0);
+    .reduce((sum, p) => sum + p.slots.filter(s => s.role === 'product' && !s.hidden).length, 0);
 
-  let visibleCounter = 0;
   const renderSlots = (startIndex: number) => {
     const grid: boolean[][] = [];
     let r = Math.floor(startIndex / totalColumns), c = startIndex % totalColumns;
@@ -103,8 +101,9 @@ const [mt, mr, mb, ml] = pageConfig.safeZone;
         }
         if (!placed) { c++; if (c >= totalColumns) { c = 0; r++; } }
       }
-      const currentSlotIndexInPage = currentPage.slots.slice(0, idx + 1).filter(s => !s.hidden).length;
-      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={previousVisibleCount + currentSlotIndexInPage} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} />;
+      const currentSlotIndexInPage = currentPage.slots.slice(0, idx).filter(s => s.role === 'product' && !s.hidden).length;
+      const globalNumber = (slot.role === 'product' && !slot.hidden) ? previousVisibleCount + currentSlotIndexInPage + 1 : 0;
+      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={globalNumber} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} />;
     });
   };
 
@@ -122,6 +121,7 @@ const [mt, mr, mb, ml] = pageConfig.safeZone;
         className={`physical-page relative shrink-0 overflow-hidden shadow-lg ${isSelected ? "ring-2 ring-blue-500" : ""}`}
         style={pageStyle}
         onClick={(e) => {
+          setEditingContent(null);
           if (e.target === e.currentTarget) {
             if (e.ctrlKey || e.metaKey) {
               // CTRL Basılı: Toggle (Çoklu Seçim)
@@ -137,18 +137,8 @@ const [mt, mr, mb, ml] = pageConfig.safeZone;
           }
         }}
       >
-<div className="safe-zone absolute z-10 flex flex-col pointer-events-none" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
-          
-          {/* BANNER ALANI GÜNCELLENDİ */}
-          {pageNumber === 1 && (
-            <div className="absolute top-0 left-0 w-full z-10" style={{ height: `calc((100% / ${totalRows}) - 5mm)` }}>
-              <BannerSection />
-            </div>
-          )}
-          
-          {pageNumber === 6 && <div className="absolute top-0 left-0 w-full z-10" style={{ height: `calc(((100% / ${totalRows}) * 2) - 5mm)` }}><PizzaSection /></div>}
-<div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{/* Banner 1 tam satır (totalColumns kadar), Pizza 2 tam satır (totalColumns * 2 kadar) kaplıyor varsayımıyla */}
-{renderSlots(pageNumber === 1 ? totalColumns : pageNumber === 6 ? (totalColumns * 2) : 0)}</div>
+        <div className="safe-zone absolute z-10 flex flex-col pointer-events-none" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
+            <div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{renderSlots(0)}</div>
         </div>
         <div className="absolute w-full flex items-end gap-5 z-50" style={{ bottom: "10mm", left: "0", paddingLeft: "10mm", paddingRight: "10mm", height: "12mm" }}>
           
