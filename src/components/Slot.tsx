@@ -20,6 +20,8 @@ interface SlotProps {
   globalNumber: number; 
   onContextMenu: (e: React.MouseEvent, slot: any) => void; 
   gridPosition?: { colStart: number; rowStart: number }; 
+  totalRows?: number;
+  totalColumns?: number;
 }
 
 const splitPrice = (price: any) => {
@@ -46,16 +48,26 @@ const getShadowStyle = (s: ShadowData) => {
 
 const getFontStyle = (font: TypographyData): React.CSSProperties => {
   if (!font) return {};
-  let justifyContent = "center";
-  if (font.textAlign === "left") justifyContent = "flex-start";
-  if (font.textAlign === "right") justifyContent = "flex-end";
-  let alignItems = "center";
-  if (font.verticalAlign === "top") alignItems = "flex-start";
-  if (font.verticalAlign === "bottom") alignItems = "flex-end";
-  return { fontFamily: font.fontFamily, fontWeight: font.fontWeight, fontSize: `${font.fontSize}px`, lineHeight: font.lineHeight, letterSpacing: `${font.letterSpacing}px`, textAlign: font.textAlign, textTransform: font.textTransform, textDecoration: font.textDecoration, color: hexToRgba(font.color, font.opacity), display: 'flex', justifyContent, alignItems };
+  
+  // Önceki getFontStyle'den gelen mantık korunur, sadece fontSize'in dinamik olarak uygulanması sağlanır.
+  const baseStyle: React.CSSProperties = {
+    fontFamily: font.fontFamily,
+    fontWeight: font.fontWeight,
+    fontSize: `${font.fontSize}px`, // Önemli: Gelen objenin fontSize'ini kullan!
+    lineHeight: font.lineHeight,
+    letterSpacing: `${font.letterSpacing}px`,
+    textAlign: font.textAlign,
+    textTransform: font.textTransform,
+    textDecoration: font.textDecoration,
+    color: hexToRgba(font.color, font.opacity),
+    display: 'flex',
+    justifyContent: font.textAlign === "center" ? "center" : font.textAlign === "right" ? "flex-end" : "flex-start",
+    alignItems: font.verticalAlign === "top" ? "flex-start" : font.verticalAlign === "bottom" ? "flex-end" : "center",
+  };
+  return baseStyle;
 };
 
-export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, slotIndex, globalNumber, onContextMenu, gridPosition }, ref) => {
+export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, slotIndex, globalNumber, onContextMenu, gridPosition, totalRows, totalColumns }, ref) => {
   // useCatalogStore içindekiler
   const { 
     globalSettings, swapSlotContents, setSlotProduct, setSlotModule,
@@ -162,8 +174,58 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
 
   const boxShadow = getShadowStyle(finalSettings.shadows.cell);
 
+  // Serbest Alanı CSS Grid kurallarından tamamen koparıp matematiksel olarak çiviliyoruz
+  let freeSlotStyles: React.CSSProperties = {};
+
+// GERÇEK ÖLÇEKLENDİRME HESAPLAMASI (IZGARA BAZLI)
+// Referans tasarım matrisimiz 4x4'tür.
+const baseCols = 4;
+const baseRows = 4;
+const currentCols = totalColumns || 4;
+const currentRows = totalRows || 4;
+
+// 1. Hücrenin sayfa içindeki oransal boyutu
+const widthRatio = slot.colSpan / currentCols;
+const heightRatio = slot.rowSpan / currentRows;
+
+// 2. Standart 4x4 bir hücrenin oransal boyutu (1/4 = 0.25)
+const baseWidthRatio = 1 / baseCols;
+const baseHeightRatio = 1 / baseRows;
+
+// 3. Gerçek Çarpan (Mevcut oran / Standart oran)
+const scaleX = widthRatio / baseWidthRatio;
+const scaleY = heightRatio / baseHeightRatio;
+
+// En dengeli ve taşmayacak oranı al
+const trueScale = Math.min(scaleX, scaleY);
+
+// Aşırı uçları sınırla (Hücre çok küçülürse min %40, çok büyürse max %300)
+const clampedScale = Math.max(0.4, Math.min(3, trueScale));
+  
+  if (slot.role === 'free' && gridPosition) {
+    const R = totalRows || 4;
+    const C = totalColumns || 4;
+    
+    const r_idx = gridPosition.rowStart - 1;
+    const c_idx = gridPosition.colStart - 1;
+    const sr = slot.rowSpan;
+    const sc = slot.colSpan;
+
+    freeSlotStyles = {
+      position: 'absolute',
+      gridColumn: '1 / -1', // Tüm gridi kapsar, yüzdeler grid container'a göre hesaplanır
+      gridRow: '1 / -1',
+      top: `${(r_idx / R) * 100}%`,
+      left: `${(c_idx / C) * 100}%`,
+      width: `${(sc / C) * 100}%`,
+      height: `${(sr / R) * 100}%`,
+      zIndex: 40,
+      margin: 0
+    };
+  }
+
   return (
-    <div 
+    <div
       ref={ref}
       id={`slot-${slot.id}`}
       onClick={(e) => {
@@ -197,7 +259,7 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }} 
        onDragLeave={() => setIsOver(false)} 
        onDrop={handleDrop} 
-       className={`product-slot pointer-events-auto relative border border-solid transition-all h-full w-full min-w-[50px] min-h-[50px] cursor-pointer ${ isSelected ? "z-50 ring-4 ring-inset ring-blue-500 shadow-2xl" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300 z-10"}`}
+       className={`product-slot pointer-events-auto relative overflow-hidden border border-solid transition-all h-full w-full min-w-[50px] min-h-[50px] cursor-pointer ${ isSelected ? "z-50 outline outline-4 outline-blue-500 outline-offset-2 shadow-2xl" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300 z-10"}`}
        style={{ 
          gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`, 
          gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`, 
@@ -205,8 +267,9 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
          backgroundColor: hexToRgba(finalSettings.colors.cellBg.c, finalSettings.colors.cellBg.o), 
          borderColor: hexToRgba(finalSettings.colors.cellBorder.c, finalSettings.colors.cellBorder.o), 
          borderWidth: `${finalSettings.borderWidth}px`, 
-         boxShadow: isSelected ? 'none' : boxShadow,
-         padding: getPaddingStyle(finalSettings.spacings.cell) 
+         boxShadow: isSelected ? undefined : boxShadow, 
+         padding: getPaddingStyle(finalSettings.spacings.cell),
+         ...freeSlotStyles
        }}
     >
       {/* GLOBAL SIRA NUMARASI - HER ZAMAN GÖRÜNÜR */}
@@ -214,7 +277,7 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
 
       {/* SERBEST ALAN RENDERI */}
       {slot.role === 'free' && (
-        <div className="w-full h-full flex flex-col relative z-[20] overflow-hidden bg-white pointer-events-auto">
+        <div className="w-full h-full flex flex-col relative z-[20] overflow-hidden pointer-events-auto rounded-[inherit]">
           {!slot.moduleData ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-300 pointer-events-none">
               <span className="text-slate-400 font-bold text-[14px] uppercase tracking-widest flex flex-col items-center gap-2">
@@ -240,23 +303,23 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
 
       {slot.product && (
         <div 
-          className={`w-full h-full flex flex-col relative min-w-0 min-h-0 ${editingContent?.slotId === slot.id ? 'opacity-100' : (isSelected ? 'opacity-75' : '')}`}
+  className={`w-full h-full flex flex-col min-w-0 min-h-0 ${editingContent?.slotId === slot.id ? 'opacity-100' : (isSelected ? 'opacity-75' : '')}`}
         >
           {/* FİYAT ALANI */}
           <div 
             className={`absolute top-0 z-[30] flex shadow-sm transition-all px-1.5 py-1 pointer-events-auto outline-none ${
               selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'price' ? 'ring-2 ring-blue-500 ring-offset-1 cursor-text' : 'cursor-pointer hover:ring-1 hover:ring-blue-300'
             } ${finalSettings.pricePosition === 'left' ? 'left-0' : finalSettings.pricePosition === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0'}`} 
-            style={{
-              width: `${finalSettings.priceWidth}%`,
-              height: `${finalSettings.priceHeight}mm`,
-              backgroundColor: hexToRgba(finalSettings.colors.priceBg?.c || "#e60000", finalSettings.colors.priceBg?.o ?? 100),
-              borderRadius: getRadiusStyle(finalSettings.radiuses.price),
-              borderStyle: 'solid',
-              borderWidth: `${finalSettings.priceBorderWidth || 0}px`,
-              borderColor: hexToRgba(finalSettings.colors.priceBorder?.c || "#ffffff", finalSettings.colors.priceBorder?.o ?? 100),
-              ...getFontStyle(finalSettings.fonts.price)
-            }} 
+style={{
+  width: `${finalSettings.priceWidth}%`, // DİKKAT: Yüzdelik (%) genişlik çarpanla ÇARPILMAZ!
+  height: `${finalSettings.priceHeight * clampedScale}mm`, // Sabit birim (mm) çarpılır.
+  backgroundColor: hexToRgba(finalSettings.colors.priceBg?.c || "#e60000", finalSettings.colors.priceBg?.o ?? 100),
+  borderRadius: getRadiusStyle(finalSettings.radiuses.price),
+  borderStyle: 'solid',
+  borderWidth: `${(finalSettings.priceBorderWidth || 0) * clampedScale}px`, // Çerçeve kalınlığı da küçülüp/büyümeli
+  borderColor: hexToRgba(finalSettings.colors.priceBorder?.c || "#ffffff", finalSettings.colors.priceBorder?.o ?? 100),
+  ...getFontStyle({ ...finalSettings.fonts.price, fontSize: finalSettings.fonts.price.fontSize * clampedScale }) // Font boyutu çarpılır
+}}
             onClick={(e) => {
               e.stopPropagation();
               toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
@@ -274,7 +337,7 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
             )}
           </div>
           
-          <div className="shrink-0 w-full flex pointer-events-auto relative z-[20]" style={{ height: "3em", ...getFontStyle(finalSettings.fonts.productName) }}>
+<div className="shrink-0 w-full flex pointer-events-auto relative z-[20]" style={{ height: "3em", ...getFontStyle({ ...finalSettings.fonts.productName, fontSize: finalSettings.fonts.productName.fontSize * clampedScale }) }}>
             <div 
               className={`line-clamp-2 w-full outline-none transition-all ${
                 selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'name' ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-blue-300'

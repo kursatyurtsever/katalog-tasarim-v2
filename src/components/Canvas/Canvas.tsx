@@ -11,9 +11,7 @@ const MM_TO_PX = 96 / 25.4;
 
 export function Canvas() {
   const formas = useCatalogStore((state) => state.formas);
-  const layers = useLayerStore((state) => state.layers);
   const activeFormaId = useCatalogStore((state) => state.activeFormaId);
-  const globalSettings = useCatalogStore((state) => state.globalSettings);
   const isZoomed = useUIStore((state) => state.isZoomed);
   const template = useCatalogStore((state) => state.activeTemplate);
   const clearCatalogSelection = useUIStore((state) => state.clearSelection);
@@ -23,6 +21,7 @@ export function Canvas() {
   const pages = activeForma?.pages || [];
 
   const [scale, setScale] = useState(1);
+  const [isMounted, setIsMounted] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const { bleedMm, openHeightMm } = template;
@@ -41,6 +40,10 @@ export function Canvas() {
   const referenceHeightPx = physicalHeight * MM_TO_PX;
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (isZoomed) {
       return;
     }
@@ -56,12 +59,15 @@ export function Canvas() {
     return () => observer.disconnect();
   }, [isZoomed, referenceWidthPx, referenceHeightPx]);
 
+  // KURAL: Hiçbir hook bu satırın altında olamaz! (Rules of Hooks)
+  if (!isMounted) return null;
+
   return (
     <div
       ref={wrapperRef}
       className={`flex-1 relative w-full h-full min-w-0 min-h-0 bg-slate-300 ${isZoomed ? "overflow-auto" : "overflow-hidden"}`}
     >
-<div
+      <div
         id="canvas"
         onClick={() => {
           clearCatalogSelection();
@@ -70,15 +76,13 @@ export function Canvas() {
         className={`canvas relative shadow-2xl transition-transform duration-200 ${isZoomed ? "mx-auto mt-20 mb-8" : "absolute top-1/2 left-1/2 origin-center"}`}
         style={{
           boxSizing: "border-box",
-          width: `${totalWidthMm}mm`, // Bleed DAHİL: 627 + 4 = 631mm
-          height: `${physicalHeight}mm`, // Bleed DAHİL: 297 + 4 = 301mm
-          padding: `${bleedMm}mm`, // İçeriği 2mm içeri it
-          backgroundColor: "#ffffff", // Beyaz zemin
-          outline: "0.5px dashed rgba(255, 0, 0, 0.4)", // INDESIGN: Kırmızı Taşma Çizgisi (Bleed)
+          width: `${totalWidthMm}mm`,
+          height: `${physicalHeight}mm`,
+          padding: `${bleedMm}mm`,
+          backgroundColor: "#ffffff",
+          outline: "0.5px dashed rgba(255, 0, 0, 0.4)",
           outlineOffset: "-1px",
-          transform: isZoomed
-            ? "scale(1)"
-            : `translate(-50%, -50%) scale(${scale})`,
+          transform: isZoomed ? "scale(1)" : `translate(-50%, -50%) scale(${scale})`,
         }}
       >
         <LayerStack forma={activeForma} />
@@ -89,7 +93,6 @@ export function Canvas() {
           ))}
         </div>
 
-        {/* INDESIGN: Siyah Kesim Çizgisi (Trim Box) */}
         <div
           className="pointer-events-none absolute print:hidden z-50"
           style={{

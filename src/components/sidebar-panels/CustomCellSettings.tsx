@@ -99,11 +99,11 @@ export function CustomCellSettings() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-600">Zemin Rengi</span>
-                      <ColorOpacityPicker color={customSettings.colors?.cellBg?.c || "#fff"} opacity={customSettings.colors?.cellBg?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBg: { c, o } } })} />
+                      <ColorOpacityPicker color={customSettings.colors?.cellBg?.c || "#fff"} opacity={customSettings.colors?.cellBg?.o ?? 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBg: { c, o } } })} />
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-slate-50">
                       <span className="text-[10px] font-bold text-slate-600">Kenarlık Rengi</span>
-                      <ColorOpacityPicker color={customSettings.colors?.cellBorder?.c || "#000"} opacity={customSettings.colors?.cellBorder?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBorder: { c, o } } })} />
+                      <ColorOpacityPicker color={customSettings.colors?.cellBorder?.c || "#000"} opacity={customSettings.colors?.cellBorder?.o ?? 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBorder: { c, o } } })} />
                     </div>
                     <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-50">
                       <span className="text-[9px] font-medium text-slate-500 w-16">Kalınlık</span>
@@ -177,7 +177,7 @@ export function CustomCellSettings() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-orange-50">
                     <span className="text-[10px] font-bold text-slate-600">Zemin Rengi</span>
-                    <ColorOpacityPicker color={customSettings.colors?.priceBg?.c || "#e60000"} opacity={customSettings.colors?.priceBg?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { priceBg: { c, o } } })} />
+                    <ColorOpacityPicker color={customSettings.colors?.priceBg?.c || "#e60000"} opacity={customSettings.colors?.priceBg?.o ?? 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { priceBg: { c, o } } })} />
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-orange-50">

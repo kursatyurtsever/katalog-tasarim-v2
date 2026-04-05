@@ -164,16 +164,24 @@ export interface CatalogActions {
   setActivePages: (pages: CatalogPage[]) => void;
   toggleSlotRole: (role: 'product' | 'free') => void;
   setSlotModule: (pageNumber: number, slotId: string, moduleType: 'banner' | 'pizza' | null) => void;
+  
+  // YENİ FONKSİYONLAR
+  updateGridSettings: (scope: 'global' | number, settings: { rows: number; cols: number }) => void;
+  applyGridChanges: () => void;
+  applyPageGridChange: (pageNumber: number) => void;
+  revertToGlobalGrid: (pageNumber: number) => void;
 }
 
 const initialGlobalSettings: CatalogSettings = {
-  defaultGrid: { rows: 4, cols: 4 }, // EKLENDİ (Varsayılan 4x4)
-  gridGap: 0,
+  defaultGrid: { rows: 4, cols: 4 },
+  gridGap: 2, // Hücre arası boşluğu varsayılan olarak 2mm yapalım
   borderWidth: 1,
   priceBorderWidth: 0,
+  // === Fiyat Kutusu Ayarları ===
   pricePosition: "right",
-  priceWidth: 50,
-  priceHeight: 10,
+  priceWidth: 30, // İsteğiniz: Genişlik %30
+  priceHeight: 8,  // İsteğiniz: Yükseklik 8mm
+
   imageScale: 100,
   imagePosX: 0,
   imagePosY: 0,
@@ -183,7 +191,7 @@ const initialGlobalSettings: CatalogSettings = {
     text: "YENİ",
     bgColor: "#e60000",
     textColor: "#ffffff",
-    position: "top-left",
+    position: 'top-left',
     shape: 'rectangle',
     borderColor: "#ffffff",
     borderWidth: 2,
@@ -202,14 +210,39 @@ const initialGlobalSettings: CatalogSettings = {
   },
   radiuses: {
     cell: { ...defaultRadius, tl: 0, tr: 0, bl: 0, br: 0 },
-    price: { ...defaultRadius, tl: 0, tr: 0, bl: 0, br: 4, linked: false }
+    // === Fiyat Ovallik Ayarı ===
+    price: { ...defaultRadius, tl: 0, tr: 0, bl: 0, br: 0, linked: true } // İsteğiniz: Bağlı ve 0
   },
   fonts: {
-    productName: { ...defaultTypography, fontFamily: "Inter", fontWeight: "700", fontSize: 10, textAlign: "center", verticalAlign: "bottom", color: "#1e293b" },
-    price: { ...defaultTypography, fontFamily: "Inter", fontWeight: "900", fontSize: 20, textAlign: "center", verticalAlign: "middle", color: "#ffffff", decimalScale: 55 }
+    // === Ürün İsmi Font Ayarları ===
+    productName: { 
+      ...defaultTypography, 
+      fontFamily: "Inter", 
+      fontWeight: "700", // Bold
+      fontSize: 10,       // Punto 10
+      lineHeight: 1.2,    // Satır Yüksekliği 1.2
+      letterSpacing: 0,   // Harf Aralığı 0
+      textAlign: "center",// Yatay Hizalama Orta
+      verticalAlign: "middle",// Dikey Hizalama Orta
+      color: "#1e293b",
+      decimalScale: 100 // Varsayılan
+    },
+    // === Fiyat Font Ayarları ===
+    price: { 
+      ...defaultTypography, 
+      fontFamily: "Inter", 
+      fontWeight: "700", // Bold
+      fontSize: 20,       // Punto 20
+      lineHeight: 1.2,    // Satır Yüksekliği 1.2
+      letterSpacing: 0,   // Harf Aralığı 0
+      textAlign: "center",// Yatay Hizalama Orta
+      verticalAlign: "middle",// Dikey Hizalama Orta (middle ve center aynı sonucu verir)
+      color: "#ffffff",
+      decimalScale: 40    // İsteğiniz: Küsurat Boyutu %40
+    }
   },
   spacings: {
-    cell: { ...defaultSpacing, t: 0, r: 0, b: 0, l: 0 }
+    cell: { ...defaultSpacing, t: 8, r: 8, b: 8, l: 8 }
   },
   shadows: {
     cell: { ...defaultShadow, active: false }
@@ -386,17 +419,18 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       setMasterProductPool: (products) => set({ masterProductPool: products }),
 
       autoFillSlots: () => {
-        const { formas, productPool, getActivePages, setActivePages } = get();
+        const { formas, productPool } = get();
         const { saveState } = useHistoryStore.getState();
-        saveState(cloneDeep(getActivePages()));
+        saveState(cloneDeep(get().getActivePages()));
 
         const newFormas = cloneDeep(formas);
         const allPages = newFormas.flatMap(f => f.pages).sort((a, b) => a.pageNumber - b.pageNumber);
-        const allValidSlots: any[] = [];
+        const allValidSlots: Slot[] = [];
         
         allPages.forEach(p => {
           p.slots.forEach((s) => {
-if (!s.hidden && s.role === 'product') {
+            // ASLA ızgarayı bozma! Sadece görünür ve "ürün" rolündeki slotları hedef al.
+            if (!s.hidden && s.role === 'product') {
               allValidSlots.push(s);
             }
           });
@@ -408,15 +442,9 @@ if (!s.hidden && s.role === 'product') {
           let posValue = 0;
           if (product.raw) {
             const keys = Object.keys(product.raw);
-            const posKey = keys.find(k => {
-              const uk = k.trim().toUpperCase();
-              return uk === "POS" || uk === "SIRA" || uk === "INDEX";
-            });
-            
+            const posKey = keys.find(k => ["POS", "SIRA", "INDEX"].includes(k.trim().toUpperCase()));
             if (posKey) {
-              const rawValue = product.raw[posKey];
-              const rawString = String(rawValue);
-              const match = rawString.match(/\d+/); 
+              const match = String(product.raw[posKey]).match(/\d+/);
               posValue = match ? parseInt(match[0], 10) : 0;
             }
           }
@@ -494,7 +522,8 @@ if (!s.hidden && s.role === 'product') {
         const targetSlot = page.slots.find(s => s.id === targetSlotId);
         const targetProduct = targetSlot ? targetSlot.product : null;
 
-        const maxCols = 4;
+        const currentGrid = page.gridSettings || get().globalSettings.defaultGrid;
+        const maxCols = currentGrid.cols;
         const grid: (string | null)[][] = [];
         const coords: Record<string, { r: number; c: number; w: number; h: number }> = {};
         let r = 0, c = 0;
@@ -564,6 +593,9 @@ if (!s.hidden && s.role === 'product') {
         setActivePages(newPages);
         clearSelection();
 
+        // Birleştirme sonrası ürünleri yeni ızgaraya göre kaydırarak diz
+        setTimeout(() => get().autoFillSlots(), 50);
+
         return { success: true };
       },
 
@@ -589,6 +621,9 @@ if (!s.hidden && s.role === 'product') {
         
         setActivePages(newPages);
         clearSelection();
+
+        // Hücre dağıtıldıktan sonra açılan boşluklara ürünleri kaydırarak diz
+        setTimeout(() => get().autoFillSlots(), 50);
       },
 
       toggleSlotCustomSettings: (enabled) => {
@@ -798,8 +833,21 @@ if (!s.hidden && s.role === 'product') {
             if (s.id === id) {
               s.role = role;
               // Serbest alana geçerken ürünü temizle, ürün alanına geçerken modül verisini temizle
-              if (role === 'free') s.product = null;
-              else s.moduleData = null;
+              if (role === 'free') {
+                s.product = null;
+                s.isCustom = true;
+                s.customSettings = JSON.parse(JSON.stringify(get().globalSettings));
+                if (s.customSettings) {
+                    s.customSettings.spacings.cell = { t: 0, r: 0, b: 0, l: 0, linked: true };
+                    s.customSettings.borderWidth = 0;
+                    s.customSettings.colors.cellBg.o = 0;
+                    s.customSettings.colors.cellBorder.o = 0;
+                    s.customSettings.shadows.cell.active = false;
+                    s.customSettings.radiuses.cell = { tl: 0, tr: 0, bl: 0, br: 0, linked: true };
+                }
+              } else {
+                s.moduleData = null;
+              }
             }
           }));
         });
@@ -827,7 +875,12 @@ if (!s.hidden && s.role === 'product') {
           slot.moduleData = {
             type: 'banner',
             cells: Array.from({ length: 32 }, (_, i) => ({
-              id: `banner-inst-${i}`, text: "", colSpan: 1, rowSpan: 1, hidden: false, mergedInto: null,
+              id: `banner-inst-${i}`,
+              text: "",
+              colSpan: 1,
+              rowSpan: 1,
+              hidden: false,
+              mergedInto: null,
               font: { fontFamily: "Inter", fontWeight: "700", fontSize: 14, lineHeight: 1.2, letterSpacing: 0, textAlign: "center", verticalAlign: "middle", textTransform: "none", textDecoration: "none", color: "#1e293b", opacity: 100, decimalScale: 100 },
               padding: { t: 0, r: 0, b: 0, l: 0, linked: true },
               bgColor: { c: "#ffffff", o: 0 },
@@ -844,6 +897,109 @@ if (!s.hidden && s.role === 'product') {
           };
         }
         setActivePages(newPages);
+      },
+
+      // --- YENİ EKLENEN VEYA GÜNCELLENEN FONKSİYONLAR ---
+
+      updateGridSettings: (scope, settings) => {
+        const { rows, cols } = settings;
+        // Limitleri uygula
+        const limitedRows = Math.max(1, Math.min(10, rows));
+        const limitedCols = Math.max(1, Math.min(10, cols));
+        const newSettings = { rows: limitedRows, cols: limitedCols };
+
+        if (scope === 'global') {
+          set(state => ({
+            globalSettings: { ...state.globalSettings, defaultGrid: newSettings }
+          }));
+        } else {
+          const { formas } = get();
+          const newFormas = cloneDeep(formas);
+          const page = newFormas.flatMap(f => f.pages).find(p => p.pageNumber === scope);
+          if (page) {
+            page.gridSettings = newSettings;
+            set({ formas: newFormas });
+          }
+        }
+      },
+      
+      applyGridChanges: () => {
+        const { formas, globalSettings } = get();
+        const { saveState } = useHistoryStore.getState();
+        saveState(cloneDeep(get().getActivePages()));
+
+        const newFormas = cloneDeep(formas);
+        newFormas.forEach(f => {
+          f.pages.forEach(p => {
+            const currentGrid = p.gridSettings || globalSettings.defaultGrid;
+            const newSlotCount = currentGrid.rows * currentGrid.cols;
+            
+            // 1. Dolu slotları (ürün, serbest alan veya özel ayarı olanları) yedekle
+            const savedSlots = p.slots.filter(s => s.product || s.role === 'free' || s.isCustom);
+
+            // 2. Yeni grid yapısına göre tamamen boş slotlar oluştur
+            const newSlots = createPageSlots(p.pageNumber, newSlotCount);
+
+            // 3. Eski dolu slotları sırasıyla yeni ızgaraya yerleştir
+            let savedIndex = 0;
+            for (let i = 0; i < newSlots.length; i++) {
+              if (savedIndex < savedSlots.length) {
+                const oldSlot = savedSlots[savedIndex];
+                newSlots[i].product = oldSlot.product;
+                newSlots[i].role = oldSlot.role;
+                newSlots[i].moduleData = oldSlot.moduleData;
+                newSlots[i].isCustom = oldSlot.isCustom;
+                newSlots[i].customSettings = oldSlot.customSettings;
+                newSlots[i].imageSettings = oldSlot.imageSettings;
+                savedIndex++;
+              }
+            }
+
+            p.slots = newSlots;
+          });
+        });
+
+        set({ formas: newFormas });
+        
+        // Ürünleri yeni grid yapısına göre tekrar hizala
+        setTimeout(() => get().autoFillSlots(), 50);
+      },
+
+      applyPageGridChange: (pageNumber) => {
+        const { formas, globalSettings } = get();
+        const { saveState } = useHistoryStore.getState();
+        saveState(cloneDeep(get().getActivePages()));
+
+        const newFormas = cloneDeep(formas);
+        newFormas.forEach(f => {
+          const page = f.pages.find(p => p.pageNumber === pageNumber);
+          if (page) {
+            const currentGrid = page.gridSettings || globalSettings.defaultGrid;
+            const newSlotCount = currentGrid.rows * currentGrid.cols;
+            
+            // SADECE bu sayfanın slotlarını yeni ölçüye göre baştan oluştur. Diğer sayfalara ASLA dokunma!
+            page.slots = createPageSlots(page.pageNumber, newSlotCount);
+          }
+        });
+
+        set({ formas: newFormas });
+        
+        // Diğer sayfalar sabit kaldığı için, ürünler yeni slot dizilimine göre boşluklara otomatik kayarak yerleşir
+        setTimeout(() => get().autoFillSlots(), 50);
+      },
+
+      revertToGlobalGrid: (pageNumber) => {
+        const { formas } = get();
+        const { saveState } = useHistoryStore.getState();
+        saveState(cloneDeep(get().getActivePages()));
+
+        const newFormas = cloneDeep(formas);
+        const page = newFormas.flatMap(f => f.pages).find(p => p.pageNumber === pageNumber);
+        if (page) {
+          page.gridSettings = undefined; // Sayfa bazlı ayarı kaldır, globale dönsün
+          set({ formas: newFormas });
+          setTimeout(() => get().applyPageGridChange(pageNumber), 50); // Sadece bu sayfayı globale döndür
+        }
       },
     }),
     {

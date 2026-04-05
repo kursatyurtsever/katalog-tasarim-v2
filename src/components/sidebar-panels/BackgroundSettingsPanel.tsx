@@ -22,6 +22,50 @@ import {
   CheckCircle2
 } from "lucide-react";
 
+interface GradientConfig {
+  type: 'linear' | 'radial' | 'conic';
+  color1: { c: string; o: number };
+  color2: { c: string; o: number };
+  angle: number;
+  posX: number;
+  posY: number;
+  stop1: number;
+  stop2: number;
+}
+
+const defaultGradientConfig: GradientConfig = {
+  type: 'linear',
+  color1: { c: '#4facfe', o: 100 },
+  color2: { c: '#00f2fe', o: 100 },
+  angle: 135,
+  posX: 50,
+  posY: 50,
+  stop1: 0,
+  stop2: 100,
+};
+
+function hexToRgbaLoc(hex: string, opacity: number) {
+  if (!hex) return 'rgba(0,0,0,1)';
+  const r = parseInt(hex.slice(1, 3), 16) || 0;
+  const g = parseInt(hex.slice(3, 5), 16) || 0;
+  const b = parseInt(hex.slice(5, 7), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+}
+
+function generateGradientString(config: GradientConfig) {
+  const c1 = hexToRgbaLoc(config.color1.c, config.color1.o);
+  const c2 = hexToRgbaLoc(config.color2.c, config.color2.o);
+
+  if (config.type === 'linear') {
+    return `linear-gradient(${config.angle}deg, ${c1} ${config.stop1}%, ${c2} ${config.stop2}%)`;
+  } else if (config.type === 'radial') {
+    return `radial-gradient(circle at ${config.posX}% ${config.posY}%, ${c1} ${config.stop1}%, ${c2} ${config.stop2}%)`;
+  } else if (config.type === 'conic') {
+    return `conic-gradient(from ${config.angle}deg at ${config.posX}% ${config.posY}%, ${c1} ${config.stop1}%, ${c2} ${config.stop2}%)`;
+  }
+  return null;
+}
+
 export function BackgroundSettingsPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -155,10 +199,31 @@ export function BackgroundSettingsPanel() {
     });
   };
 
-  const handleBaseGradientChange = (gradient: string | null) => {
+  const currentGradientConfig: GradientConfig = groupLayers.base?.properties?.gradientConfig || defaultGradientConfig;
+  const hasGradient = !!groupLayers.base?.properties?.gradient;
+
+  const handleGradientUpdate = (newConfig: Partial<GradientConfig>) => {
+    if (targetGroups.length === 0) return;
+    const updatedConfig = { ...currentGradientConfig, ...newConfig };
+    const gradientString = generateGradientString(updatedConfig);
+
+    targetGroups.forEach(group => {
+      syncGroupBackground(group, 'base', {
+        ...groupLayers.base?.properties,
+        gradient: gradientString,
+        gradientConfig: updatedConfig
+      });
+    });
+  };
+
+  const toggleGradient = () => {
     if (targetGroups.length === 0) return;
     targetGroups.forEach(group => {
-      syncGroupBackground(group, 'base', { gradient });
+      syncGroupBackground(group, 'base', {
+        ...groupLayers.base?.properties,
+        gradient: hasGradient ? null : generateGradientString(currentGradientConfig),
+        gradientConfig: currentGradientConfig
+      });
     });
   };
 
@@ -298,40 +363,95 @@ export function BackgroundSettingsPanel() {
                 <ColorOpacityPicker
                   key={`base-picker-${targetGroups.map(g => g.join(',')).join('|') || 'none'}`}
                   color={groupLayers.base?.properties?.color || "#ffffff"}
-                  opacity={groupLayers.base?.properties?.opacity || 100}
+          opacity={groupLayers.base?.properties?.opacity ?? 100}
                   onChange={handleBaseColorChange}
                   disabled={targetGroups.length === 0}
                 />
               </div>
 
-              {/* GRADIENT PRESETS */}
-              <div className="space-y-2 pt-1 border-t border-slate-100 mt-2">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Gradyan Efekti</span>
-                <div className="flex gap-2">
-                   <button 
-                      onClick={() => handleBaseGradientChange(null)}
-                      className={`w-6 h-6 rounded-full border-2 ${!groupLayers.base?.properties?.gradient ? 'border-blue-500' : 'border-slate-200'} bg-white`}
-                      title="Düz Renk"
-                   />
-                   <button 
-                      onClick={() => handleBaseGradientChange('linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)')}
-                      className={`w-6 h-6 rounded-full border-2 ${groupLayers.base?.properties?.gradient?.includes('#f5f7fa') ? 'border-blue-500' : 'border-slate-200'}`}
-                      style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'}}
-                      title="Cloudy"
-                   />
-                   <button 
-                      onClick={() => handleBaseGradientChange('linear-gradient(to right, #4facfe 0%, #00f2fe 100%)')}
-                      className={`w-6 h-6 rounded-full border-2 ${groupLayers.base?.properties?.gradient?.includes('#4facfe') ? 'border-blue-500' : 'border-slate-200'}`}
-                      style={{ background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)'}}
-                      title="Skyline"
-                   />
-                   <button 
-                      onClick={() => handleBaseGradientChange('linear-gradient(to top, #30cfd0 0%, #330867 100%)')}
-                      className={`w-6 h-6 rounded-full border-2 ${groupLayers.base?.properties?.gradient?.includes('#30cfd0') ? 'border-blue-500' : 'border-slate-200'}`}
-                      style={{ background: 'linear-gradient(to top, #30cfd0 0%, #330867 100%)'}}
-                      title="Deep Blue"
-                   />
+              {/* GRADIENT BUILDER */}
+              <div className="space-y-3 pt-3 border-t border-slate-100 mt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Gelişmiş Gradyan (Geçiş)</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={hasGradient} onChange={toggleGradient} disabled={targetGroups.length === 0} />
+                    <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                  </label>
                 </div>
+
+                {hasGradient && (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                    
+                    {/* TÜR SEÇİMİ */}
+                    <div className="flex bg-white rounded border border-slate-200 p-1 gap-1">
+                      {[
+                        { id: 'linear', label: 'Düz (Linear)' },
+                        { id: 'radial', label: 'Dairesel' },
+                        { id: 'conic', label: 'Yıldız (Conic)' }
+                      ].map(type => (
+                        <button
+                          key={type.id}
+                          onClick={() => handleGradientUpdate({ type: type.id as any })}
+                          className={`flex-1 py-1.5 text-[9px] font-bold rounded transition-all ${currentGradientConfig.type === type.id ? 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* RENKLER VE GEÇİŞ NOKTALARI */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-slate-500">1. Renk & Konum (%)</span>
+                        <div className="flex items-center justify-between bg-white p-1.5 rounded border border-slate-200">
+                          <ColorOpacityPicker
+                            color={currentGradientConfig.color1.c}
+                            opacity={currentGradientConfig.color1.o}
+                            onChange={(c, o) => handleGradientUpdate({ color1: { c, o } })}
+                          />
+                          <input type="number" min="0" max="100" value={currentGradientConfig.stop1} onChange={(e) => handleGradientUpdate({ stop1: parseInt(e.target.value) || 0 })} className="w-12 text-[10px] font-bold text-slate-600 text-center border border-slate-200 rounded p-1 outline-none focus:border-blue-500" title="Geçiş Başlangıç Konumu %" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-slate-500">2. Renk & Konum (%)</span>
+                        <div className="flex items-center justify-between bg-white p-1.5 rounded border border-slate-200">
+                          <ColorOpacityPicker
+                            color={currentGradientConfig.color2.c}
+                            opacity={currentGradientConfig.color2.o}
+                            onChange={(c, o) => handleGradientUpdate({ color2: { c, o } })}
+                          />
+                          <input type="number" min="0" max="100" value={currentGradientConfig.stop2} onChange={(e) => handleGradientUpdate({ stop2: parseInt(e.target.value) || 0 })} className="w-12 text-[10px] font-bold text-slate-600 text-center border border-slate-200 rounded p-1 outline-none focus:border-blue-500" title="Geçiş Bitiş Konumu %" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KOORDİNATLAR VE AÇI */}
+                    <div className="space-y-3 pt-2 border-t border-slate-200">
+                      {(currentGradientConfig.type === 'linear' || currentGradientConfig.type === 'conic') && (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-medium text-slate-500 w-12">Yön/Açı</span>
+                          <input type="range" min="0" max="360" value={currentGradientConfig.angle} onChange={(e) => handleGradientUpdate({ angle: parseInt(e.target.value) })} className="flex-1 accent-blue-600" />
+                          <span className="text-[9px] font-bold text-slate-600 w-8 text-right">{currentGradientConfig.angle}°</span>
+                        </div>
+                      )}
+
+                      {(currentGradientConfig.type === 'radial' || currentGradientConfig.type === 'conic') && (
+                        <>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] font-medium text-slate-500 w-12">Merkez X</span>
+                            <input type="range" min="0" max="100" value={currentGradientConfig.posX} onChange={(e) => handleGradientUpdate({ posX: parseInt(e.target.value) })} className="flex-1 accent-blue-600" />
+                            <span className="text-[9px] font-bold text-slate-600 w-8 text-right">%{currentGradientConfig.posX}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] font-medium text-slate-500 w-12">Merkez Y</span>
+                            <input type="range" min="0" max="100" value={currentGradientConfig.posY} onChange={(e) => handleGradientUpdate({ posY: parseInt(e.target.value) })} className="flex-1 accent-blue-600" />
+                            <span className="text-[9px] font-bold text-slate-600 w-8 text-right">%{currentGradientConfig.posY}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -491,23 +611,42 @@ export function BackgroundSettingsPanel() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        targetGroups.forEach(group => {
-                            const matches = (l: Layer) => 
-                                l.mask?.targetIds?.length === group.length && 
-                                l.mask.targetIds.every(id => group.includes(id));
-                            const overlay = layers.find(l => matches(l) && l.type === 'image');
-                            if (overlay) {
-                                updateLayerProperties(overlay.id, { fitMode: 'cover' });
-                                updateLayerTransform(overlay.id, { scale: 100, rotation: 0, offsetX: 0, offsetY: 0 });
-                            }
-                        });
-                      }}
-                      className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
-                    >
-                      <Maximize size={12} /> Görseli Sığdır
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          targetGroups.forEach(group => {
+                              const matches = (l: Layer) => 
+                                  l.mask?.targetIds?.length === group.length && 
+                                  l.mask.targetIds.every(id => group.includes(id));
+                              const overlay = layers.find(l => matches(l) && l.type === 'image');
+                              if (overlay) {
+                                  updateLayerProperties(overlay.id, { fitMode: 'fit-width' });
+                                  updateLayerTransform(overlay.id, { scale: 100, rotation: 0, offsetX: 0, offsetY: 0 });
+                              }
+                          });
+                        }}
+                        className="py-2 flex items-center justify-center gap-1.5 text-[9px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
+                      >
+                        <Maximize size={10} className="rotate-90" /> Enine Sığdır
+                      </button>
+                      <button
+                        onClick={() => {
+                          targetGroups.forEach(group => {
+                              const matches = (l: Layer) => 
+                                  l.mask?.targetIds?.length === group.length && 
+                                  l.mask.targetIds.every(id => group.includes(id));
+                              const overlay = layers.find(l => matches(l) && l.type === 'image');
+                              if (overlay) {
+                                  updateLayerProperties(overlay.id, { fitMode: 'fit-height' });
+                                  updateLayerTransform(overlay.id, { scale: 100, rotation: 0, offsetX: 0, offsetY: 0 });
+                              }
+                          });
+                        }}
+                        className="py-2 flex items-center justify-center gap-1.5 text-[9px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
+                      >
+                        <Maximize size={10} /> Boyuna Sığdır
+                      </button>
+                    </div>
                   </div>
                 )}
 

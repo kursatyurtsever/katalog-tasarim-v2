@@ -105,9 +105,10 @@ export function LayerRenderer({ layer, forma }: LayerRendererProps) {
 
   if (!layer.visible) return null;
 
-  const rotateArr = layer.transform.rotation || 0;
-  const scaleX = (layer.transform.flipX ? -1 : 1);
-  const scaleY = (layer.transform.flipY ? -1 : 1);
+const rotateArr = layer.transform.rotation || 0;
+const scaleVal = (layer.transform.scale !== undefined ? layer.transform.scale : 100) / 100;
+const scaleX = scaleVal * (layer.transform.flipX ? -1 : 1);
+const scaleY = scaleVal * (layer.transform.flipY ? -1 : 1);
 
   return (
     <div
@@ -142,13 +143,19 @@ export function LayerRenderer({ layer, forma }: LayerRendererProps) {
           <div style={{ flex: 1, background: layer.properties.gradient || layer.properties.color || "transparent" }} />
         ) : (
           layer.properties.imageUrl && (
-            <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-              <img
-                src={layer.properties.imageUrl}
-                alt={layer.name || ""}
-                style={{ width: "100%", height: "100%", objectFit: (layer.properties.fitMode === "repeat" ? "fill" : (layer.properties.fitMode || "cover")) as any }}
-              />
-            </div>
+<div style={{ flex: 1, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <img
+    src={layer.properties.imageUrl}
+    alt={layer.name || ""}
+    style={{
+      width: layer.properties.fitMode === "fit-height" ? "auto" : "100%",
+      height: layer.properties.fitMode === "fit-width" ? "auto" : "100%",
+      minWidth: layer.properties.fitMode === "fit-width" ? "100%" : undefined,
+      minHeight: layer.properties.fitMode === "fit-height" ? "100%" : undefined,
+      objectFit: (layer.properties.fitMode === "fit-width" || layer.properties.fitMode === "fit-height") ? "initial" : (layer.properties.fitMode === "repeat" ? "fill" : (layer.properties.fitMode || "cover")),
+    } as any}
+  />
+</div>
           )
         )}
       </div>

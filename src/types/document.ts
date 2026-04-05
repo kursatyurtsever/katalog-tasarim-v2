@@ -36,7 +36,7 @@ export interface Layer {
   properties: {
     opacity?: number;
     blendMode?: string;
-    fitMode?: 'cover' | 'contain' | 'repeat' | 'stretch';
+    fitMode?: 'cover' | 'contain' | 'repeat' | 'stretch' | 'fit-width' | 'fit-height';
     [key: string]: any;
   }; // Specific properties based on layer type
 }

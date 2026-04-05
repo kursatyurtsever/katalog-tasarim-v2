@@ -10,6 +10,7 @@ import { PizzaSettingsPanel } from "./sidebar-panels/PizzaSettingsPanel";
 import { TemplateSettingsPanel } from "./sidebar-panels/TemplateSettingsPanel";
 import { BannerSettingsPanel } from "./sidebar-panels/BannerSettingsPanel";
 import { BackgroundSettingsPanel } from "./sidebar-panels/BackgroundSettingsPanel";
+import { GlobalGridSettings } from "./sidebar-panels/GlobalGridSettings";
 import { useUIStore } from "@/store/useUIStore";
 import {
   Tabs,
@@ -139,6 +140,12 @@ export function Sidebar() {
               <AccordionTrigger>Şablon Ayarları</AccordionTrigger>
               <AccordionContent>
                 <TemplateSettingsPanel />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="grid">
+              <AccordionTrigger>Izgara (Grid) Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <GlobalGridSettings />
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="background">

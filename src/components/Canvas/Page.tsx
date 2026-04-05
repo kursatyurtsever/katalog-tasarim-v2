@@ -64,11 +64,9 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
 const [mt, mr, mb, ml] = pageConfig.safeZone;
   
-  // EKLENDİ: Dinamik Grid Hesaplaması (Önce sayfa ayarı, yoksa global ayar, en son fallback)
-  const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings?.defaultGrid?.cols || 4;
-  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings?.defaultGrid?.rows || 4;
+  const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings.defaultGrid.cols;
+  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings.defaultGrid.rows;
   
-  // Gerçekte slot sayısı / kolon sayısından hesaplanan satır sayısı veya konfigüre edilen satır sayısı
   const totalRows = Math.max(configuredRows, Math.ceil(currentPage.slots.length / totalColumns));
 
   const previousVisibleCount = formas
@@ -103,7 +101,7 @@ const [mt, mr, mb, ml] = pageConfig.safeZone;
       }
       const currentSlotIndexInPage = currentPage.slots.slice(0, idx).filter(s => s.role === 'product' && !s.hidden).length;
       const globalNumber = (slot.role === 'product' && !slot.hidden) ? previousVisibleCount + currentSlotIndexInPage + 1 : 0;
-      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={globalNumber} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} />;
+      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={globalNumber} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} totalRows={totalRows} totalColumns={totalColumns} />;
     });
   };
 
