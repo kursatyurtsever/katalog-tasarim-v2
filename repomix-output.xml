@@ -40,10 +40,16 @@ The content is organized as follows:
 </file_summary>
 
 <directory_structure>
+.dockerignore
 .gitignore
 Angebot.pdf
 Angebot.xlsx
+cline_deploy_instructions.txt
 components.json
+deploy.bat
+deploy.ps1
+docker-compose.yml
+Dockerfile
 eslint.config.mjs
 next.config.ts
 ozet.py
@@ -132,6 +138,44 @@ urunler.xlsx
 <files>
 This section contains the contents of the repository's files.
 
+<file path="cline_deploy_instructions.txt">
+1. Açık olan tüm dosyaları kaydet.
+2. VS Code'un SFTP eklentisinin dosyaları otomatik yüklemesi için 2 saniye bekle.
+3. Terminalde `powershell -ExecutionPolicy Bypass -File .\deploy.ps1` komutunu çalıştır.
+4. İşlem bittiğinde bana sonucun ekran çıktısını ver.
+</file>
+
+<file path="deploy.ps1">
+# 1. Dosya Yollarını Tanımla
+$SSH_KEY = "D:\US\Oracle\Guvenlik_keyleri\ssh-key-2025-09-20.key"
+$REMOTE_USER = "ubuntu"
+$REMOTE_IP = "161.118.172.246"
+$REMOTE_PATH = "/home/katalog.161.118.172.246.nip.io/public_html"
+
+Write-Host "🚀 Guncelleme baslatiliyor..." -ForegroundColor Cyan
+
+# 2. Sunucuda Docker'i guncelle ve LiteSpeed'i yenile
+$COMMANDS = "cd $REMOTE_PATH && sudo docker compose up -d --build && sudo systemctl restart lsws"
+
+Write-Host "🖥️ Sunucuya baglaniliyor ve Docker tetikleniyor..." -ForegroundColor Yellow
+ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_IP" "$COMMANDS"
+
+Write-Host "✅ Islem Basariyla Tamamlandi! Site Guncellendi." -ForegroundColor Green
+</file>
+
+<file path=".dockerignore">
+node_modules
+.next
+.git
+public/images
+repomix-output.xml
+*.xlsx
+*.pdf
+proje_rontgeni_*.txt
+deploy.bat
+deploy.ps1
+</file>
+
 <file path="components.json">
 {
   "$schema": "https://ui.shadcn.com/schema.json",
@@ -158,6 +202,24 @@ This section contains the contents of the repository's files.
   "menuAccent": "subtle",
   "registries": {}
 }
+</file>
+
+<file path="deploy.bat">
+@echo off
+echo Sunucuya baglaniliyor ve TEMIZ guncelleme baslatiliyor...
+ssh -i "D:\US\Oracle\Guvenlik_keyleri\ssh-key-2025-09-20.key" ubuntu@161.118.172.246 "cd /home/katalog.161.118.172.246.nip.io/public_html && sudo docker compose build --no-cache && sudo docker compose up -d"
+echo Islem tamamlandi!
+</file>
+
+<file path="Dockerfile">
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
 </file>
 
 <file path="eslint.config.mjs">
@@ -5932,6 +5994,20 @@ __pycache__/
 *.code-workspace
 </file>
 
+<file path="docker-compose.yml">
+version: '3.8'
+services:
+  katalog-app:
+    build: .
+    container_name: katalog-v2
+    restart: always
+    ports:
+      - "3001:3000"
+    volumes:
+      # Yüklenen resimleri sunucuda kalıcı hale getiren ayar:
+      - ./public/images/products:/app/public/images/products
+</file>
+
 <file path="next.config.ts">
 import type { NextConfig } from "next";
 
@@ -11541,16 +11617,13 @@ export function Sidebar() {
   };
 
   return (
-    <aside
-      className={`relative z-[9999] w-[340px] flex flex-col h-full bg-slate-50 border-l border-slate-200 shrink-0 shadow-xl transition-all duration-300 ease-in-out ${
-        isOpen ? "mr-0" : "-mr-[340px]"
-      }`}
-    >
-      <button
-        onClick={toggleOpen}
-        className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-16 bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center rounded-l-md shadow-[-4px_0_10px_rgba(0,0,0,0.1)] border-y border-l border-slate-700 hover:bg-slate-700 transition-colors z-[10000]"
-        title={isOpen ? "Paneli Gizle" : "Paneli Göster"}
-      >
+<aside
+  className={`relative z-9999 w-85 flex flex-col h-full bg-slate-50 border-l border-slate-200 shrink-0 shadow-xl transition-all duration-300 ease-in-out ${isOpen ? "mr-0" : "-mr-85"}`}>
+<button
+    onClick={toggleOpen}
+    className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-16 bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center rounded-l-md shadow-[-4px_0_10px_rgba(0,0,0,0.1)] border-y border-l border-slate-700 hover:bg-slate-700 transition-colors z-10000"
+    title={isOpen ? "Paneli Gizle" : "Paneli Göster"}
+  >
         {isOpen ? (
           <svg
             width="16"
@@ -11585,11 +11658,26 @@ export function Sidebar() {
         onValueChange={handleTabChange}
         className="flex flex-col w-full h-full"
       >
-        <TabsList className="w-full bg-slate-900 p-2 gap-1 shrink-0 rounded-none">
-          <TabsTrigger value="products" className="flex-1 py-2 text-xs font-bold">ÜRÜNLER</TabsTrigger>
-          <TabsTrigger value="modules" className="flex-1 py-2 text-xs font-bold">MODÜLLER</TabsTrigger>
-          <TabsTrigger value="settings" className="flex-1 py-2 text-xs font-bold">AYARLAR</TabsTrigger>
-        </TabsList>
+<TabsList className="w-full bg-slate-900 p-2 gap-1 shrink-0 rounded-none border-b border-slate-700">
+      <TabsTrigger 
+        value="products" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        ÜRÜNLER
+      </TabsTrigger>
+      <TabsTrigger 
+        value="modules" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        MODÜLLER
+      </TabsTrigger>
+      <TabsTrigger 
+        value="settings" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        AYARLAR
+      </TabsTrigger>
+    </TabsList>
         <TabsContent value="products" className="flex-1 flex flex-col min-h-0">
           <ProductManagement />
         </TabsContent>

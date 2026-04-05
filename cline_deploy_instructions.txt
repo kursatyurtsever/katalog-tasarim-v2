@@ -1,0 +1,4 @@
+1. Açık olan tüm dosyaları kaydet.
+2. VS Code'un SFTP eklentisinin dosyaları otomatik yüklemesi için 2 saniye bekle.
+3. Terminalde `powershell -ExecutionPolicy Bypass -File .\deploy.ps1` komutunu çalıştır.
+4. İşlem bittiğinde bana sonucun ekran çıktısını ver.

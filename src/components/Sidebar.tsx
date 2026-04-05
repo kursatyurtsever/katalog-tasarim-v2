@@ -62,16 +62,13 @@ export function Sidebar() {
   };
 
   return (
-    <aside
-      className={`relative z-[9999] w-[340px] flex flex-col h-full bg-slate-50 border-l border-slate-200 shrink-0 shadow-xl transition-all duration-300 ease-in-out ${
-        isOpen ? "mr-0" : "-mr-[340px]"
-      }`}
-    >
-      <button
-        onClick={toggleOpen}
-        className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-16 bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center rounded-l-md shadow-[-4px_0_10px_rgba(0,0,0,0.1)] border-y border-l border-slate-700 hover:bg-slate-700 transition-colors z-[10000]"
-        title={isOpen ? "Paneli Gizle" : "Paneli Göster"}
-      >
+<aside
+  className={`relative z-9999 w-85 flex flex-col h-full bg-slate-50 border-l border-slate-200 shrink-0 shadow-xl transition-all duration-300 ease-in-out ${isOpen ? "mr-0" : "-mr-85"}`}>
+<button
+    onClick={toggleOpen}
+    className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-16 bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center rounded-l-md shadow-[-4px_0_10px_rgba(0,0,0,0.1)] border-y border-l border-slate-700 hover:bg-slate-700 transition-colors z-10000"
+    title={isOpen ? "Paneli Gizle" : "Paneli Göster"}
+  >
         {isOpen ? (
           <svg
             width="16"
@@ -107,25 +104,25 @@ export function Sidebar() {
         className="flex flex-col w-full h-full"
       >
 <TabsList className="w-full bg-slate-900 p-2 gap-1 shrink-0 rounded-none border-b border-slate-700">
-  <TabsTrigger 
-    value="products" 
-    className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
-  >
-    ÜRÜNLER
-  </TabsTrigger>
-  <TabsTrigger 
-    value="modules" 
-    className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
-  >
-    MODÜLLER
-  </TabsTrigger>
-  <TabsTrigger 
-    value="settings" 
-    className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
-  >
-    AYARLAR
-  </TabsTrigger>
-</TabsList>
+      <TabsTrigger 
+        value="products" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        ÜRÜNLER
+      </TabsTrigger>
+      <TabsTrigger 
+        value="modules" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        MODÜLLER
+      </TabsTrigger>
+      <TabsTrigger 
+        value="settings" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        AYARLAR
+      </TabsTrigger>
+    </TabsList>
         <TabsContent value="products" className="flex-1 flex flex-col min-h-0">
           <ProductManagement />
         </TabsContent>

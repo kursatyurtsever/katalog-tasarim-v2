@@ -1,4 +1,10 @@
 node_modules
 .next
 .git
-.vscode
+public/images
+repomix-output.xml
+*.xlsx
+*.pdf
+proje_rontgeni_*.txt
+deploy.bat
+deploy.ps1
