@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  katalog-app:
+    build: .
+    container_name: katalog-v2
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      # Yüklenen resimleri sunucuda kalıcı hale getiren ayar:
+      - ./public/images/products:/app/public/images/products

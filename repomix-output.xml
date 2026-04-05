@@ -41,7 +41,6 @@ The content is organized as follows:
 
 <directory_structure>
 .gitignore
-~$Angebot.xlsx
 Angebot.pdf
 Angebot.xlsx
 components.json
@@ -133,151 +132,6 @@ urunler.xlsx
 <files>
 This section contains the contents of the repository's files.
 
-<file path="src/components/sidebar-panels/GlobalGridSettings.tsx">
-"use client";
-import { useState } from "react";
-import { useCatalogStore } from "@/store/useCatalogStore";
-import { PageGridSettings } from "./PageGridSettings";
-
-export function GlobalGridSettings() {
-  const { globalSettings, updateGridSettings, applyGridChanges, formas, activeFormaId } = useCatalogStore();
-  const [selectedPage, setSelectedPage] = useState<number | null>(null);
-  const activeForma = formas.find(f => f.id === activeFormaId);
-
-  const handleApply = () => {
-    if (window.confirm("DİKKAT: Izgara ayarlarını uygulamak, tüm sayfalardaki birleştirilmiş ve serbest alanları sıfırlayacak, ürünleri yeniden dizecektir. Bu işlem geri alınamaz. Onaylıyor musunuz?")) {
-      applyGridChanges();
-      setSelectedPage(null);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm space-y-3">
-        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Varsayılan Ayarlar</h4>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[9px] font-bold text-slate-400">Satır</label>
-            <input 
-              type="number" 
-              min="1" max="10" 
-              value={globalSettings.defaultGrid.rows}
-              onChange={(e) => updateGridSettings("global", { ...globalSettings.defaultGrid, rows: parseInt(e.target.value) || 1 })}
-              className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="text-[9px] font-bold text-slate-400">Sütun</label>
-            <input 
-              type="number" 
-              min="1" max="10"
-              value={globalSettings.defaultGrid.cols}
-              onChange={(e) => updateGridSettings("global", { ...globalSettings.defaultGrid, cols: parseInt(e.target.value) || 1 })}
-              className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm space-y-3">
-        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sayfa Bazlı Özelleştirme</h4>
-        <div className="flex flex-wrap gap-2">
-          {activeForma?.pages.map(page => {
-            const isCustom = !!page.gridSettings;
-            const isSelected = selectedPage === page.pageNumber;
-            return (
-              <button
-                key={page.pageNumber}
-                onClick={() => setSelectedPage(isSelected ? null : page.pageNumber)}
-                className={`relative min-w-[36px] h-9 rounded border text-xs font-black transition-all ${
-                  isSelected ? "bg-blue-600 border-blue-600 text-white shadow-md z-10" :
-                  isCustom ? "bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100" :
-                  "bg-white border-slate-200 text-slate-600 hover:border-slate-400"
-                }`}
-                title={isCustom ? "Bu sayfa özel ayara sahip" : "Bu sayfa global ayarları kullanıyor"}
-              >
-                {page.pageNumber}
-                {isCustom && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-500 rounded-full border-2 border-white" />}              </button>
-            )
-          })}
-        </div>
-        {selectedPage && <PageGridSettings pageNumber={selectedPage} onClose={() => setSelectedPage(null)} />}
-      </div>
-      
-      <button 
-        onClick={handleApply}
-        className="w-full py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-md shadow-md transition-all mt-2"
-      >
-        TÜM AYARLARI UYGULA
-      </button>
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/sidebar-panels/PageGridSettings.tsx">
-"use client";
-
-import { useCatalogStore, Forma, CatalogPage } from "@/store/useCatalogStore";
-
-interface Props {
-  pageNumber: number;
-  onClose: () => void;
-}
-
-export function PageGridSettings({ pageNumber, onClose }: Props) {
-  const { formas, activeFormaId, globalSettings, updateGridSettings, revertToGlobalGrid, applyPageGridChange } = useCatalogStore();
-  const activeForma = formas.find((f: Forma) => f.id === activeFormaId);
-  const page = activeForma?.pages.find((p: CatalogPage) => p.pageNumber === pageNumber);
-  const currentSettings = page?.gridSettings || globalSettings.defaultGrid;
-
-  return (
-    <div className="bg-slate-50 p-3 mt-3 rounded-md border border-slate-200 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="flex justify-between items-center">
-        <h5 className="text-xs font-black text-blue-600">SAYFA {pageNumber} AYARLARI</h5>
-        <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-slate-700">Kapat &times;</button>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-[9px] font-bold text-slate-400">Satır</label>
-          <input 
-            type="number" min="1" max="10"
-            value={currentSettings.rows}
-            onChange={(e) => updateGridSettings(pageNumber, { ...currentSettings, rows: parseInt(e.target.value) || 1 })}
-            className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="text-[9px] font-bold text-slate-400">Sütun</label>
-          <input 
-            type="number" min="1" max="10"
-            value={currentSettings.cols}
-            onChange={(e) => updateGridSettings(pageNumber, { ...currentSettings, cols: parseInt(e.target.value) || 1 })}
-            className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
-          />
-        </div>
-      </div>
-      
-      <button 
-        onClick={() => applyPageGridChange(pageNumber)}
-        className="w-full py-2 bg-blue-600 text-white text-xs font-bold rounded-md hover:bg-blue-700 transition-colors mt-2 shadow-sm"
-      >
-        Sadece Bu Sayfaya Uygula
-      </button>
-
-      {page?.gridSettings && (
-        <button 
-          onClick={() => revertToGlobalGrid(pageNumber)}
-          className="w-full py-2 bg-orange-100 text-orange-700 border border-orange-200 text-xs font-bold rounded-md hover:bg-orange-200 transition-colors mt-1"
-        >
-          Globale Geri Dön
-        </button>
-      )}
-    </div>
-  );
-}
-</file>
-
 <file path="components.json">
 {
   "$schema": "https://ui.shadcn.com/schema.json",
@@ -325,16 +179,6 @@ const eslintConfig = defineConfig([
 ]);
 
 export default eslintConfig;
-</file>
-
-<file path="next.config.ts">
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
 </file>
 
 <file path="ozet.py">
@@ -3301,6 +3145,151 @@ export function LayerStack({ forma }: LayerStackProps) {
 }
 </file>
 
+<file path="src/components/sidebar-panels/GlobalGridSettings.tsx">
+"use client";
+import { useState } from "react";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { PageGridSettings } from "./PageGridSettings";
+
+export function GlobalGridSettings() {
+  const { globalSettings, updateGridSettings, applyGridChanges, formas, activeFormaId } = useCatalogStore();
+  const [selectedPage, setSelectedPage] = useState<number | null>(null);
+  const activeForma = formas.find(f => f.id === activeFormaId);
+
+  const handleApply = () => {
+    if (window.confirm("DİKKAT: Izgara ayarlarını uygulamak, tüm sayfalardaki birleştirilmiş ve serbest alanları sıfırlayacak, ürünleri yeniden dizecektir. Bu işlem geri alınamaz. Onaylıyor musunuz?")) {
+      applyGridChanges();
+      setSelectedPage(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm space-y-3">
+        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Varsayılan Ayarlar</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-[9px] font-bold text-slate-400">Satır</label>
+            <input 
+              type="number" 
+              min="1" max="10" 
+              value={globalSettings.defaultGrid.rows}
+              onChange={(e) => updateGridSettings("global", { ...globalSettings.defaultGrid, rows: parseInt(e.target.value) || 1 })}
+              className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="text-[9px] font-bold text-slate-400">Sütun</label>
+            <input 
+              type="number" 
+              min="1" max="10"
+              value={globalSettings.defaultGrid.cols}
+              onChange={(e) => updateGridSettings("global", { ...globalSettings.defaultGrid, cols: parseInt(e.target.value) || 1 })}
+              className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm space-y-3">
+        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sayfa Bazlı Özelleştirme</h4>
+        <div className="flex flex-wrap gap-2">
+          {activeForma?.pages.map(page => {
+            const isCustom = !!page.gridSettings;
+            const isSelected = selectedPage === page.pageNumber;
+            return (
+              <button
+                key={page.pageNumber}
+                onClick={() => setSelectedPage(isSelected ? null : page.pageNumber)}
+                className={`relative min-w-[36px] h-9 rounded border text-xs font-black transition-all ${
+                  isSelected ? "bg-blue-600 border-blue-600 text-white shadow-md z-10" :
+                  isCustom ? "bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100" :
+                  "bg-white border-slate-200 text-slate-600 hover:border-slate-400"
+                }`}
+                title={isCustom ? "Bu sayfa özel ayara sahip" : "Bu sayfa global ayarları kullanıyor"}
+              >
+                {page.pageNumber}
+                {isCustom && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-500 rounded-full border-2 border-white" />}              </button>
+            )
+          })}
+        </div>
+        {selectedPage && <PageGridSettings pageNumber={selectedPage} onClose={() => setSelectedPage(null)} />}
+      </div>
+      
+      <button 
+        onClick={handleApply}
+        className="w-full py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-md shadow-md transition-all mt-2"
+      >
+        TÜM AYARLARI UYGULA
+      </button>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/sidebar-panels/PageGridSettings.tsx">
+"use client";
+
+import { useCatalogStore, Forma, CatalogPage } from "@/store/useCatalogStore";
+
+interface Props {
+  pageNumber: number;
+  onClose: () => void;
+}
+
+export function PageGridSettings({ pageNumber, onClose }: Props) {
+  const { formas, activeFormaId, globalSettings, updateGridSettings, revertToGlobalGrid, applyPageGridChange } = useCatalogStore();
+  const activeForma = formas.find((f: Forma) => f.id === activeFormaId);
+  const page = activeForma?.pages.find((p: CatalogPage) => p.pageNumber === pageNumber);
+  const currentSettings = page?.gridSettings || globalSettings.defaultGrid;
+
+  return (
+    <div className="bg-slate-50 p-3 mt-3 rounded-md border border-slate-200 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="flex justify-between items-center">
+        <h5 className="text-xs font-black text-blue-600">SAYFA {pageNumber} AYARLARI</h5>
+        <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-slate-700">Kapat &times;</button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-[9px] font-bold text-slate-400">Satır</label>
+          <input 
+            type="number" min="1" max="10"
+            value={currentSettings.rows}
+            onChange={(e) => updateGridSettings(pageNumber, { ...currentSettings, rows: parseInt(e.target.value) || 1 })}
+            className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label className="text-[9px] font-bold text-slate-400">Sütun</label>
+          <input 
+            type="number" min="1" max="10"
+            value={currentSettings.cols}
+            onChange={(e) => updateGridSettings(pageNumber, { ...currentSettings, cols: parseInt(e.target.value) || 1 })}
+            className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
+          />
+        </div>
+      </div>
+      
+      <button 
+        onClick={() => applyPageGridChange(pageNumber)}
+        className="w-full py-2 bg-blue-600 text-white text-xs font-bold rounded-md hover:bg-blue-700 transition-colors mt-2 shadow-sm"
+      >
+        Sadece Bu Sayfaya Uygula
+      </button>
+
+      {page?.gridSettings && (
+        <button 
+          onClick={() => revertToGlobalGrid(pageNumber)}
+          className="w-full py-2 bg-orange-100 text-orange-700 border border-orange-200 text-xs font-bold rounded-md hover:bg-orange-200 transition-colors mt-1"
+        >
+          Globale Geri Dön
+        </button>
+      )}
+    </div>
+  );
+}
+</file>
+
 <file path="src/components/TypographyPicker.tsx">
 "use client";
 
@@ -5943,6 +5932,20 @@ __pycache__/
 *.code-workspace
 </file>
 
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
+};
+
+export default nextConfig;
+</file>
+
 <file path="src/components/BorderRadiusPicker.tsx">
 "use client";
 
@@ -6027,166 +6030,6 @@ export function BorderRadiusPicker({ title = "Köşe Ovalliği (Radius)", value,
           ))}
         </div>
       )}
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/Canvas/LayerRenderer.tsx">
-"use client";
-
-import React, { useMemo } from "react";
-import { Layer } from "@/types/document";
-import { useCatalogStore, Forma, CatalogPage } from "@/store/useCatalogStore";
-
-const MM_TO_PX = 96 / 25.4;
-
-interface LayerRendererProps {
-  layer: Layer;
-  forma: Forma;
-}
-
-function getPageOffsetX(forma: Forma, targetPageId: string, template: any): number {
-  if (!forma || !template) return 0;
-  const targetIndex = forma.pages.findIndex((p: CatalogPage) => p.id === targetPageId);
-  if (targetIndex === -1) return 0;
-  return forma.pages.slice(0, targetIndex).reduce((sum: number, p: CatalogPage) => {
-    const pTemplate = template.pages.find((tp: any) => tp.pageNumber === p.pageNumber);
-    return sum + (pTemplate?.widthMm || 210);
-  }, 0);
-}
-
-export function LayerRenderer({ layer, forma }: LayerRendererProps) {
-  const template = useCatalogStore((state) => state.activeTemplate);
-  
-  const { clipPath, layerWidthPx, layerHeightPx, layerLeftPx, layerTopPx } = useMemo(() => {
-    if (!template) return { clipPath: "none", layerWidthPx: 0, layerHeightPx: 0, layerLeftPx: 0, layerTopPx: 0 };
-
-    let fallbackLeft = (layer.bounds.x + template.bleedMm) * MM_TO_PX;
-    let fallbackTop = (layer.bounds.y + template.bleedMm) * MM_TO_PX;
-    let fallbackWidth = layer.bounds.w * MM_TO_PX;
-    let fallbackHeight = layer.bounds.h * MM_TO_PX;
-
-    if (!layer.mask || layer.mask.type === "document" || !layer.mask.targetIds || layer.mask.targetIds.length === 0) {
-      if (layer.type === 'solid' || layer.type === 'image') {
-         fallbackLeft = 0;
-         fallbackTop = 0;
-         fallbackWidth = (template.openWidthMm + template.bleedMm * 2) * MM_TO_PX;
-         fallbackHeight = (template.openHeightMm + template.bleedMm * 2) * MM_TO_PX;
-      }
-      return { clipPath: "none", layerWidthPx: fallbackWidth, layerHeightPx: fallbackHeight, layerLeftPx: fallbackLeft, layerTopPx: fallbackTop };
-    }
-
-    const pageRects = layer.mask.targetIds.map((pid: string) => {
-      const page = forma.pages.find((p: CatalogPage) => p.id === pid);
-      const pConfig = template.pages.find((tp: any) => tp.pageNumber === page?.pageNumber);
-      if (!page || !pConfig) return null;
-
-      const pageIndex = forma.pages.findIndex((p: CatalogPage) => p.id === pid);
-      const pxMm = getPageOffsetX(forma, pid, template);
-      
-      let rectX1 = pxMm + template.bleedMm;
-      let rectX2 = rectX1 + pConfig.widthMm;
-      let rectY1 = template.bleedMm;
-      let rectY2 = rectY1 + template.openHeightMm;
-
-      rectY1 -= template.bleedMm;
-      rectY2 += template.bleedMm;
-
-      if (pageIndex === 0) rectX1 -= template.bleedMm;
-      if (pageIndex === forma.pages.length - 1) rectX2 += template.bleedMm;
-      else rectX2 += 0.5;
-
-      return { rectX1, rectX2, rectY1, rectY2 };
-    }).filter((r): r is NonNullable<typeof r> => r !== null);
-
-    if (pageRects.length === 0) {
-       return { clipPath: "none", layerWidthPx: fallbackWidth, layerHeightPx: fallbackHeight, layerLeftPx: fallbackLeft, layerTopPx: fallbackTop };
-    }
-
-    const minX = Math.min(...pageRects.map((r: any) => r.rectX1));
-    const minY = Math.min(...pageRects.map((r: any) => r.rectY1));
-    const maxX = Math.max(...pageRects.map((r: any) => r.rectX2));
-    const maxY = Math.max(...pageRects.map((r: any) => r.rectY2));
-
-    const layerLeftPx = minX * MM_TO_PX;
-    const layerTopPx = minY * MM_TO_PX;
-    const layerWidthPx = (maxX - minX) * MM_TO_PX;
-    const layerHeightPx = (maxY - minY) * MM_TO_PX;
-
-    let generatedClipPath = "none";
-    if (layer.mask.excludeGaps) {
-      pageRects.sort((a: any, b: any) => a.rectX1 - b.rectX1);
-      const topPoints: string[] = [];
-      const bottomPoints: string[] = [];
-      pageRects.forEach((rect: any) => {
-        const localX1 = (rect.rectX1 - minX) * MM_TO_PX;
-        const localY1 = (rect.rectY1 - minY) * MM_TO_PX;
-        const localX2 = (rect.rectX2 - minX) * MM_TO_PX;
-        const localY2 = (rect.rectY2 - minY) * MM_TO_PX;
-        
-        topPoints.push(`${localX1}px ${localY1}px`);
-        topPoints.push(`${localX2}px ${localY1}px`);
-        bottomPoints.unshift(`${localX1}px ${localY2}px`);
-        bottomPoints.unshift(`${localX2}px ${localY2}px`);
-      });
-      generatedClipPath = `polygon(${(topPoints.concat(bottomPoints)).join(", ")})`;
-    } else {
-      generatedClipPath = `polygon(0px 0px, ${layerWidthPx}px 0px, ${layerWidthPx}px ${layerHeightPx}px, 0px ${layerHeightPx}px)`;
-    }
-
-    return { clipPath: generatedClipPath, layerWidthPx, layerHeightPx, layerLeftPx, layerTopPx };
-  }, [layer, forma, template]);
-
-  if (!layer.visible) return null;
-
-  const rotateArr = layer.transform.rotation || 0;
-  const scaleX = (layer.transform.flipX ? -1 : 1);
-  const scaleY = (layer.transform.flipY ? -1 : 1);
-
-  return (
-    <div
-      id={`layer-wrapper-${layer.id}`}
-      style={{
-        position: "absolute",
-        left: `${layerLeftPx}px`,
-        top: `${layerTopPx}px`,
-        width: `${layerWidthPx}px`,
-        height: `${layerHeightPx}px`,
-        opacity: (layer.properties.opacity ?? 100) / 100,
-        mixBlendMode: (layer.properties.blendMode as any) || "normal",
-        pointerEvents: layer.locked ? "none" : "auto",
-        zIndex: layer.zIndex,
-        clipPath: clipPath,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          transform: `rotate(${rotateArr}deg) scale(${scaleX}, ${scaleY})`,
-          display: "flex",
-          alignItems: "stretch",
-          justifyContent: "stretch",
-        }}
-      >
-        {layer.type === "solid" ? (
-          <div style={{ flex: 1, background: layer.properties.gradient || layer.properties.color || "transparent" }} />
-        ) : (
-          layer.properties.imageUrl && (
-            <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-              <img
-                src={layer.properties.imageUrl}
-                alt={layer.name || ""}
-                style={{ width: "100%", height: "100%", objectFit: (layer.properties.fitMode === "repeat" ? "fill" : (layer.properties.fitMode || "cover")) as any }}
-              />
-            </div>
-          )
-        )}
-      </div>
     </div>
   );
 }
@@ -6694,69 +6537,6 @@ export function SpacingPicker({ title = "İç Boşluk (Padding)", value, onChang
 }
 </file>
 
-<file path="src/lib/templates.ts">
-export interface PageTemplateConfig {
-  pageNumber: number;
-  widthMm: number;
-  safeZone: [number, number, number, number]; // [top, right, bottom, left] mm
-}
-
-export interface BrochureTemplate {
-  id: string;
-  name: string;
-  pageCount: number;
-  foldCount: number;
-  foldType: "roll-fold" | "z-fold" | "half-fold" | "none";
-  openWidthMm: number;
-  openHeightMm: number;
-  bleedMm: number;
-  pages: PageTemplateConfig[];
-}
-
-export const Template1: BrochureTemplate = {
-  id: "template-6-page-roll",
-  name: "A4 6 Sayfa İçe Kırımlı Broşür",
-  pageCount: 6,
-  foldCount: 2,
-  foldType: "roll-fold",
-  openWidthMm: 627, // INDESIGN'DAN ALINDI (Önceki 631'di)
-  openHeightMm: 297, // INDESIGN'DAN ALINDI
-  bleedMm: 2, // INDESIGN'DAN ALINDI (Taşma payı)
-  pages: [
-    { pageNumber: 5, widthMm: 207, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 6, widthMm: 210, safeZone: [10, 5, 10, 5] },
-    { pageNumber: 1, widthMm: 210, safeZone: [10, 10, 10, 5] },
-    { pageNumber: 2, widthMm: 210, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 3, widthMm: 210, safeZone: [10, 5, 10, 5] },
-    { pageNumber: 4, widthMm: 207, safeZone: [10, 10, 10, 5] },
-  ],
-};
-
-export const Template2: BrochureTemplate = {
-  id: "template-4-page-half",
-  name: "A4 4 Sayfa Ortadan Kırımlı",
-  pageCount: 4,
-  foldCount: 1,
-  foldType: "half-fold",
-  openWidthMm: 420,
-  openHeightMm: 297,
-  bleedMm: 2,
-  pages: [
-    { pageNumber: 4, widthMm: 210, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 1, widthMm: 210, safeZone: [10, 10, 10, 5] },
-    { pageNumber: 2, widthMm: 210, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 3, widthMm: 210, safeZone: [10, 10, 10, 5] },
-  ],
-};
-
-export const availableTemplates: BrochureTemplate[] = [Template1, Template2];
-
-export function getSlotCountForPage(pageNumber: number): number {
-  // Varsayılan olarak her sayfa 4x4 = 16 grid içerir.
-  return 16; 
-}
-</file>
-
 <file path="src/store/useBannerStore.ts">
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -7099,51 +6879,6 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
 }));
 </file>
 
-<file path="src/types/document.ts">
-export interface Document {
-  id: string;
-  type: string;
-  spreads: Spread[];
-  layers: Layer[];
-  meta: any; // Consider defining a more specific interface for meta if needed
-}
-
-export interface Spread {
-  id: string;
-  pages: Page[];
-  bleed: number; // Bleed (taşma payı) will be a number
-}
-
-export interface Page {
-  id: string;
-  width: number;
-  height: number;
-  side: 'left' | 'right' | 'single'; // e.g., for spreads, pages can be left or right
-}
-
-export interface Layer {
-  id: string;
-  name?: string;
-  type: 'image' | 'solid' | 'text' | 'shape'; // Added 'text' and 'shape' for common layer types
-  bounds: { x: number; y: number; w: number; h: number };
-  transform: { rotation: number; scale: number; flipX: boolean; flipY: boolean; offsetX: number; offsetY: number };
-  mask?: { 
-    type: 'page' | 'spread' | 'document'; 
-    targetIds: string[]; 
-    excludeGaps?: boolean; // YENİ: Sayfa arası boşlukları (gap) çıkarıp çıkarmayacağı
-  }; 
-  zIndex: number;
-  visible?: boolean;
-  locked?: boolean; // YENİ: Katman kilitleme desteği
-  properties: {
-    opacity?: number;
-    blendMode?: string;
-    fitMode?: 'cover' | 'contain' | 'repeat' | 'stretch';
-    [key: string]: any;
-  }; // Specific properties based on layer type
-}
-</file>
-
 <file path="src/app/page.tsx">
 "use client";
 
@@ -7178,113 +6913,167 @@ export default function Home() {
 }
 </file>
 
-<file path="src/components/Canvas/Canvas.tsx">
+<file path="src/components/Canvas/LayerRenderer.tsx">
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
-import { useCatalogStore } from "@/store/useCatalogStore";
-import { useUIStore } from "@/store/useUIStore";
-import { useLayerStore } from "@/store/useLayerStore";
-import { Page } from "./Page";
-import { LayerStack } from "./LayerStack";
+import React, { useMemo } from "react";
+import { Layer } from "@/types/document";
+import { useCatalogStore, Forma, CatalogPage } from "@/store/useCatalogStore";
 
 const MM_TO_PX = 96 / 25.4;
 
-export function Canvas() {
-  const formas = useCatalogStore((state) => state.formas);
-  const activeFormaId = useCatalogStore((state) => state.activeFormaId);
-  const isZoomed = useUIStore((state) => state.isZoomed);
+interface LayerRendererProps {
+  layer: Layer;
+  forma: Forma;
+}
+
+function getPageOffsetX(forma: Forma, targetPageId: string, template: any): number {
+  if (!forma || !template) return 0;
+  const targetIndex = forma.pages.findIndex((p: CatalogPage) => p.id === targetPageId);
+  if (targetIndex === -1) return 0;
+  return forma.pages.slice(0, targetIndex).reduce((sum: number, p: CatalogPage) => {
+    const pTemplate = template.pages.find((tp: any) => tp.pageNumber === p.pageNumber);
+    return sum + (pTemplate?.widthMm || 210);
+  }, 0);
+}
+
+export function LayerRenderer({ layer, forma }: LayerRendererProps) {
   const template = useCatalogStore((state) => state.activeTemplate);
-  const clearCatalogSelection = useUIStore((state) => state.clearSelection);
-  const disableAllImageEditModes = useCatalogStore((state) => state.disableAllImageEditModes);
+  
+  const { clipPath, layerWidthPx, layerHeightPx, layerLeftPx, layerTopPx } = useMemo(() => {
+    if (!template) return { clipPath: "none", layerWidthPx: 0, layerHeightPx: 0, layerLeftPx: 0, layerTopPx: 0 };
 
-  const activeForma = formas.find((f) => f.id === activeFormaId);
-  const pages = activeForma?.pages || [];
+    let fallbackLeft = (layer.bounds.x + template.bleedMm) * MM_TO_PX;
+    let fallbackTop = (layer.bounds.y + template.bleedMm) * MM_TO_PX;
+    let fallbackWidth = layer.bounds.w * MM_TO_PX;
+    let fallbackHeight = layer.bounds.h * MM_TO_PX;
 
-  const [scale, setScale] = useState(1);
-  const [isMounted, setIsMounted] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const { bleedMm, openHeightMm } = template;
-  const physicalHeight = openHeightMm + bleedMm * 2;
-
-  const order = pages.map((p) => p.pageNumber);
-
-  const totalWidthMm = useMemo(() => {
-    return order.reduce((sum, n) => {
-      const pc = template.pages.find((p) => p.pageNumber === n);
-      return sum + (pc ? pc.widthMm : 210);
-    }, 0) + (bleedMm * 2);
-  }, [order, template, bleedMm]);
-
-  const referenceWidthPx = totalWidthMm * MM_TO_PX;
-  const referenceHeightPx = physicalHeight * MM_TO_PX;
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (isZoomed) {
-      return;
+    if (!layer.mask || layer.mask.type === "document" || !layer.mask.targetIds || layer.mask.targetIds.length === 0) {
+      if (layer.type === 'solid' || layer.type === 'image') {
+         fallbackLeft = 0;
+         fallbackTop = 0;
+         fallbackWidth = (template.openWidthMm + template.bleedMm * 2) * MM_TO_PX;
+         fallbackHeight = (template.openHeightMm + template.bleedMm * 2) * MM_TO_PX;
+      }
+      return { clipPath: "none", layerWidthPx: fallbackWidth, layerHeightPx: fallbackHeight, layerLeftPx: fallbackLeft, layerTopPx: fallbackTop };
     }
 
-    const observer = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect;
-      const scaleW = (width - 80) / referenceWidthPx;
-      const scaleH = (height - 80) / referenceHeightPx;
-      setScale(Math.min(scaleW, scaleH));
-    });
+    const pageRects = layer.mask.targetIds.map((pid: string) => {
+      const page = forma.pages.find((p: CatalogPage) => p.id === pid);
+      const pConfig = template.pages.find((tp: any) => tp.pageNumber === page?.pageNumber);
+      if (!page || !pConfig) return null;
 
-    if (wrapperRef.current) observer.observe(wrapperRef.current);
-    return () => observer.disconnect();
-  }, [isZoomed, referenceWidthPx, referenceHeightPx]);
+      const pageIndex = forma.pages.findIndex((p: CatalogPage) => p.id === pid);
+      const pxMm = getPageOffsetX(forma, pid, template);
+      
+      let rectX1 = pxMm + template.bleedMm;
+      let rectX2 = rectX1 + pConfig.widthMm;
+      let rectY1 = template.bleedMm;
+      let rectY2 = rectY1 + template.openHeightMm;
 
-  // KURAL: Hiçbir hook bu satırın altında olamaz! (Rules of Hooks)
-  if (!isMounted) return null;
+      rectY1 -= template.bleedMm;
+      rectY2 += template.bleedMm;
+
+      if (pageIndex === 0) rectX1 -= template.bleedMm;
+      if (pageIndex === forma.pages.length - 1) rectX2 += template.bleedMm;
+      else rectX2 += 0.5;
+
+      return { rectX1, rectX2, rectY1, rectY2 };
+    }).filter((r): r is NonNullable<typeof r> => r !== null);
+
+    if (pageRects.length === 0) {
+       return { clipPath: "none", layerWidthPx: fallbackWidth, layerHeightPx: fallbackHeight, layerLeftPx: fallbackLeft, layerTopPx: fallbackTop };
+    }
+
+    const minX = Math.min(...pageRects.map((r: any) => r.rectX1));
+    const minY = Math.min(...pageRects.map((r: any) => r.rectY1));
+    const maxX = Math.max(...pageRects.map((r: any) => r.rectX2));
+    const maxY = Math.max(...pageRects.map((r: any) => r.rectY2));
+
+    const layerLeftPx = minX * MM_TO_PX;
+    const layerTopPx = minY * MM_TO_PX;
+    const layerWidthPx = (maxX - minX) * MM_TO_PX;
+    const layerHeightPx = (maxY - minY) * MM_TO_PX;
+
+    let generatedClipPath = "none";
+    if (layer.mask.excludeGaps) {
+      pageRects.sort((a: any, b: any) => a.rectX1 - b.rectX1);
+      const topPoints: string[] = [];
+      const bottomPoints: string[] = [];
+      pageRects.forEach((rect: any) => {
+        const localX1 = (rect.rectX1 - minX) * MM_TO_PX;
+        const localY1 = (rect.rectY1 - minY) * MM_TO_PX;
+        const localX2 = (rect.rectX2 - minX) * MM_TO_PX;
+        const localY2 = (rect.rectY2 - minY) * MM_TO_PX;
+        
+        topPoints.push(`${localX1}px ${localY1}px`);
+        topPoints.push(`${localX2}px ${localY1}px`);
+        bottomPoints.unshift(`${localX1}px ${localY2}px`);
+        bottomPoints.unshift(`${localX2}px ${localY2}px`);
+      });
+      generatedClipPath = `polygon(${(topPoints.concat(bottomPoints)).join(", ")})`;
+    } else {
+      generatedClipPath = `polygon(0px 0px, ${layerWidthPx}px 0px, ${layerWidthPx}px ${layerHeightPx}px, 0px ${layerHeightPx}px)`;
+    }
+
+    return { clipPath: generatedClipPath, layerWidthPx, layerHeightPx, layerLeftPx, layerTopPx };
+  }, [layer, forma, template]);
+
+  if (!layer.visible) return null;
+
+const rotateArr = layer.transform.rotation || 0;
+const scaleVal = (layer.transform.scale !== undefined ? layer.transform.scale : 100) / 100;
+const scaleX = scaleVal * (layer.transform.flipX ? -1 : 1);
+const scaleY = scaleVal * (layer.transform.flipY ? -1 : 1);
 
   return (
     <div
-      ref={wrapperRef}
-      className={`flex-1 relative w-full h-full min-w-0 min-h-0 bg-slate-300 ${isZoomed ? "overflow-auto" : "overflow-hidden"}`}
+      id={`layer-wrapper-${layer.id}`}
+      style={{
+        position: "absolute",
+        left: `${layerLeftPx}px`,
+        top: `${layerTopPx}px`,
+        width: `${layerWidthPx}px`,
+        height: `${layerHeightPx}px`,
+        opacity: (layer.properties.opacity ?? 100) / 100,
+        mixBlendMode: (layer.properties.blendMode as any) || "normal",
+        pointerEvents: layer.locked ? "none" : "auto",
+        zIndex: layer.zIndex,
+        clipPath: clipPath,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
     >
       <div
-        id="canvas"
-        onClick={() => {
-          clearCatalogSelection();
-          disableAllImageEditModes();
-        }}
-        className={`canvas relative shadow-2xl transition-transform duration-200 ${isZoomed ? "mx-auto mt-20 mb-8" : "absolute top-1/2 left-1/2 origin-center"}`}
         style={{
-          boxSizing: "border-box",
-          width: `${totalWidthMm}mm`,
-          height: `${physicalHeight}mm`,
-          padding: `${bleedMm}mm`,
-          backgroundColor: "#ffffff",
-          outline: "0.5px dashed rgba(255, 0, 0, 0.4)",
-          outlineOffset: "-1px",
-          transform: isZoomed ? "scale(1)" : `translate(-50%, -50%) scale(${scale})`,
+          width: "100%",
+          height: "100%",
+          transform: `rotate(${rotateArr}deg) scale(${scaleX}, ${scaleY})`,
+          display: "flex",
+          alignItems: "stretch",
+          justifyContent: "stretch",
         }}
       >
-        <LayerStack forma={activeForma} />
-
-        <div className="relative z-10 flex h-full w-full flex-row items-stretch bg-transparent">
-          {order.map((n) => (
-            <Page key={n} pageNumber={n} />
-          ))}
-        </div>
-
-        <div
-          className="pointer-events-none absolute print:hidden z-50"
-          style={{
-            top: `${bleedMm}mm`, 
-            bottom: `${bleedMm}mm`, 
-            left: `${bleedMm}mm`, 
-            right: `${bleedMm}mm`,
-            border: "0.5px solid rgba(0, 0, 0, 0.2)", 
-            boxSizing: "border-box",
-          }}
-        />
+        {layer.type === "solid" ? (
+          <div style={{ flex: 1, background: layer.properties.gradient || layer.properties.color || "transparent" }} />
+        ) : (
+          layer.properties.imageUrl && (
+<div style={{ flex: 1, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <img
+    src={layer.properties.imageUrl}
+    alt={layer.name || ""}
+    style={{
+      width: layer.properties.fitMode === "fit-height" ? "auto" : "100%",
+      height: layer.properties.fitMode === "fit-width" ? "auto" : "100%",
+      minWidth: layer.properties.fitMode === "fit-width" ? "100%" : undefined,
+      minHeight: layer.properties.fitMode === "fit-height" ? "100%" : undefined,
+      objectFit: (layer.properties.fitMode === "fit-width" || layer.properties.fitMode === "fit-height") ? "initial" : (layer.properties.fitMode === "repeat" ? "fill" : (layer.properties.fitMode || "cover")),
+    } as any}
+  />
+</div>
+          )
+        )}
       </div>
     </div>
   );
@@ -7486,6 +7275,114 @@ export function BannerSettingsPanel() {
       </div>
     </div>
   );
+}
+</file>
+
+<file path="src/lib/templates.ts">
+export interface PageTemplateConfig {
+  pageNumber: number;
+  widthMm: number;
+  safeZone: [number, number, number, number]; // [top, right, bottom, left] mm
+}
+
+export interface BrochureTemplate {
+  id: string;
+  name: string;
+  pageCount: number;
+  foldCount: number;
+  foldType: "roll-fold" | "z-fold" | "half-fold" | "none";
+  openWidthMm: number;
+  openHeightMm: number;
+  bleedMm: number;
+  pages: PageTemplateConfig[];
+}
+
+export const Template1: BrochureTemplate = {
+  id: "template-6-page-roll",
+  name: "A4 6 Sayfa İçe Kırımlı Broşür",
+  pageCount: 6,
+  foldCount: 2,
+  foldType: "roll-fold",
+  openWidthMm: 627, // INDESIGN'DAN ALINDI (Önceki 631'di)
+  openHeightMm: 297, // INDESIGN'DAN ALINDI
+  bleedMm: 2, // INDESIGN'DAN ALINDI (Taşma payı)
+  pages: [
+    { pageNumber: 5, widthMm: 207, safeZone: [10, 5, 10, 10] },
+    { pageNumber: 6, widthMm: 210, safeZone: [10, 5, 10, 5] },
+    { pageNumber: 1, widthMm: 210, safeZone: [10, 10, 10, 5] },
+    { pageNumber: 2, widthMm: 210, safeZone: [10, 5, 10, 10] },
+    { pageNumber: 3, widthMm: 210, safeZone: [10, 5, 10, 5] },
+    { pageNumber: 4, widthMm: 207, safeZone: [10, 10, 10, 5] },
+  ],
+};
+
+export const Template2: BrochureTemplate = {
+  id: "template-4-page-half",
+  name: "A4 4 Sayfa Ortadan Kırımlı",
+  pageCount: 4,
+  foldCount: 1,
+  foldType: "half-fold",
+  openWidthMm: 420,
+  openHeightMm: 297,
+  bleedMm: 2,
+  pages: [
+    { pageNumber: 4, widthMm: 210, safeZone: [10, 5, 10, 10] },
+    { pageNumber: 1, widthMm: 210, safeZone: [10, 10, 10, 5] },
+    { pageNumber: 2, widthMm: 210, safeZone: [10, 5, 10, 10] },
+    { pageNumber: 3, widthMm: 210, safeZone: [10, 10, 10, 5] },
+  ],
+};
+
+export const availableTemplates: BrochureTemplate[] = [Template1, Template2];
+
+export function getSlotCountForPage(pageNumber: number): number {
+  // Varsayılan olarak her sayfa 4x4 = 16 grid içerir.
+  return 16; 
+}
+</file>
+
+<file path="src/types/document.ts">
+export interface Document {
+  id: string;
+  type: string;
+  spreads: Spread[];
+  layers: Layer[];
+  meta: any; // Consider defining a more specific interface for meta if needed
+}
+
+export interface Spread {
+  id: string;
+  pages: Page[];
+  bleed: number; // Bleed (taşma payı) will be a number
+}
+
+export interface Page {
+  id: string;
+  width: number;
+  height: number;
+  side: 'left' | 'right' | 'single'; // e.g., for spreads, pages can be left or right
+}
+
+export interface Layer {
+  id: string;
+  name?: string;
+  type: 'image' | 'solid' | 'text' | 'shape'; // Added 'text' and 'shape' for common layer types
+  bounds: { x: number; y: number; w: number; h: number };
+  transform: { rotation: number; scale: number; flipX: boolean; flipY: boolean; offsetX: number; offsetY: number };
+  mask?: { 
+    type: 'page' | 'spread' | 'document'; 
+    targetIds: string[]; 
+    excludeGaps?: boolean; // YENİ: Sayfa arası boşlukları (gap) çıkarıp çıkarmayacağı
+  }; 
+  zIndex: number;
+  visible?: boolean;
+  locked?: boolean; // YENİ: Katman kilitleme desteği
+  properties: {
+    opacity?: number;
+    blendMode?: string;
+    fitMode?: 'cover' | 'contain' | 'repeat' | 'stretch' | 'fit-width' | 'fit-height';
+    [key: string]: any;
+  }; // Specific properties based on layer type
 }
 </file>
 
@@ -7811,210 +7708,115 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
 }
 </file>
 
-<file path="src/components/Canvas/Page.tsx">
+<file path="src/components/Canvas/Canvas.tsx">
 "use client";
 
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useLayerStore } from "@/store/useLayerStore";
-import { Slot } from "../Slot";
-import { useRef, useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import type { Slot as SlotType } from "@/store/useCatalogStore";
+import { Page } from "./Page";
+import { LayerStack } from "./LayerStack";
 
-export function Page({ pageNumber }: { pageNumber: number }) {
+const MM_TO_PX = 96 / 25.4;
+
+export function Canvas() {
   const formas = useCatalogStore((state) => state.formas);
   const activeFormaId = useCatalogStore((state) => state.activeFormaId);
+  const isZoomed = useUIStore((state) => state.isZoomed);
   const template = useCatalogStore((state) => state.activeTemplate);
-  const gridGap = useCatalogStore((state) => state.globalSettings?.gridGap ?? 0);
-  const updatePageFooter = useCatalogStore((state) => state.updatePageFooter);
-  const mergeSelected = useCatalogStore((state) => state.mergeSelected);
-  const unmergeSlot = useCatalogStore((state) => state.unmergeSlot);
-  const clearSlot = useCatalogStore((state) => state.clearSlot);
-  const selectPages = useLayerStore((state) => state.selectPages);
-  const selectedPageIds = useLayerStore((state) => state.selectedPageIds);
-  const setEditingContent = useUIStore((state) => state.setEditingContent);
-
+  const clearCatalogSelection = useUIStore((state) => state.clearSelection);
+  const disableAllImageEditModes = useCatalogStore((state) => state.disableAllImageEditModes);
 
   const activeForma = formas.find((f) => f.id === activeFormaId);
   const pages = activeForma?.pages || [];
 
-  const footerLogoInputRef = useRef<HTMLInputElement>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; slot: SlotType; canMerge: boolean; canUnmerge: boolean; hasProduct: boolean } | null>(null);
+  const [scale, setScale] = useState(1);
+  const [isMounted, setIsMounted] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const { bleedMm, openHeightMm } = template;
+  const physicalHeight = openHeightMm + bleedMm * 2;
+
+  const order = pages.map((p) => p.pageNumber);
+
+  const totalWidthMm = useMemo(() => {
+    return order.reduce((sum, n) => {
+      const pc = template.pages.find((p) => p.pageNumber === n);
+      return sum + (pc ? pc.widthMm : 210);
+    }, 0) + (bleedMm * 2);
+  }, [order, template, bleedMm]);
+
+  const referenceWidthPx = totalWidthMm * MM_TO_PX;
+  const referenceHeightPx = physicalHeight * MM_TO_PX;
 
   useEffect(() => {
-    const handleWindowClick = () => setContextMenu(null);
-    window.addEventListener("click", handleWindowClick);
-    return () => window.removeEventListener("click", handleWindowClick);
+    setIsMounted(true);
   }, []);
 
-  const handleContextMenu = (e: React.MouseEvent, slot: SlotType) => {
-    e.preventDefault();
-    const selected = useUIStore.getState().selectedSlotIds;
-    const canMerge = selected.length > 1 && selected.includes(slot.id);
-    const canUnmerge = slot.colSpan > 1 || slot.rowSpan > 1;
-    const hasProduct = !!slot.product;
-
-    if (canMerge || canUnmerge || hasProduct) {
-      setContextMenu({ x: e.clientX, y: e.clientY, slot, canMerge, canUnmerge, hasProduct });
+  useEffect(() => {
+    if (isZoomed) {
+      return;
     }
-  };
 
-  const currentPage = pages.find((p) => p.pageNumber === pageNumber);
-  const pageConfig = template.pages.find((p) => p.pageNumber === pageNumber);
-
-  if (!currentPage || !pageConfig) return null;
-
-  const pageStyle = {
-    width: `${pageConfig.widthMm}mm`,
-    height: `${template.openHeightMm}mm`,
-    boxSizing: "border-box" as const,
-    backgroundColor: "transparent", // Sayfalar artık şeffaf
-  };
-
-  const isSelected = selectedPageIds.includes(currentPage.id);
-
-
-
-const [mt, mr, mb, ml] = pageConfig.safeZone;
-  
-  const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings.defaultGrid.cols;
-  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings.defaultGrid.rows;
-  
-  const totalRows = Math.max(configuredRows, Math.ceil(currentPage.slots.length / totalColumns));
-
-  const previousVisibleCount = formas
-    .flatMap(f => f.pages)
-    .filter(p => p.pageNumber < pageNumber)
-    .reduce((sum, p) => sum + p.slots.filter(s => s.role === 'product' && !s.hidden).length, 0);
-
-  const renderSlots = (startIndex: number) => {
-    const grid: boolean[][] = [];
-    let r = Math.floor(startIndex / totalColumns), c = startIndex % totalColumns;
-
-    return currentPage.slots.map((slot, idx) => {
-      if (idx < startIndex || slot.hidden) return null;
-      let placed = false, startR = r, startC = c;
-      while (!placed) {
-        if (!grid[r]) grid[r] = [];
-        if (!grid[r][c]) {
-          let canFit = (c + slot.colSpan <= totalColumns);
-          if (canFit) {
-            for (let ir = 0; ir < slot.rowSpan; ir++) {
-              if (!grid[r + ir]) grid[r + ir] = [];
-              for (let ic = 0; ic < slot.colSpan; ic++) { if (grid[r + ir][c + ic]) { canFit = false; break; } }
-              if (!canFit) break;
-            }
-          }
-          if (canFit) {
-            for (let ir = 0; ir < slot.rowSpan; ir++) { for (let ic = 0; ic < slot.colSpan; ic++) grid[r + ir][c + ic] = true; }
-            startR = r; startC = c; placed = true;
-          }
-        }
-        if (!placed) { c++; if (c >= totalColumns) { c = 0; r++; } }
-      }
-      const currentSlotIndexInPage = currentPage.slots.slice(0, idx).filter(s => s.role === 'product' && !s.hidden).length;
-      const globalNumber = (slot.role === 'product' && !slot.hidden) ? previousVisibleCount + currentSlotIndexInPage + 1 : 0;
-      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={globalNumber} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} totalRows={totalRows} totalColumns={totalColumns} />;
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      const scaleW = (width - 80) / referenceWidthPx;
+      const scaleH = (height - 80) / referenceHeightPx;
+      setScale(Math.min(scaleW, scaleH));
     });
-  };
+
+    if (wrapperRef.current) observer.observe(wrapperRef.current);
+    return () => observer.disconnect();
+  }, [isZoomed, referenceWidthPx, referenceHeightPx]);
+
+  // KURAL: Hiçbir hook bu satırın altında olamaz! (Rules of Hooks)
+  if (!isMounted) return null;
 
   return (
-    <>
-      {contextMenu && createPortal(
-        <div className="fixed z-[9999] bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-[150px]" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
-          {contextMenu.canMerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50" onClick={() => { mergeSelected(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreleri Birleştir</button>}
-          {contextMenu.canUnmerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-red-50" onClick={() => { unmergeSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreyi Dağıt</button>}
-          {contextMenu.hasProduct && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50" onClick={() => { clearSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Temizle</button>}
-        </div>, document.body
-      )}
+    <div
+      ref={wrapperRef}
+      className={`flex-1 relative w-full h-full min-w-0 min-h-0 bg-slate-300 ${isZoomed ? "overflow-auto" : "overflow-hidden"}`}
+    >
       <div
-        id={`page-${currentPage.id}`}
-        className={`physical-page relative shrink-0 overflow-hidden shadow-lg ${isSelected ? "ring-2 ring-blue-500" : ""}`}
-        style={pageStyle}
-        onClick={(e) => {
-          setEditingContent(null);
-          if (e.target === e.currentTarget) {
-            if (e.ctrlKey || e.metaKey) {
-              // CTRL Basılı: Toggle (Çoklu Seçim)
-              if (selectedPageIds.includes(currentPage.id)) {
-                selectPages(selectedPageIds.filter((id) => id !== currentPage.id));
-              } else {
-                selectPages([...selectedPageIds, currentPage.id]);
-              }
-            } else {
-              // CTRL Basılı Değil: Tekli Seçim
-              selectPages([currentPage.id]);
-            }
-          }
+        id="canvas"
+        onClick={() => {
+          clearCatalogSelection();
+          disableAllImageEditModes();
+        }}
+        className={`canvas relative shadow-2xl transition-transform duration-200 ${isZoomed ? "mx-auto mt-20 mb-8" : "absolute top-1/2 left-1/2 origin-center"}`}
+        style={{
+          boxSizing: "border-box",
+          width: `${totalWidthMm}mm`,
+          height: `${physicalHeight}mm`,
+          padding: `${bleedMm}mm`,
+          backgroundColor: "#ffffff",
+          outline: "0.5px dashed rgba(255, 0, 0, 0.4)",
+          outlineOffset: "-1px",
+          transform: isZoomed ? "scale(1)" : `translate(-50%, -50%) scale(${scale})`,
         }}
       >
-        <div className="safe-zone absolute z-10 flex flex-col pointer-events-none" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
-            <div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{renderSlots(0)}</div>
-        </div>
-        <div className="absolute w-full flex items-end gap-5 z-50" style={{ bottom: "10mm", left: "0", paddingLeft: "10mm", paddingRight: "10mm", height: "12mm" }}>
-          
-          {/* LOGO ALANI: Eğer logo yoksa çıktıda tamamen gizlenecek */}
-          <div 
-            data-hide-on-export={!currentPage.footerLogo ? "true" : undefined}
-            onClick={() => footerLogoInputRef.current?.click()} 
-            className={`w-[35mm] h-full flex items-center justify-center border border-dashed rounded cursor-pointer overflow-hidden ${currentPage.footerLogo ? 'border-transparent' : 'border-slate-300 bg-slate-50 shadow-inner'}`}
-          >
-            {currentPage.footerLogo ? (
-              <img src={currentPage.footerLogo} alt="" className="max-h-full max-w-full object-contain" />
-            ) : (
-              <span className="text-[7px] text-slate-400 font-bold uppercase text-center">LOGO</span>
-            )}
-            <input type="file" ref={footerLogoInputRef} className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) updatePageFooter(pageNumber, { footerLogo: URL.createObjectURL(file) }); }} />
-          </div>
-          
-          {/* METİN ALANI: Placeholder mantığıyla çalışır, tıklayınca silinir, boşsa silik görünür */}
-          <div 
-            data-hide-on-export={!currentPage.footerText || currentPage.footerText.trim() === "" || currentPage.footerText === "Sayfa altı notu..." ? "true" : undefined}
-            contentEditable 
-            suppressContentEditableWarning 
-            onFocus={(e) => {
-              // Tıklanınca eğer içindeki yazı varsayılan metinse, içini tamamen boşalt
-              if (e.currentTarget.textContent === "Sayfa altı notu...") {
-                e.currentTarget.textContent = "";
-              }
-            }}
-            onBlur={(e) => {
-              // Dışarı tıklanınca eğer boş bırakılmışsa varsayılan metni geri getir, doluysa yazılanı kaydet
-              const val = e.currentTarget.textContent?.trim() || "";
-              updatePageFooter(pageNumber, { footerText: val === "" ? "Sayfa altı notu..." : val });
-            }} 
-            className={`flex-1 text-[11px] font-semibold outline-none border-b border-transparent hover:border-slate-200 pb-1 transition-colors ${
-              currentPage.footerText === "Sayfa altı notu..." ? "text-slate-300 italic font-normal" : "text-slate-700"
-            }`}
-          >
-            {currentPage.footerText}
-          </div>
-          
-          {/* SAYFA NUMARASI: Her zaman gizlenecek */}
-          <div 
-            data-hide-on-export="true" 
-            className="text-[10px] font-black text-slate-300 uppercase pb-1 tracking-tighter"
-          >
-            P.{pageNumber}
-          </div>
+        <LayerStack forma={activeForma} />
 
+        <div className="relative z-10 flex h-full w-full flex-row items-stretch bg-transparent">
+          {order.map((n) => (
+            <Page key={n} pageNumber={n} />
+          ))}
         </div>
-        {/* INDESIGN GÜVENLİ ALAN (SAFE ZONE / MARGIN) ÇİZGİSİ */}
+
         <div
-          data-hide-on-export="true"
           className="pointer-events-none absolute print:hidden z-50"
           style={{
-            top: `${mt}mm`,
-            bottom: `${mb}mm`,
-            left: `${ml}mm`,
-            right: `${mr}mm`,
-            border: "1px solid magenta",
+            top: `${bleedMm}mm`, 
+            bottom: `${bleedMm}mm`, 
+            left: `${bleedMm}mm`, 
+            right: `${bleedMm}mm`,
+            border: "0.5px solid rgba(0, 0, 0, 0.2)", 
             boxSizing: "border-box",
           }}
         />
       </div>
-    </>
+    </div>
   );
 }
 </file>
@@ -8355,531 +8157,6 @@ export function DownloadMenu() {
 }
 </file>
 
-<file path="src/components/sidebar-panels/BackgroundSettingsPanel.tsx">
-"use client";
-
-import { useMemo, useRef, useState } from "react";
-import { uploadImage } from "@/lib/uploadAction";
-import { ColorOpacityPicker } from "../ColorOpacityPicker";
-import { useLayerStore } from "@/store/useLayerStore";
-import { useCatalogStore } from "@/store/useCatalogStore";
-import { Layer } from "@/types/document";
-import { 
-  Eye, 
-  EyeOff, 
-  Image as ImageIcon, 
-  Palette, 
-  Trash2, 
-  Maximize, 
-  Combine, 
-  Split, 
-  Layers,
-  Sparkles,
-  Info,
-  CheckCircle2
-} from "lucide-react";
-
-export function BackgroundSettingsPanel() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const {
-    selectedPageIds,
-    layers,
-    removeLayer,
-    updateLayerProperties,
-    updateLayerTransform,
-    selectPages: setSelectedPagesInLayerStore,
-    syncGroupBackground,
-  } = useLayerStore();
-
-  const {
-    formas,
-    activeFormaId,
-    mergePages,
-    unmergePages,
-  } = useCatalogStore();
-
-  // 1. DATA SELECTORS & HELPERS
-  const activeForma = useMemo(
-    () => formas.find((f) => f.id === activeFormaId),
-    [formas, activeFormaId]
-  );
-
-  const currentGroups = useMemo(() => activeForma?.pageMergeGroups || [], [activeForma]);
-
-  /** 
-   * KESİN ÇÖZÜM: "Target Clusters" (Groups + Singletons)
-   * Seçili sayfaların her birini kapsayan grupları veya tekil sayfaları bulur.
-   */
-  const targetGroups = useMemo(() => {
-    if (selectedPageIds.length === 0) return [];
-    
-    const clusters: string[][] = [];
-    const handled = new Set<string>();
-
-    selectedPageIds.forEach(id => {
-      if (handled.has(id)) return;
-
-      // Bu sayfa birleşmiş bir gruba dahil mi?
-      const foundGroup = currentGroups.find(g => g.includes(id));
-      if (foundGroup && foundGroup.length > 1) {
-        // Birleşmiş grup — tüm grup üyelerini birlikte işle
-        clusters.push(foundGroup);
-        foundGroup.forEach(gid => handled.add(gid));
-      } else {
-        // Tekil sayfa (singleton fallback) — grupsuz da çalışır
-        clusters.push([id]);
-        handled.add(id);
-      }
-    });
-    
-    return clusters;
-  }, [selectedPageIds, currentGroups]);
-
-  /** 
-   * Seçili grupların aktif katmanlarını bul 
-   * (Birden fazla grup varsa, ilk grubun verilerini "başlangıç değeri" olarak kullanırız)
-   */
-  const groupLayers = useMemo(() => {
-    if (targetGroups.length === 0) return { base: null, overlay: null };
-    
-    // İlk grubun verilerini referans al
-    const firstGroup = targetGroups[0];
-    const matches = (l: Layer, group: string[]) => 
-      l.mask?.targetIds?.length === group.length && 
-      l.mask.targetIds.every(id => group.includes(id));
-
-    return {
-      base: layers.find(l => matches(l, firstGroup) && l.type === 'solid') || null,
-      overlay: layers.find(l => matches(l, firstGroup) && l.type === 'image') || null,
-    };
-  }, [layers, targetGroups]);
-
-  // 2. ACTIONS
-  const handleMerge = () => {
-    if (selectedPageIds.length < 2) return;
-    
-    // İlk sayfanın özelliklerini al (Temsilci olarak)
-    const firstId = selectedPageIds[0];
-    const baseLayer = layers.find(l => l.type === 'solid' && l.mask?.targetIds?.length === 1 && l.mask.targetIds.includes(firstId));
-    const overlayLayer = layers.find(l => l.type === 'image' && l.mask?.targetIds?.length === 1 && l.mask.targetIds.includes(firstId));
-
-    mergePages(selectedPageIds);
-
-    // Yeni gruba bunları uygula
-    if (baseLayer) syncGroupBackground(selectedPageIds, 'base', baseLayer.properties);
-    if (overlayLayer) syncGroupBackground(selectedPageIds, 'overlay', overlayLayer.properties);
-
-    // Eski tekil katmanları temizle
-    selectedPageIds.forEach(id => {
-       const b = layers.find(l => l.type === 'solid' && l.mask?.targetIds?.length === 1 && l.mask.targetIds.includes(id));
-       const o = layers.find(l => l.type === 'image' && l.mask?.targetIds?.length === 1 && l.mask.targetIds.includes(id));
-       if (b) removeLayer(b.id);
-       if (o) removeLayer(o.id);
-    });
-  };
-
-  const handleSplit = () => {
-    if (targetGroups.length === 0) return;
-    targetGroups.forEach(group => {
-       if (group.length > 1) {
-           // Gruptaki layer özelliklerini bul
-           const baseLayer = layers.find(l => l.type === 'solid' && l.mask?.targetIds?.length === group.length && l.mask.targetIds.every(id => group.includes(id)));
-           const overlayLayer = layers.find(l => l.type === 'image' && l.mask?.targetIds?.length === group.length && l.mask.targetIds.every(id => group.includes(id)));
-
-           unmergePages(group);
-
-           // Yeni ayrılan her sayfaya eski özellikleri kopyala
-           group.forEach(id => {
-               if (baseLayer) syncGroupBackground([id], 'base', baseLayer.properties);
-               if (overlayLayer) syncGroupBackground([id], 'overlay', overlayLayer.properties);
-           });
-
-           // Eski birleşik katmanları sil (Hayalet katmanları temizle)
-           if (baseLayer) removeLayer(baseLayer.id);
-           if (overlayLayer) removeLayer(overlayLayer.id);
-       }
-    });
-  };
-
-  const handleBaseColorChange = (color: string, opacity: number) => {
-    if (targetGroups.length === 0) return;
-    // Batch Apply: Seçili tüm gruplara uygula
-    targetGroups.forEach(group => {
-      syncGroupBackground(group, 'base', { color, opacity, gradient: null });
-    });
-  };
-
-  const handleBaseGradientChange = (gradient: string | null) => {
-    if (targetGroups.length === 0) return;
-    targetGroups.forEach(group => {
-      syncGroupBackground(group, 'base', { gradient });
-    });
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0] || targetGroups.length === 0) return;
-
-    setIsUploading(true);
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("filename", `overlay-${Date.now()}.${file.name.split(".").pop()}`);
-
-    try {
-      const result = await uploadImage(formData);
-      if (result.success) {
-        // Batch Apply Resim: Seçili tüm gruplara aynı resmi yay
-        targetGroups.forEach(group => {
-          syncGroupBackground(group, 'overlay', {
-            imageUrl: `${result.path}?t=${Date.now()}`,
-            opacity: 100,
-            fitMode: 'cover',
-            blendMode: 'normal'
-          });
-        });
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const removeOverlay = () => {
-    if (targetGroups.length === 0) return;
-    targetGroups.forEach(group => {
-        const matches = (l: Layer) => 
-            l.mask?.targetIds?.length === group.length && 
-            l.mask.targetIds.every(id => group.includes(id));
-        const overlay = layers.find(l => matches(l) && l.type === 'image');
-        if (overlay) removeLayer(overlay.id);
-    });
-  };
-
-  // 3. UI RENDERERS
-  return (
-    <div className="space-y-4">
-          
-          {/* A. HÜCRE BİRLEŞTİRME (EXCEL MANTIĞI) */}
-          <section className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <label className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500 flex items-center gap-1.5">
-                <Combine className="w-3 h-3" /> Sayfa Birleştirme
-              </label>
-              <div className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                Forma {activeForma?.id}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {activeForma?.pages.map((page) => {
-                const isSelected = selectedPageIds.includes(page.id);
-                const group = currentGroups.find(g => g.includes(page.id));
-                const isMerged = group && group.length > 1;
-
-                return (
-                  <button
-                    key={page.id}
-                    onClick={() => {
-                      if (selectedPageIds.includes(page.id)) {
-                        setSelectedPagesInLayerStore(selectedPageIds.filter(id => id !== page.id));
-                      } else {
-                        setSelectedPagesInLayerStore([...selectedPageIds, page.id]);
-                      }
-                    }}
-                    className={`relative min-w-[40px] h-10 rounded border text-[11px] font-black transition-all flex items-center justify-center ${
-                      isSelected
-                        ? "border-blue-600 bg-blue-600 text-white shadow-md z-10 scale-105"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                    }`}
-                  >
-                    {page.pageNumber}
-                    {isMerged && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-white" title="Merged" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={handleMerge}
-                disabled={selectedPageIds.length < 2}
-                className="flex items-center justify-center gap-2 py-2 rounded bg-slate-800 text-white text-[10px] font-black uppercase hover:bg-slate-900 disabled:opacity-30 transition-all font-sans"
-              >
-                <Combine className="w-3.5 h-3.5" /> Seçili Sayfaları Birleştir
-              </button>
-              <button
-                onClick={handleSplit}
-                disabled={targetGroups.length === 0 || !targetGroups.some(g => g.length > 1)}
-                className="flex items-center justify-center gap-2 py-2 rounded border border-slate-300 bg-white text-slate-700 text-[10px] font-black uppercase hover:bg-slate-50 disabled:opacity-30 transition-all font-sans"
-              >
-                <Split className="w-3.5 h-3.5" /> Grubu Ayır
-              </button>
-            </div>
-
-            {/* SELECTION SUMMARY UI */}
-            {targetGroups.length > 0 && (
-              <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-100 p-2.5 rounded animate-in fade-in slide-in-from-top-1 duration-300">
-                <CheckCircle2 size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
-                <div className="space-y-1">
-                  <div className="text-[10px] font-black text-emerald-800 uppercase tracking-tighter">
-                    {targetGroups.length} TASARIM HÜCRESİ SEÇİLDİ
-                  </div>
-                  <div className="text-[9px] text-emerald-700 leading-tight">
-                    Yapacağınız değişiklikler toplam <strong>{selectedPageIds.length} sayfayı</strong> etkileyecek.
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* B. AKILLI ZEMİN İSTİFLEME (BACKGROUND POOL) */}
-          <section className="space-y-4">
-            
-            {/* SLOT 1: BASE LAYER (SOLID / GRADIENT) */}
-            <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-emerald-500" />
-                  <div>
-                    <span className="text-[11px] font-black text-slate-700 uppercase">Zemin Rengi (Base)</span>
-                    <p className="text-[9px] text-slate-400 font-medium">Temel dolgu veya gradyan</p>
-                  </div>
-                </div>
-                <ColorOpacityPicker
-                  key={`base-picker-${targetGroups.map(g => g.join(',')).join('|') || 'none'}`}
-                  color={groupLayers.base?.properties?.color || "#ffffff"}
-                  opacity={groupLayers.base?.properties?.opacity || 100}
-                  onChange={handleBaseColorChange}
-                  disabled={targetGroups.length === 0}
-                />
-              </div>
-
-              {/* GRADIENT PRESETS */}
-              <div className="space-y-2 pt-1 border-t border-slate-100 mt-2">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Gradyan Efekti</span>
-                <div className="flex gap-2">
-                   <button 
-                      onClick={() => handleBaseGradientChange(null)}
-                      className={`w-6 h-6 rounded-full border-2 ${!groupLayers.base?.properties?.gradient ? 'border-blue-500' : 'border-slate-200'} bg-white`}
-                      title="Düz Renk"
-                   />
-                   <button 
-                      onClick={() => handleBaseGradientChange('linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)')}
-                      className={`w-6 h-6 rounded-full border-2 ${groupLayers.base?.properties?.gradient?.includes('#f5f7fa') ? 'border-blue-500' : 'border-slate-200'}`}
-                      style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'}}
-                      title="Cloudy"
-                   />
-                   <button 
-                      onClick={() => handleBaseGradientChange('linear-gradient(to right, #4facfe 0%, #00f2fe 100%)')}
-                      className={`w-6 h-6 rounded-full border-2 ${groupLayers.base?.properties?.gradient?.includes('#4facfe') ? 'border-blue-500' : 'border-slate-200'}`}
-                      style={{ background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)'}}
-                      title="Skyline"
-                   />
-                   <button 
-                      onClick={() => handleBaseGradientChange('linear-gradient(to top, #30cfd0 0%, #330867 100%)')}
-                      className={`w-6 h-6 rounded-full border-2 ${groupLayers.base?.properties?.gradient?.includes('#30cfd0') ? 'border-blue-500' : 'border-slate-200'}`}
-                      style={{ background: 'linear-gradient(to top, #30cfd0 0%, #330867 100%)'}}
-                      title="Deep Blue"
-                   />
-                </div>
-              </div>
-            </div>
-
-            {/* SLOT 2: OVERLAY LAYER (IMAGE) */}
-            <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-blue-500" />
-                  <div>
-                    <span className="text-[11px] font-black text-slate-700 uppercase">Doku & Görsel (Overlay)</span>
-                    <p className="text-[9px] text-slate-400 font-medium">Renk üzerine binen katman</p>
-                  </div>
-                </div>
-                {groupLayers.overlay && (
-                  <button onClick={removeOverlay} className="p-1.5 rounded hover:bg-rose-50 text-rose-500 transition-colors">
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
-
-              {!groupLayers.overlay ? (
-                <div className="relative">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    id="overlay-upload"
-                    disabled={targetGroups.length === 0}
-                    onChange={handleImageUpload}
-                  />
-                  <label
-                    htmlFor="overlay-upload"
-                    className={`w-full h-16 rounded border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all ${targetGroups.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
-                  >
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">
-                      {isUploading ? "YÜKLENİYOR..." : "GÖRSEL VEYA DOKU YÜKLE"}
-                    </span>
-                    <span className="text-[9px] text-slate-400">PNG, JPG veya SVG</span>
-                  </label>
-                </div>
-              ) : (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="relative group rounded overflow-hidden border border-slate-200">
-                    <img 
-                      src={groupLayers.overlay.properties.imageUrl} 
-                      className="w-full h-24 object-cover" 
-                      alt="Overlay Preview" 
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                       <label htmlFor="overlay-upload" className="px-3 py-1.5 bg-white rounded text-[10px] font-black text-slate-800 cursor-pointer shadow-xl">DEĞİŞTİR</label>
-                    </div>
-                  </div>
-
-                  {/* OVERLAY CONTROLS */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-600">Harmanlama Opaklığı</span>
-                      <span className="text-[10px] font-black text-blue-600">%{groupLayers.overlay.properties.opacity}</span>
-                    </div>
-                    <input 
-                      type="range"
-                      min="0" max="100"
-                      value={groupLayers.overlay.properties.opacity}
-                      onChange={(e) => {
-                        targetGroups.forEach(group => {
-                            const matches = (l: Layer) => 
-                                l.mask?.targetIds?.length === group.length && 
-                                l.mask.targetIds.every(id => group.includes(id));
-                            const overlay = layers.find(l => matches(l) && l.type === 'image');
-                            if (overlay) updateLayerProperties(overlay.id, { opacity: parseInt(e.target.value) });
-                        });
-                      }}
-                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                    />
-
-                    <div className="space-y-1 pt-1">
-                      <label className="text-[10px] font-bold text-slate-600">Karışım Modu (Blend)</label>
-                      <select
-                        value={groupLayers.overlay.properties.blendMode || 'normal'}
-                        onChange={(e) => {
-                             targetGroups.forEach(group => {
-                                const matches = (l: Layer) => 
-                                    l.mask?.targetIds?.length === group.length && 
-                                    l.mask.targetIds.every(id => group.includes(id));
-                                const overlay = layers.find(l => matches(l) && l.type === 'image');
-                                if (overlay) updateLayerProperties(overlay.id, { blendMode: e.target.value });
-                            });
-                        }}
-                        className="w-full h-9 rounded border border-slate-300 text-[11px] font-bold px-2 outline-none focus:border-blue-600"
-                      >
-                        <option value="normal">Normal</option>
-                        <option value="multiply">Çoğalt (Multiply)</option>
-                        <option value="screen">Ekran (Screen)</option>
-                        <option value="overlay">Kaplama (Overlay)</option>
-                        <option value="darken">Koyulaştır</option>
-                        <option value="color-burn">Renk Yak</option>
-                        <option value="soft-light">Yumuşak Işık</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* C. ADVANCED TOOLS & SNAPS */}
-          <div className="pt-2">
-            <button 
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-600 outline-none"
-            >
-              <Sparkles size={12} /> {showAdvanced ? "GELİŞMİŞ AYARLARI GİZLE" : "GELİŞMİŞ AYARLARI GÖSTER"}
-            </button>
-
-            {showAdvanced && (
-              <div className="mt-3 p-3 bg-white border border-slate-200 rounded-md space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                {/* TRANSFORM CONTROLS FOR OVERLAY */}
-                {groupLayers.overlay && (
-                  <div className="space-y-3">
-                    <h4 className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Görsel Transform</h4>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-[9px] font-bold text-slate-500">Ölçek: %{groupLayers.overlay.transform.scale}</span>
-                        <input 
-                          type="range" min="10" max="300" 
-                          value={groupLayers.overlay.transform.scale}
-                          onChange={(e) => {
-                             targetGroups.forEach(group => {
-                                const matches = (l: Layer) => 
-                                    l.mask?.targetIds?.length === group.length && 
-                                    l.mask.targetIds.every(id => group.includes(id));
-                                const overlay = layers.find(l => matches(l) && l.type === 'image');
-                                if (overlay) updateLayerTransform(overlay.id, { scale: parseInt(e.target.value) });
-                            });
-                          }}
-                          className="w-full accent-blue-600 hover:accent-blue-700"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-bold text-slate-500">Döndürme: {groupLayers.overlay.transform.rotation}°</span>
-                        <input 
-                          type="range" min="0" max="360" 
-                          value={groupLayers.overlay.transform.rotation}
-                          onChange={(e) => {
-                            targetGroups.forEach(group => {
-                               const matches = (l: Layer) => 
-                                   l.mask?.targetIds?.length === group.length && 
-                                   l.mask.targetIds.every(id => group.includes(id));
-                               const overlay = layers.find(l => matches(l) && l.type === 'image');
-                               if (overlay) updateLayerTransform(overlay.id, { rotation: parseInt(e.target.value) });
-                           });
-                          }}
-                          className="w-full accent-blue-600 hover:accent-blue-700"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        targetGroups.forEach(group => {
-                            const matches = (l: Layer) => 
-                                l.mask?.targetIds?.length === group.length && 
-                                l.mask.targetIds.every(id => group.includes(id));
-                            const overlay = layers.find(l => matches(l) && l.type === 'image');
-                            if (overlay) {
-                                updateLayerProperties(overlay.id, { fitMode: 'cover' });
-                                updateLayerTransform(overlay.id, { scale: 100, rotation: 0, offsetX: 0, offsetY: 0 });
-                            }
-                        });
-                      }}
-                      className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
-                    >
-                      <Maximize size={12} /> Görseli Sığdır
-                    </button>
-                  </div>
-                )}
-
-                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-[9px] text-amber-700 font-bold flex gap-2">
-                  <Info size={14} className="flex-shrink-0" />
-                  Gelişmiş modda görselleri milimetrik olarak kaydırabilir ve döndürebilirsiniz.
-                </div>
-              </div>
-            )}
-            </div>
-    </div>
-  );
-}
-</file>
-
 <file path="src/components/sidebar-panels/ProductInfoSettings.tsx">
 "use client";
 
@@ -9194,117 +8471,6 @@ export function ProductInfoSettings() {
         </>
       )}
     </div>
-  );
-}
-</file>
-
-<file path="src/components/sidebar-panels/ProductManagement.tsx">
-"use client";
-
-import { useState, useMemo, useRef } from "react";
-import { useCatalogStore } from "@/store/useCatalogStore";
-import * as XLSX from "xlsx";
-
-export function ProductManagement() {
-  const { productPool, setProductPool, masterProductPool, setMasterProductPool, formas, activeFormaId, autoFillSlots, clearProducts, resetCatalog } = useCatalogStore();
-  const activeForma = formas.find((f) => f.id === activeFormaId);
-  const pages = activeForma?.pages || [];
-  const [searchTerm, setSearchTerm] = useState("");
-  const layoutFileRef = useRef<HTMLInputElement>(null);
-  const masterFileRef = useRef<HTMLInputElement>(null);
-
-  const handleLayoutFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: "array" });
-      // defval: "" ile boş hücrelerin hata vermesini engelliyoruz
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-      
-      const formatted = rows.map((row: any, i) => ({
-        id: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
-        name: row.BEZEICHNUNG || row.URUN_ADI || "İsimsiz",
-        price: row.VK_NETTO?.toString() || row.FIYAT?.toString() || "0",
-        sku: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
-        category: row.KATEGORI || row.ARTGRP?.toString() || "Yüklenen",
-        image: row.RESIM || `/images/products/${row.ARTNR || row.KOD}.png`,
-        raw: row,
-      }));
-      setProductPool(formatted);
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const handleMasterFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: "array" });
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-      
-      const formatted = rows.map((row: any, i) => ({
-        id: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
-        name: row.BEZEICHNUNG || row.URUN_ADI || "İsimsiz",
-        price: row.VK_NETTO?.toString() || row.FIYAT?.toString() || "0",
-        sku: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
-        category: row.KATEGORI || row.ARTGRP?.toString() || "Yüklenen",
-        image: row.RESIM || `/images/products/${row.ARTNR || row.KOD}.png`,
-        raw: row,
-      }));
-      setMasterProductPool(formatted);
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const handleClearAll = () => {
-    clearProducts(); setProductPool([]); setMasterProductPool([]); setSearchTerm("");
-    if (layoutFileRef.current) layoutFileRef.current.value = "";
-    if (masterFileRef.current) masterFileRef.current.value = "";
-  };
-
-  const activeSkus = useMemo(() => {
-    const skus = new Set<string>();
-    pages.forEach(p => p.slots.forEach(s => { if (s.product?.sku) skus.add(s.product.sku); }));
-    return skus;
-  }, [pages]);
-
-  const filteredMaster = useMemo(() => masterProductPool.filter(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku?.toLowerCase().includes(searchTerm.toLowerCase())), [masterProductPool, searchTerm]);
-
-  const groupedMaster = useMemo(() => filteredMaster.reduce((acc, p) => {
-    const cat = p.category || "Diğer";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(p);
-    return acc;
-  }, {} as Record<string, typeof masterProductPool>), [filteredMaster]);
-
-  return (
-    <>
-      <div className="p-4 border-b border-slate-200 bg-white space-y-4 shadow-sm shrink-0">
-        <div><label className="block text-[10px] font-bold text-blue-600 mb-2 uppercase tracking-wider">1. Otomatik Dizilim Excel</label><input ref={layoutFileRef} type="file" accept=".xlsx, .xls, .csv" onChange={handleLayoutFileUpload} className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-md" /></div>
-<div className="flex gap-2 w-full"><button onClick={() => autoFillSlots()} disabled={productPool.length === 0} className={`flex-1 font-bold py-2.5 rounded-md text-[11px] transition-all shadow-sm ${productPool.length > 0 ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed"}`}>Yerleştir</button><button onClick={handleClearAll} className="flex-1 font-bold py-2.5 rounded-md text-[11px] bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm">Temizle</button><button onClick={() => resetCatalog()} className="flex-1 font-bold py-2.5 rounded-md text-[11px] bg-red-600 hover:bg-red-700 text-white transition-all shadow-sm">Sıfırla</button></div>
-        <div className="pt-3 border-t border-slate-100"><label className="block text-[10px] font-bold text-purple-600 mb-2 uppercase tracking-wider">2. Tüm Ürün Havuzu Excel</label><input ref={masterFileRef} type="file" accept=".xlsx, .xls, .csv" onChange={handleMasterFileUpload} className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer border border-slate-200 rounded-md" /></div>
-      </div>
-      <div className="flex-1 p-3 bg-slate-100 flex flex-col min-h-0">
-        <div className="mb-3 shrink-0 relative"><input type="text" placeholder="Ürün Ara..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm" /><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2.5 top-2.5 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
-        <div className="flex-1 overflow-y-auto pr-1 pb-4 custom-scrollbar">
-          {masterProductPool.length === 0 ? (<div className="flex flex-col items-center justify-center h-full text-slate-400 text-xs font-medium italic p-4 text-center">Havuz boş. Excel yükleyin.</div>) : (
-            Object.entries(groupedMaster).map(([category, products]) => (
-              <div key={category} className="mb-4">
-                <div className="flex items-center justify-between px-2 py-1.5 bg-slate-200 rounded text-[11px] font-bold text-slate-700 mb-2"><span>{category}</span><span className="bg-white px-1.5 rounded">{products.length}</span></div>
-                <div className="flex flex-col gap-1.5">{products.map((product, index) => {
-                  const isActive = activeSkus.has(product.sku || "");
-                  return (<div key={`${product.id || product.sku}-${index}`} draggable={!isActive} onDragStart={(e) => { if (!isActive) e.dataTransfer.setData("newProductFromSidebar", JSON.stringify(product)); }} className={`flex items-center gap-2 p-1.5 rounded-md border transition-all ${isActive ? "bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed grayscale" : "bg-white border-slate-200 hover:border-blue-300 shadow-sm cursor-grab active:cursor-grabbing"}`}><div className="w-8 h-8 bg-slate-50 rounded border flex justify-center items-center overflow-hidden shrink-0">{product.image ? <img src={product.image} className="max-w-full max-h-full object-contain" /> : <span className="text-[8px] text-slate-400 font-bold">Yok</span>}</div><div className="flex-1 min-w-0"><div className="text-[10px] font-bold text-slate-800 truncate leading-none">{product.name}</div><div className="flex justify-between mt-1"><span className="text-[9px] font-semibold text-slate-500">{product.sku}</span><span className="text-[9px] font-bold text-blue-600">{product.price} TL</span></div></div></div>);
-                })}</div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </>
   );
 }
 </file>
@@ -9782,6 +8948,989 @@ export const usePizzaStore = create<PizzaStore>((set) => ({
     "tailwindcss": "^4",
     "typescript": "^5"
   }
+}
+</file>
+
+<file path="src/components/Canvas/Page.tsx">
+"use client";
+
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { useUIStore } from "@/store/useUIStore";
+import { useLayerStore } from "@/store/useLayerStore";
+import { Slot } from "../Slot";
+import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import type { Slot as SlotType } from "@/store/useCatalogStore";
+
+export function Page({ pageNumber }: { pageNumber: number }) {
+  const formas = useCatalogStore((state) => state.formas);
+  const activeFormaId = useCatalogStore((state) => state.activeFormaId);
+  const template = useCatalogStore((state) => state.activeTemplate);
+  const gridGap = useCatalogStore((state) => state.globalSettings?.gridGap ?? 0);
+  const updatePageFooter = useCatalogStore((state) => state.updatePageFooter);
+  const mergeSelected = useCatalogStore((state) => state.mergeSelected);
+  const unmergeSlot = useCatalogStore((state) => state.unmergeSlot);
+  const clearSlot = useCatalogStore((state) => state.clearSlot);
+  const selectPages = useLayerStore((state) => state.selectPages);
+  const selectedPageIds = useLayerStore((state) => state.selectedPageIds);
+  const setEditingContent = useUIStore((state) => state.setEditingContent);
+
+
+  const activeForma = formas.find((f) => f.id === activeFormaId);
+  const pages = activeForma?.pages || [];
+
+  const footerLogoInputRef = useRef<HTMLInputElement>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; slot: SlotType; canMerge: boolean; canUnmerge: boolean; hasProduct: boolean } | null>(null);
+
+  useEffect(() => {
+    const handleWindowClick = () => setContextMenu(null);
+    window.addEventListener("click", handleWindowClick);
+    return () => window.removeEventListener("click", handleWindowClick);
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, slot: SlotType) => {
+    e.preventDefault();
+    const selected = useUIStore.getState().selectedSlotIds;
+    const canMerge = selected.length > 1 && selected.includes(slot.id);
+    const canUnmerge = slot.colSpan > 1 || slot.rowSpan > 1;
+    const hasProduct = !!slot.product;
+
+    if (canMerge || canUnmerge || hasProduct) {
+      setContextMenu({ x: e.clientX, y: e.clientY, slot, canMerge, canUnmerge, hasProduct });
+    }
+  };
+
+  const currentPage = pages.find((p) => p.pageNumber === pageNumber);
+  const pageConfig = template.pages.find((p) => p.pageNumber === pageNumber);
+
+  if (!currentPage || !pageConfig) return null;
+
+  const pageStyle = {
+    width: `${pageConfig.widthMm}mm`,
+    height: `${template.openHeightMm}mm`,
+    boxSizing: "border-box" as const,
+    backgroundColor: "transparent", // Sayfalar artık şeffaf
+  };
+
+  const isSelected = selectedPageIds.includes(currentPage.id);
+
+
+
+const [mt, mr, mb, ml] = pageConfig.safeZone;
+  
+  const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings.defaultGrid.cols;
+  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings.defaultGrid.rows;
+  
+  const totalRows = Math.max(configuredRows, Math.ceil(currentPage.slots.length / totalColumns));
+
+  const previousVisibleCount = formas
+    .flatMap(f => f.pages)
+    .filter(p => p.pageNumber < pageNumber)
+    .reduce((sum, p) => sum + p.slots.filter(s => s.role === 'product' && !s.hidden).length, 0);
+
+  const renderSlots = (startIndex: number) => {
+    const grid: boolean[][] = [];
+    let r = Math.floor(startIndex / totalColumns), c = startIndex % totalColumns;
+
+    return currentPage.slots.map((slot, idx) => {
+      if (idx < startIndex || slot.hidden) return null;
+      let placed = false, startR = r, startC = c;
+      while (!placed) {
+        if (!grid[r]) grid[r] = [];
+        if (!grid[r][c]) {
+          let canFit = (c + slot.colSpan <= totalColumns);
+          if (canFit) {
+            for (let ir = 0; ir < slot.rowSpan; ir++) {
+              if (!grid[r + ir]) grid[r + ir] = [];
+              for (let ic = 0; ic < slot.colSpan; ic++) { if (grid[r + ir][c + ic]) { canFit = false; break; } }
+              if (!canFit) break;
+            }
+          }
+          if (canFit) {
+            for (let ir = 0; ir < slot.rowSpan; ir++) { for (let ic = 0; ic < slot.colSpan; ic++) grid[r + ir][c + ic] = true; }
+            startR = r; startC = c; placed = true;
+          }
+        }
+        if (!placed) { c++; if (c >= totalColumns) { c = 0; r++; } }
+      }
+      const currentSlotIndexInPage = currentPage.slots.slice(0, idx).filter(s => s.role === 'product' && !s.hidden).length;
+      const globalNumber = (slot.role === 'product' && !slot.hidden) ? previousVisibleCount + currentSlotIndexInPage + 1 : 0;
+      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={globalNumber} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} totalRows={totalRows} totalColumns={totalColumns} />;
+    });
+  };
+
+  return (
+    <>
+      {contextMenu && createPortal(
+        <div className="fixed z-[9999] bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-[150px]" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+          {contextMenu.canMerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50" onClick={() => { mergeSelected(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreleri Birleştir</button>}
+          {contextMenu.canUnmerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-red-50" onClick={() => { unmergeSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreyi Dağıt</button>}
+          {contextMenu.hasProduct && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50" onClick={() => { clearSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Temizle</button>}
+        </div>, document.body
+      )}
+      <div
+        id={`page-${currentPage.id}`}
+        className={`physical-page relative shrink-0 overflow-hidden shadow-lg ${isSelected ? "ring-2 ring-blue-500" : ""}`}
+        style={pageStyle}
+        onClick={(e) => {
+          setEditingContent(null);
+          if (e.target === e.currentTarget) {
+            if (e.ctrlKey || e.metaKey) {
+              // CTRL Basılı: Toggle (Çoklu Seçim)
+              if (selectedPageIds.includes(currentPage.id)) {
+                selectPages(selectedPageIds.filter((id) => id !== currentPage.id));
+              } else {
+                selectPages([...selectedPageIds, currentPage.id]);
+              }
+            } else {
+              // CTRL Basılı Değil: Tekli Seçim
+              selectPages([currentPage.id]);
+            }
+          }
+        }}
+      >
+        <div className="safe-zone absolute z-10 flex flex-col pointer-events-none" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
+            <div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{renderSlots(0)}</div>
+        </div>
+        <div className="absolute w-full flex items-end gap-5 z-50" style={{ bottom: "10mm", left: "0", paddingLeft: "10mm", paddingRight: "10mm", height: "12mm" }}>
+          
+          {/* LOGO ALANI: Eğer logo yoksa çıktıda tamamen gizlenecek */}
+          <div 
+            data-hide-on-export={!currentPage.footerLogo ? "true" : undefined}
+            onClick={() => footerLogoInputRef.current?.click()} 
+            className={`w-[35mm] h-full flex items-center justify-center border border-dashed rounded cursor-pointer overflow-hidden ${currentPage.footerLogo ? 'border-transparent' : 'border-slate-300 bg-slate-50 shadow-inner'}`}
+          >
+            {currentPage.footerLogo ? (
+              <img src={currentPage.footerLogo} alt="" className="max-h-full max-w-full object-contain" />
+            ) : (
+              <span className="text-[7px] text-slate-400 font-bold uppercase text-center">LOGO</span>
+            )}
+            <input type="file" ref={footerLogoInputRef} className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) updatePageFooter(pageNumber, { footerLogo: URL.createObjectURL(file) }); }} />
+          </div>
+          
+          {/* METİN ALANI: Placeholder mantığıyla çalışır, tıklayınca silinir, boşsa silik görünür */}
+          <div 
+            data-hide-on-export={!currentPage.footerText || currentPage.footerText.trim() === "" || currentPage.footerText === "Sayfa altı notu..." ? "true" : undefined}
+            contentEditable 
+            suppressContentEditableWarning 
+            onFocus={(e) => {
+              // Tıklanınca eğer içindeki yazı varsayılan metinse, içini tamamen boşalt
+              if (e.currentTarget.textContent === "Sayfa altı notu...") {
+                e.currentTarget.textContent = "";
+              }
+            }}
+            onBlur={(e) => {
+              // Dışarı tıklanınca eğer boş bırakılmışsa varsayılan metni geri getir, doluysa yazılanı kaydet
+              const val = e.currentTarget.textContent?.trim() || "";
+              updatePageFooter(pageNumber, { footerText: val === "" ? "Sayfa altı notu..." : val });
+            }} 
+            className={`flex-1 text-[11px] font-semibold outline-none border-b border-transparent hover:border-slate-200 pb-1 transition-colors ${
+              currentPage.footerText === "Sayfa altı notu..." ? "text-slate-300 italic font-normal" : "text-slate-700"
+            }`}
+          >
+            {currentPage.footerText}
+          </div>
+          
+          {/* SAYFA NUMARASI: Her zaman gizlenecek */}
+          <div 
+            data-hide-on-export="true" 
+            className="text-[10px] font-black text-slate-300 uppercase pb-1 tracking-tighter"
+          >
+            P.{pageNumber}
+          </div>
+
+        </div>
+        {/* INDESIGN GÜVENLİ ALAN (SAFE ZONE / MARGIN) ÇİZGİSİ */}
+        <div
+          data-hide-on-export="true"
+          className="pointer-events-none absolute print:hidden z-50"
+          style={{
+            top: `${mt}mm`,
+            bottom: `${mb}mm`,
+            left: `${ml}mm`,
+            right: `${mr}mm`,
+            border: "1px solid magenta",
+            boxSizing: "border-box",
+          }}
+        />
+      </div>
+    </>
+  );
+}
+</file>
+
+<file path="src/components/sidebar-panels/BackgroundSettingsPanel.tsx">
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import { uploadImage } from "@/lib/uploadAction";
+import { ColorOpacityPicker } from "../ColorOpacityPicker";
+import { useLayerStore } from "@/store/useLayerStore";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { Layer } from "@/types/document";
+import { 
+  Eye, 
+  EyeOff, 
+  Image as ImageIcon, 
+  Palette, 
+  Trash2, 
+  Maximize, 
+  Combine, 
+  Split, 
+  Layers,
+  Sparkles,
+  Info,
+  CheckCircle2
+} from "lucide-react";
+
+interface GradientConfig {
+  type: 'linear' | 'radial' | 'conic';
+  color1: { c: string; o: number };
+  color2: { c: string; o: number };
+  angle: number;
+  posX: number;
+  posY: number;
+  stop1: number;
+  stop2: number;
+}
+
+const defaultGradientConfig: GradientConfig = {
+  type: 'linear',
+  color1: { c: '#4facfe', o: 100 },
+  color2: { c: '#00f2fe', o: 100 },
+  angle: 135,
+  posX: 50,
+  posY: 50,
+  stop1: 0,
+  stop2: 100,
+};
+
+function hexToRgbaLoc(hex: string, opacity: number) {
+  if (!hex) return 'rgba(0,0,0,1)';
+  const r = parseInt(hex.slice(1, 3), 16) || 0;
+  const g = parseInt(hex.slice(3, 5), 16) || 0;
+  const b = parseInt(hex.slice(5, 7), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+}
+
+function generateGradientString(config: GradientConfig) {
+  const c1 = hexToRgbaLoc(config.color1.c, config.color1.o);
+  const c2 = hexToRgbaLoc(config.color2.c, config.color2.o);
+
+  if (config.type === 'linear') {
+    return `linear-gradient(${config.angle}deg, ${c1} ${config.stop1}%, ${c2} ${config.stop2}%)`;
+  } else if (config.type === 'radial') {
+    return `radial-gradient(circle at ${config.posX}% ${config.posY}%, ${c1} ${config.stop1}%, ${c2} ${config.stop2}%)`;
+  } else if (config.type === 'conic') {
+    return `conic-gradient(from ${config.angle}deg at ${config.posX}% ${config.posY}%, ${c1} ${config.stop1}%, ${c2} ${config.stop2}%)`;
+  }
+  return null;
+}
+
+export function BackgroundSettingsPanel() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const {
+    selectedPageIds,
+    layers,
+    removeLayer,
+    updateLayerProperties,
+    updateLayerTransform,
+    selectPages: setSelectedPagesInLayerStore,
+    syncGroupBackground,
+  } = useLayerStore();
+
+  const {
+    formas,
+    activeFormaId,
+    mergePages,
+    unmergePages,
+  } = useCatalogStore();
+
+  // 1. DATA SELECTORS & HELPERS
+  const activeForma = useMemo(
+    () => formas.find((f) => f.id === activeFormaId),
+    [formas, activeFormaId]
+  );
+
+  const currentGroups = useMemo(() => activeForma?.pageMergeGroups || [], [activeForma]);
+
+  /** 
+   * KESİN ÇÖZÜM: "Target Clusters" (Groups + Singletons)
+   * Seçili sayfaların her birini kapsayan grupları veya tekil sayfaları bulur.
+   */
+  const targetGroups = useMemo(() => {
+    if (selectedPageIds.length === 0) return [];
+    
+    const clusters: string[][] = [];
+    const handled = new Set<string>();
+
+    selectedPageIds.forEach(id => {
+      if (handled.has(id)) return;
+
+      // Bu sayfa birleşmiş bir gruba dahil mi?
+      const foundGroup = currentGroups.find(g => g.includes(id));
+      if (foundGroup && foundGroup.length > 1) {
+        // Birleşmiş grup — tüm grup üyelerini birlikte işle
+        clusters.push(foundGroup);
+        foundGroup.forEach(gid => handled.add(gid));
+      } else {
+        // Tekil sayfa (singleton fallback) — grupsuz da çalışır
+        clusters.push([id]);
+        handled.add(id);
+      }
+    });
+    
+    return clusters;
+  }, [selectedPageIds, currentGroups]);
+
+  /** 
+   * Seçili grupların aktif katmanlarını bul 
+   * (Birden fazla grup varsa, ilk grubun verilerini "başlangıç değeri" olarak kullanırız)
+   */
+  const groupLayers = useMemo(() => {
+    if (targetGroups.length === 0) return { base: null, overlay: null };
+    
+    // İlk grubun verilerini referans al
+    const firstGroup = targetGroups[0];
+    const matches = (l: Layer, group: string[]) => 
+      l.mask?.targetIds?.length === group.length && 
+      l.mask.targetIds.every(id => group.includes(id));
+
+    return {
+      base: layers.find(l => matches(l, firstGroup) && l.type === 'solid') || null,
+      overlay: layers.find(l => matches(l, firstGroup) && l.type === 'image') || null,
+    };
+  }, [layers, targetGroups]);
+
+  // 2. ACTIONS
+  const handleMerge = () => {
+    if (selectedPageIds.length < 2) return;
+    
+    // İlk sayfanın özelliklerini al (Temsilci olarak)
+    const firstId = selectedPageIds[0];
+    const baseLayer = layers.find(l => l.type === 'solid' && l.mask?.targetIds?.length === 1 && l.mask.targetIds.includes(firstId));
+    const overlayLayer = layers.find(l => l.type === 'image' && l.mask?.targetIds?.length === 1 && l.mask.targetIds.includes(firstId));
+
+    mergePages(selectedPageIds);
+
+    // Yeni gruba bunları uygula
+    if (baseLayer) syncGroupBackground(selectedPageIds, 'base', baseLayer.properties);
+    if (overlayLayer) syncGroupBackground(selectedPageIds, 'overlay', overlayLayer.properties);
+
+    // Eski tekil katmanları temizle
+    selectedPageIds.forEach(id => {
+       const b = layers.find(l => l.type === 'solid' && l.mask?.targetIds?.length === 1 && l.mask.targetIds.includes(id));
+       const o = layers.find(l => l.type === 'image' && l.mask?.targetIds?.length === 1 && l.mask.targetIds.includes(id));
+       if (b) removeLayer(b.id);
+       if (o) removeLayer(o.id);
+    });
+  };
+
+  const handleSplit = () => {
+    if (targetGroups.length === 0) return;
+    targetGroups.forEach(group => {
+       if (group.length > 1) {
+           // Gruptaki layer özelliklerini bul
+           const baseLayer = layers.find(l => l.type === 'solid' && l.mask?.targetIds?.length === group.length && l.mask.targetIds.every(id => group.includes(id)));
+           const overlayLayer = layers.find(l => l.type === 'image' && l.mask?.targetIds?.length === group.length && l.mask.targetIds.every(id => group.includes(id)));
+
+           unmergePages(group);
+
+           // Yeni ayrılan her sayfaya eski özellikleri kopyala
+           group.forEach(id => {
+               if (baseLayer) syncGroupBackground([id], 'base', baseLayer.properties);
+               if (overlayLayer) syncGroupBackground([id], 'overlay', overlayLayer.properties);
+           });
+
+           // Eski birleşik katmanları sil (Hayalet katmanları temizle)
+           if (baseLayer) removeLayer(baseLayer.id);
+           if (overlayLayer) removeLayer(overlayLayer.id);
+       }
+    });
+  };
+
+  const handleBaseColorChange = (color: string, opacity: number) => {
+    if (targetGroups.length === 0) return;
+    // Batch Apply: Seçili tüm gruplara uygula
+    targetGroups.forEach(group => {
+      syncGroupBackground(group, 'base', { color, opacity, gradient: null });
+    });
+  };
+
+  const currentGradientConfig: GradientConfig = groupLayers.base?.properties?.gradientConfig || defaultGradientConfig;
+  const hasGradient = !!groupLayers.base?.properties?.gradient;
+
+  const handleGradientUpdate = (newConfig: Partial<GradientConfig>) => {
+    if (targetGroups.length === 0) return;
+    const updatedConfig = { ...currentGradientConfig, ...newConfig };
+    const gradientString = generateGradientString(updatedConfig);
+
+    targetGroups.forEach(group => {
+      syncGroupBackground(group, 'base', {
+        ...groupLayers.base?.properties,
+        gradient: gradientString,
+        gradientConfig: updatedConfig
+      });
+    });
+  };
+
+  const toggleGradient = () => {
+    if (targetGroups.length === 0) return;
+    targetGroups.forEach(group => {
+      syncGroupBackground(group, 'base', {
+        ...groupLayers.base?.properties,
+        gradient: hasGradient ? null : generateGradientString(currentGradientConfig),
+        gradientConfig: currentGradientConfig
+      });
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0] || targetGroups.length === 0) return;
+
+    setIsUploading(true);
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("filename", `overlay-${Date.now()}.${file.name.split(".").pop()}`);
+
+    try {
+      const result = await uploadImage(formData);
+      if (result.success) {
+        // Batch Apply Resim: Seçili tüm gruplara aynı resmi yay
+        targetGroups.forEach(group => {
+          syncGroupBackground(group, 'overlay', {
+            imageUrl: `${result.path}?t=${Date.now()}`,
+            opacity: 100,
+            fitMode: 'cover',
+            blendMode: 'normal'
+          });
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeOverlay = () => {
+    if (targetGroups.length === 0) return;
+    targetGroups.forEach(group => {
+        const matches = (l: Layer) => 
+            l.mask?.targetIds?.length === group.length && 
+            l.mask.targetIds.every(id => group.includes(id));
+        const overlay = layers.find(l => matches(l) && l.type === 'image');
+        if (overlay) removeLayer(overlay.id);
+    });
+  };
+
+  // 3. UI RENDERERS
+  return (
+    <div className="space-y-4">
+          
+          {/* A. HÜCRE BİRLEŞTİRME (EXCEL MANTIĞI) */}
+          <section className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <label className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500 flex items-center gap-1.5">
+                <Combine className="w-3 h-3" /> Sayfa Birleştirme
+              </label>
+              <div className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                Forma {activeForma?.id}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {activeForma?.pages.map((page) => {
+                const isSelected = selectedPageIds.includes(page.id);
+                const group = currentGroups.find(g => g.includes(page.id));
+                const isMerged = group && group.length > 1;
+
+                return (
+                  <button
+                    key={page.id}
+                    onClick={() => {
+                      if (selectedPageIds.includes(page.id)) {
+                        setSelectedPagesInLayerStore(selectedPageIds.filter(id => id !== page.id));
+                      } else {
+                        setSelectedPagesInLayerStore([...selectedPageIds, page.id]);
+                      }
+                    }}
+                    className={`relative min-w-[40px] h-10 rounded border text-[11px] font-black transition-all flex items-center justify-center ${
+                      isSelected
+                        ? "border-blue-600 bg-blue-600 text-white shadow-md z-10 scale-105"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                    }`}
+                  >
+                    {page.pageNumber}
+                    {isMerged && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-white" title="Merged" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleMerge}
+                disabled={selectedPageIds.length < 2}
+                className="flex items-center justify-center gap-2 py-2 rounded bg-slate-800 text-white text-[10px] font-black uppercase hover:bg-slate-900 disabled:opacity-30 transition-all font-sans"
+              >
+                <Combine className="w-3.5 h-3.5" /> Seçili Sayfaları Birleştir
+              </button>
+              <button
+                onClick={handleSplit}
+                disabled={targetGroups.length === 0 || !targetGroups.some(g => g.length > 1)}
+                className="flex items-center justify-center gap-2 py-2 rounded border border-slate-300 bg-white text-slate-700 text-[10px] font-black uppercase hover:bg-slate-50 disabled:opacity-30 transition-all font-sans"
+              >
+                <Split className="w-3.5 h-3.5" /> Grubu Ayır
+              </button>
+            </div>
+
+            {/* SELECTION SUMMARY UI */}
+            {targetGroups.length > 0 && (
+              <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-100 p-2.5 rounded animate-in fade-in slide-in-from-top-1 duration-300">
+                <CheckCircle2 size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <div className="text-[10px] font-black text-emerald-800 uppercase tracking-tighter">
+                    {targetGroups.length} TASARIM HÜCRESİ SEÇİLDİ
+                  </div>
+                  <div className="text-[9px] text-emerald-700 leading-tight">
+                    Yapacağınız değişiklikler toplam <strong>{selectedPageIds.length} sayfayı</strong> etkileyecek.
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* B. AKILLI ZEMİN İSTİFLEME (BACKGROUND POOL) */}
+          <section className="space-y-4">
+            
+            {/* SLOT 1: BASE LAYER (SOLID / GRADIENT) */}
+            <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-emerald-500" />
+                  <div>
+                    <span className="text-[11px] font-black text-slate-700 uppercase">Zemin Rengi (Base)</span>
+                    <p className="text-[9px] text-slate-400 font-medium">Temel dolgu veya gradyan</p>
+                  </div>
+                </div>
+                <ColorOpacityPicker
+                  key={`base-picker-${targetGroups.map(g => g.join(',')).join('|') || 'none'}`}
+                  color={groupLayers.base?.properties?.color || "#ffffff"}
+          opacity={groupLayers.base?.properties?.opacity ?? 100}
+                  onChange={handleBaseColorChange}
+                  disabled={targetGroups.length === 0}
+                />
+              </div>
+
+              {/* GRADIENT BUILDER */}
+              <div className="space-y-3 pt-3 border-t border-slate-100 mt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Gelişmiş Gradyan (Geçiş)</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={hasGradient} onChange={toggleGradient} disabled={targetGroups.length === 0} />
+                    <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                  </label>
+                </div>
+
+                {hasGradient && (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                    
+                    {/* TÜR SEÇİMİ */}
+                    <div className="flex bg-white rounded border border-slate-200 p-1 gap-1">
+                      {[
+                        { id: 'linear', label: 'Düz (Linear)' },
+                        { id: 'radial', label: 'Dairesel' },
+                        { id: 'conic', label: 'Yıldız (Conic)' }
+                      ].map(type => (
+                        <button
+                          key={type.id}
+                          onClick={() => handleGradientUpdate({ type: type.id as any })}
+                          className={`flex-1 py-1.5 text-[9px] font-bold rounded transition-all ${currentGradientConfig.type === type.id ? 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* RENKLER VE GEÇİŞ NOKTALARI */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-slate-500">1. Renk & Konum (%)</span>
+                        <div className="flex items-center justify-between bg-white p-1.5 rounded border border-slate-200">
+                          <ColorOpacityPicker
+                            color={currentGradientConfig.color1.c}
+                            opacity={currentGradientConfig.color1.o}
+                            onChange={(c, o) => handleGradientUpdate({ color1: { c, o } })}
+                          />
+                          <input type="number" min="0" max="100" value={currentGradientConfig.stop1} onChange={(e) => handleGradientUpdate({ stop1: parseInt(e.target.value) || 0 })} className="w-12 text-[10px] font-bold text-slate-600 text-center border border-slate-200 rounded p-1 outline-none focus:border-blue-500" title="Geçiş Başlangıç Konumu %" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-slate-500">2. Renk & Konum (%)</span>
+                        <div className="flex items-center justify-between bg-white p-1.5 rounded border border-slate-200">
+                          <ColorOpacityPicker
+                            color={currentGradientConfig.color2.c}
+                            opacity={currentGradientConfig.color2.o}
+                            onChange={(c, o) => handleGradientUpdate({ color2: { c, o } })}
+                          />
+                          <input type="number" min="0" max="100" value={currentGradientConfig.stop2} onChange={(e) => handleGradientUpdate({ stop2: parseInt(e.target.value) || 0 })} className="w-12 text-[10px] font-bold text-slate-600 text-center border border-slate-200 rounded p-1 outline-none focus:border-blue-500" title="Geçiş Bitiş Konumu %" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KOORDİNATLAR VE AÇI */}
+                    <div className="space-y-3 pt-2 border-t border-slate-200">
+                      {(currentGradientConfig.type === 'linear' || currentGradientConfig.type === 'conic') && (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-medium text-slate-500 w-12">Yön/Açı</span>
+                          <input type="range" min="0" max="360" value={currentGradientConfig.angle} onChange={(e) => handleGradientUpdate({ angle: parseInt(e.target.value) })} className="flex-1 accent-blue-600" />
+                          <span className="text-[9px] font-bold text-slate-600 w-8 text-right">{currentGradientConfig.angle}°</span>
+                        </div>
+                      )}
+
+                      {(currentGradientConfig.type === 'radial' || currentGradientConfig.type === 'conic') && (
+                        <>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] font-medium text-slate-500 w-12">Merkez X</span>
+                            <input type="range" min="0" max="100" value={currentGradientConfig.posX} onChange={(e) => handleGradientUpdate({ posX: parseInt(e.target.value) })} className="flex-1 accent-blue-600" />
+                            <span className="text-[9px] font-bold text-slate-600 w-8 text-right">%{currentGradientConfig.posX}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] font-medium text-slate-500 w-12">Merkez Y</span>
+                            <input type="range" min="0" max="100" value={currentGradientConfig.posY} onChange={(e) => handleGradientUpdate({ posY: parseInt(e.target.value) })} className="flex-1 accent-blue-600" />
+                            <span className="text-[9px] font-bold text-slate-600 w-8 text-right">%{currentGradientConfig.posY}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* SLOT 2: OVERLAY LAYER (IMAGE) */}
+            <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-blue-500" />
+                  <div>
+                    <span className="text-[11px] font-black text-slate-700 uppercase">Doku & Görsel (Overlay)</span>
+                    <p className="text-[9px] text-slate-400 font-medium">Renk üzerine binen katman</p>
+                  </div>
+                </div>
+                {groupLayers.overlay && (
+                  <button onClick={removeOverlay} className="p-1.5 rounded hover:bg-rose-50 text-rose-500 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+
+              {!groupLayers.overlay ? (
+                <div className="relative">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="overlay-upload"
+                    disabled={targetGroups.length === 0}
+                    onChange={handleImageUpload}
+                  />
+                  <label
+                    htmlFor="overlay-upload"
+                    className={`w-full h-16 rounded border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all ${targetGroups.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                  >
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">
+                      {isUploading ? "YÜKLENİYOR..." : "GÖRSEL VEYA DOKU YÜKLE"}
+                    </span>
+                    <span className="text-[9px] text-slate-400">PNG, JPG veya SVG</span>
+                  </label>
+                </div>
+              ) : (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="relative group rounded overflow-hidden border border-slate-200">
+                    <img 
+                      src={groupLayers.overlay.properties.imageUrl} 
+                      className="w-full h-24 object-cover" 
+                      alt="Overlay Preview" 
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                       <label htmlFor="overlay-upload" className="px-3 py-1.5 bg-white rounded text-[10px] font-black text-slate-800 cursor-pointer shadow-xl">DEĞİŞTİR</label>
+                    </div>
+                  </div>
+
+                  {/* OVERLAY CONTROLS */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-600">Harmanlama Opaklığı</span>
+                      <span className="text-[10px] font-black text-blue-600">%{groupLayers.overlay.properties.opacity}</span>
+                    </div>
+                    <input 
+                      type="range"
+                      min="0" max="100"
+                      value={groupLayers.overlay.properties.opacity}
+                      onChange={(e) => {
+                        targetGroups.forEach(group => {
+                            const matches = (l: Layer) => 
+                                l.mask?.targetIds?.length === group.length && 
+                                l.mask.targetIds.every(id => group.includes(id));
+                            const overlay = layers.find(l => matches(l) && l.type === 'image');
+                            if (overlay) updateLayerProperties(overlay.id, { opacity: parseInt(e.target.value) });
+                        });
+                      }}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+
+                    <div className="space-y-1 pt-1">
+                      <label className="text-[10px] font-bold text-slate-600">Karışım Modu (Blend)</label>
+                      <select
+                        value={groupLayers.overlay.properties.blendMode || 'normal'}
+                        onChange={(e) => {
+                             targetGroups.forEach(group => {
+                                const matches = (l: Layer) => 
+                                    l.mask?.targetIds?.length === group.length && 
+                                    l.mask.targetIds.every(id => group.includes(id));
+                                const overlay = layers.find(l => matches(l) && l.type === 'image');
+                                if (overlay) updateLayerProperties(overlay.id, { blendMode: e.target.value });
+                            });
+                        }}
+                        className="w-full h-9 rounded border border-slate-300 text-[11px] font-bold px-2 outline-none focus:border-blue-600"
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="multiply">Çoğalt (Multiply)</option>
+                        <option value="screen">Ekran (Screen)</option>
+                        <option value="overlay">Kaplama (Overlay)</option>
+                        <option value="darken">Koyulaştır</option>
+                        <option value="color-burn">Renk Yak</option>
+                        <option value="soft-light">Yumuşak Işık</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* C. ADVANCED TOOLS & SNAPS */}
+          <div className="pt-2">
+            <button 
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-600 outline-none"
+            >
+              <Sparkles size={12} /> {showAdvanced ? "GELİŞMİŞ AYARLARI GİZLE" : "GELİŞMİŞ AYARLARI GÖSTER"}
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-3 p-3 bg-white border border-slate-200 rounded-md space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                {/* TRANSFORM CONTROLS FOR OVERLAY */}
+                {groupLayers.overlay && (
+                  <div className="space-y-3">
+                    <h4 className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Görsel Transform</h4>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-500">Ölçek: %{groupLayers.overlay.transform.scale}</span>
+                        <input 
+                          type="range" min="10" max="300" 
+                          value={groupLayers.overlay.transform.scale}
+                          onChange={(e) => {
+                             targetGroups.forEach(group => {
+                                const matches = (l: Layer) => 
+                                    l.mask?.targetIds?.length === group.length && 
+                                    l.mask.targetIds.every(id => group.includes(id));
+                                const overlay = layers.find(l => matches(l) && l.type === 'image');
+                                if (overlay) updateLayerTransform(overlay.id, { scale: parseInt(e.target.value) });
+                            });
+                          }}
+                          className="w-full accent-blue-600 hover:accent-blue-700"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-500">Döndürme: {groupLayers.overlay.transform.rotation}°</span>
+                        <input 
+                          type="range" min="0" max="360" 
+                          value={groupLayers.overlay.transform.rotation}
+                          onChange={(e) => {
+                            targetGroups.forEach(group => {
+                               const matches = (l: Layer) => 
+                                   l.mask?.targetIds?.length === group.length && 
+                                   l.mask.targetIds.every(id => group.includes(id));
+                               const overlay = layers.find(l => matches(l) && l.type === 'image');
+                               if (overlay) updateLayerTransform(overlay.id, { rotation: parseInt(e.target.value) });
+                           });
+                          }}
+                          className="w-full accent-blue-600 hover:accent-blue-700"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          targetGroups.forEach(group => {
+                              const matches = (l: Layer) => 
+                                  l.mask?.targetIds?.length === group.length && 
+                                  l.mask.targetIds.every(id => group.includes(id));
+                              const overlay = layers.find(l => matches(l) && l.type === 'image');
+                              if (overlay) {
+                                  updateLayerProperties(overlay.id, { fitMode: 'fit-width' });
+                                  updateLayerTransform(overlay.id, { scale: 100, rotation: 0, offsetX: 0, offsetY: 0 });
+                              }
+                          });
+                        }}
+                        className="py-2 flex items-center justify-center gap-1.5 text-[9px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
+                      >
+                        <Maximize size={10} className="rotate-90" /> Enine Sığdır
+                      </button>
+                      <button
+                        onClick={() => {
+                          targetGroups.forEach(group => {
+                              const matches = (l: Layer) => 
+                                  l.mask?.targetIds?.length === group.length && 
+                                  l.mask.targetIds.every(id => group.includes(id));
+                              const overlay = layers.find(l => matches(l) && l.type === 'image');
+                              if (overlay) {
+                                  updateLayerProperties(overlay.id, { fitMode: 'fit-height' });
+                                  updateLayerTransform(overlay.id, { scale: 100, rotation: 0, offsetX: 0, offsetY: 0 });
+                              }
+                          });
+                        }}
+                        className="py-2 flex items-center justify-center gap-1.5 text-[9px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
+                      >
+                        <Maximize size={10} /> Boyuna Sığdır
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-[9px] text-amber-700 font-bold flex gap-2">
+                  <Info size={14} className="flex-shrink-0" />
+                  Gelişmiş modda görselleri milimetrik olarak kaydırabilir ve döndürebilirsiniz.
+                </div>
+              </div>
+            )}
+            </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/sidebar-panels/ProductManagement.tsx">
+"use client";
+
+import { useState, useMemo, useRef } from "react";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import * as XLSX from "xlsx";
+
+export function ProductManagement() {
+  const { productPool, setProductPool, masterProductPool, setMasterProductPool, formas, activeFormaId, autoFillSlots, clearProducts, resetCatalog } = useCatalogStore();
+  const activeForma = formas.find((f) => f.id === activeFormaId);
+  const pages = activeForma?.pages || [];
+  const [searchTerm, setSearchTerm] = useState("");
+  const layoutFileRef = useRef<HTMLInputElement>(null);
+  const masterFileRef = useRef<HTMLInputElement>(null);
+
+  const handleLayoutFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      // defval: "" ile boş hücrelerin hata vermesini engelliyoruz
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+      
+      const formatted = rows.map((row: any, i) => ({
+        id: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
+        name: row.BEZEICHNUNG || row.URUN_ADI || "İsimsiz",
+        price: row.VK_NETTO?.toString() || row.FIYAT?.toString() || "0",
+        sku: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
+        category: row.KATEGORI || row.ARTGRP?.toString() || "Yüklenen",
+        image: row.RESIM || `/images/products/${row.ARTNR || row.KOD}.png`,
+        raw: row,
+      }));
+      setProductPool(formatted);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleMasterFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+      
+      const formatted = rows.map((row: any, i) => ({
+        id: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
+        name: row.BEZEICHNUNG || row.URUN_ADI || "İsimsiz",
+        price: row.VK_NETTO?.toString() || row.FIYAT?.toString() || "0",
+        sku: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
+        category: row.KATEGORI || row.ARTGRP?.toString() || "Yüklenen",
+        image: row.RESIM || `/images/products/${row.ARTNR || row.KOD}.png`,
+        raw: row,
+      }));
+      setMasterProductPool(formatted);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleClearAll = () => {
+    clearProducts(); setProductPool([]); setMasterProductPool([]); setSearchTerm("");
+    if (layoutFileRef.current) layoutFileRef.current.value = "";
+    if (masterFileRef.current) masterFileRef.current.value = "";
+  };
+
+  const activeSkus = useMemo(() => {
+    const skus = new Set<string>();
+    pages.forEach(p => p.slots.forEach(s => { if (s.product?.sku) skus.add(s.product.sku); }));
+    return skus;
+  }, [pages]);
+
+  const filteredMaster = useMemo(() => masterProductPool.filter(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku?.toLowerCase().includes(searchTerm.toLowerCase())), [masterProductPool, searchTerm]);
+
+  const groupedMaster = useMemo(() => filteredMaster.reduce((acc, p) => {
+    const cat = p.category || "Diğer";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(p);
+    return acc;
+  }, {} as Record<string, typeof masterProductPool>), [filteredMaster]);
+
+  return (
+    <>
+      <div className="p-4 border-b border-slate-200 bg-white space-y-4 shadow-sm shrink-0">
+        <div><label className="block text-[10px] font-bold text-blue-600 mb-2 uppercase tracking-wider">1. Otomatik Dizilim Excel</label><input ref={layoutFileRef} type="file" accept=".xlsx, .xls, .csv" onChange={handleLayoutFileUpload} className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-md" /></div>
+<div className="flex gap-2 w-full"><button onClick={() => autoFillSlots()} disabled={productPool.length === 0} className={`flex-1 font-bold py-2.5 rounded-md text-[11px] transition-all shadow-sm ${productPool.length > 0 ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed"}`}>Yerleştir</button><button onClick={handleClearAll} className="flex-1 font-bold py-2.5 rounded-md text-[11px] bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm">Temizle</button><button onClick={() => resetCatalog()} className="flex-1 font-bold py-2.5 rounded-md text-[11px] bg-red-600 hover:bg-red-700 text-white transition-all shadow-sm">Sıfırla</button></div>
+        <div className="pt-3 border-t border-slate-100"><label className="block text-[10px] font-bold text-purple-600 mb-2 uppercase tracking-wider">2. Tüm Ürün Havuzu Excel</label><input ref={masterFileRef} type="file" accept=".xlsx, .xls, .csv" onChange={handleMasterFileUpload} className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer border border-slate-200 rounded-md" /></div>
+      </div>
+      <div className="flex-1 p-3 bg-slate-100 flex flex-col min-h-0">
+        <div className="mb-3 shrink-0 relative"><input type="text" placeholder="Ürün Ara..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm" /><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2.5 top-2.5 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
+        <div className="flex-1 overflow-y-auto pr-1 pb-4 custom-scrollbar">
+          {masterProductPool.length === 0 ? (<div className="flex flex-col items-center justify-center h-full text-slate-400 text-xs font-medium italic p-4 text-center">Havuz boş. Excel yükleyin.</div>) : (
+            Object.entries(groupedMaster).map(([category, products]) => (
+              <div key={category} className="mb-4">
+                <div className="flex items-center justify-between px-2 py-1.5 bg-slate-200 rounded text-[11px] font-bold text-slate-700 mb-2"><span>{category}</span><span className="bg-white px-1.5 rounded">{products.length}</span></div>
+                <div className="flex flex-col gap-1.5">{products.map((product, index) => {
+                  const isActive = activeSkus.has(product.sku || "");
+                  return (<div key={`${product.id || product.sku}-${index}`} draggable={!isActive} onDragStart={(e) => { if (!isActive) e.dataTransfer.setData("newProductFromSidebar", JSON.stringify(product)); }} className={`flex items-center gap-2 p-1.5 rounded-md border transition-all ${isActive ? "bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed grayscale" : "bg-white border-slate-200 hover:border-blue-300 shadow-sm cursor-grab active:cursor-grabbing"}`}><div className="w-8 h-8 bg-slate-50 rounded border flex justify-center items-center overflow-hidden shrink-0">{product.image ? <img src={product.image} className="max-w-full max-h-full object-contain" /> : <span className="text-[8px] text-slate-400 font-bold">Yok</span>}</div><div className="flex-1 min-w-0"><div className="text-[10px] font-bold text-slate-800 truncate leading-none">{product.name}</div><div className="flex justify-between mt-1"><span className="text-[9px] font-semibold text-slate-500">{product.sku}</span><span className="text-[9px] font-bold text-blue-600">{product.price} TL</span></div></div></div>);
+                })}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </>
+  );
 }
 </file>
 
@@ -11095,11 +11244,11 @@ export function CustomCellSettings() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-600">Zemin Rengi</span>
-                      <ColorOpacityPicker color={customSettings.colors?.cellBg?.c || "#fff"} opacity={customSettings.colors?.cellBg?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBg: { c, o } } })} />
+                      <ColorOpacityPicker color={customSettings.colors?.cellBg?.c || "#fff"} opacity={customSettings.colors?.cellBg?.o ?? 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBg: { c, o } } })} />
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-slate-50">
                       <span className="text-[10px] font-bold text-slate-600">Kenarlık Rengi</span>
-                      <ColorOpacityPicker color={customSettings.colors?.cellBorder?.c || "#000"} opacity={customSettings.colors?.cellBorder?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBorder: { c, o } } })} />
+                      <ColorOpacityPicker color={customSettings.colors?.cellBorder?.c || "#000"} opacity={customSettings.colors?.cellBorder?.o ?? 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { cellBorder: { c, o } } })} />
                     </div>
                     <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-50">
                       <span className="text-[9px] font-medium text-slate-500 w-16">Kalınlık</span>
@@ -11173,7 +11322,7 @@ export function CustomCellSettings() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-orange-50">
                     <span className="text-[10px] font-bold text-slate-600">Zemin Rengi</span>
-                    <ColorOpacityPicker color={customSettings.colors?.priceBg?.c || "#e60000"} opacity={customSettings.colors?.priceBg?.o || 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { priceBg: { c, o } } })} />
+                    <ColorOpacityPicker color={customSettings.colors?.priceBg?.c || "#e60000"} opacity={customSettings.colors?.priceBg?.o ?? 100} onChange={(c, o) => updateSlotCustomSettings({ colors: { priceBg: { c, o } } })} />
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-orange-50">
@@ -11833,7 +11982,7 @@ const clampedScale = Math.max(0.4, Math.min(3, trueScale));
 
       {slot.product && (
         <div 
-          className={`w-full h-full flex flex-col relative min-w-0 min-h-0 ${editingContent?.slotId === slot.id ? 'opacity-100' : (isSelected ? 'opacity-75' : '')}`}
+  className={`w-full h-full flex flex-col min-w-0 min-h-0 ${editingContent?.slotId === slot.id ? 'opacity-100' : (isSelected ? 'opacity-75' : '')}`}
         >
           {/* FİYAT ALANI */}
           <div 
