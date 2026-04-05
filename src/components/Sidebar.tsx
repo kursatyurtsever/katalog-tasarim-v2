@@ -106,11 +106,26 @@ export function Sidebar() {
         onValueChange={handleTabChange}
         className="flex flex-col w-full h-full"
       >
-        <TabsList className="w-full bg-slate-900 p-2 gap-1 shrink-0 rounded-none">
-          <TabsTrigger value="products" className="flex-1 py-2 text-xs font-bold">ÜRÜNLER</TabsTrigger>
-          <TabsTrigger value="modules" className="flex-1 py-2 text-xs font-bold">MODÜLLER</TabsTrigger>
-          <TabsTrigger value="settings" className="flex-1 py-2 text-xs font-bold">AYARLAR</TabsTrigger>
-        </TabsList>
+<TabsList className="w-full bg-slate-900 p-2 gap-1 shrink-0 rounded-none border-b border-slate-700">
+  <TabsTrigger 
+    value="products" 
+    className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+  >
+    ÜRÜNLER
+  </TabsTrigger>
+  <TabsTrigger 
+    value="modules" 
+    className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+  >
+    MODÜLLER
+  </TabsTrigger>
+  <TabsTrigger 
+    value="settings" 
+    className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+  >
+    AYARLAR
+  </TabsTrigger>
+</TabsList>
         <TabsContent value="products" className="flex-1 flex flex-col min-h-0">
           <ProductManagement />
         </TabsContent>
