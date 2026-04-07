@@ -64,8 +64,8 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
 const [mt, mr, mb, ml] = pageConfig.safeZone;
   
-  const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings.defaultGrid.cols;
-  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings.defaultGrid.rows;
+const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings.defaultGrid?.cols || 4;
+  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings.defaultGrid?.rows || 4;
   
   const totalRows = Math.max(configuredRows, Math.ceil(currentPage.slots.length / totalColumns));
 
@@ -107,8 +107,8 @@ const [mt, mr, mb, ml] = pageConfig.safeZone;
 
   return (
     <>
-      {contextMenu && createPortal(
-        <div className="fixed z-[9999] bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-[150px]" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+{contextMenu && createPortal(
+        <div className="fixed z-9999 bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-37.5" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
           {contextMenu.canMerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50" onClick={() => { mergeSelected(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreleri Birleştir</button>}
           {contextMenu.canUnmerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-red-50" onClick={() => { unmergeSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreyi Dağıt</button>}
           {contextMenu.hasProduct && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50" onClick={() => { clearSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Temizle</button>}

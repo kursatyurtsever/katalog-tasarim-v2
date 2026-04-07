@@ -590,11 +590,8 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newPages = [...currentPages];
         newPages[pageIndex] = { ...page, slots: newSlots };
         
-        setActivePages(newPages);
+setActivePages(newPages);
         clearSelection();
-
-        // Birleştirme sonrası ürünleri yeni ızgaraya göre kaydırarak diz
-        setTimeout(() => get().autoFillSlots(), 50);
 
         return { success: true };
       },
@@ -619,11 +616,8 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newPages = [...currentPages];
         newPages[pageIndex] = { ...page, slots: newSlots };
         
-        setActivePages(newPages);
+setActivePages(newPages);
         clearSelection();
-
-        // Hücre dağıtıldıktan sonra açılan boşluklara ürünleri kaydırarak diz
-        setTimeout(() => get().autoFillSlots(), 50);
       },
 
       toggleSlotCustomSettings: (enabled) => {
@@ -931,7 +925,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newFormas = cloneDeep(formas);
         newFormas.forEach(f => {
           f.pages.forEach(p => {
-            const currentGrid = p.gridSettings || globalSettings.defaultGrid;
+const currentGrid = p.gridSettings || globalSettings.defaultGrid || { rows: 4, cols: 4 };
             const newSlotCount = currentGrid.rows * currentGrid.cols;
             
             // 1. Dolu slotları (ürün, serbest alan veya özel ayarı olanları) yedekle
@@ -959,10 +953,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           });
         });
 
-        set({ formas: newFormas });
-        
-        // Ürünleri yeni grid yapısına göre tekrar hizala
-        setTimeout(() => get().autoFillSlots(), 50);
+set({ formas: newFormas });
       },
 
       applyPageGridChange: (pageNumber) => {
@@ -974,7 +965,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         newFormas.forEach(f => {
           const page = f.pages.find(p => p.pageNumber === pageNumber);
           if (page) {
-            const currentGrid = page.gridSettings || globalSettings.defaultGrid;
+const currentGrid = page.gridSettings || globalSettings.defaultGrid || { rows: 4, cols: 4 };
             const newSlotCount = currentGrid.rows * currentGrid.cols;
             
             // SADECE bu sayfanın slotlarını yeni ölçüye göre baştan oluştur. Diğer sayfalara ASLA dokunma!
@@ -982,10 +973,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           }
         });
 
-        set({ formas: newFormas });
-        
-        // Diğer sayfalar sabit kaldığı için, ürünler yeni slot dizilimine göre boşluklara otomatik kayarak yerleşir
-        setTimeout(() => get().autoFillSlots(), 50);
+set({ formas: newFormas });
       },
 
       revertToGlobalGrid: (pageNumber) => {
@@ -1004,22 +992,26 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
     }),
     {
       name: "catalog-storage-v2",
-      merge: (persisted, current) => {
+merge: (persisted, current) => {
         const incoming = (persisted as any) || {};
         const base = current as any;
-        const baseState = base?.state || {};
-        const mergedGlobal = deepMerge(baseState.globalSettings || initialGlobalSettings, incoming?.state?.globalSettings || {});
+        
+        const mergedGlobal = deepMerge(base.globalSettings || initialGlobalSettings, incoming.globalSettings || {});
+        
+        if (!mergedGlobal.defaultGrid) {
+          mergedGlobal.defaultGrid = { rows: 4, cols: 4 };
+        }
+
         const normalizedGlobalSettings: CatalogSettings = {
           ...mergedGlobal,
         };
 
-        const incomingState = { ...(incoming?.state || {}) };
-        const formas = (incomingState.formas || baseState.formas || buildFormasForTemplate(baseState.activeTemplate || Template1)).map(normalizeForma);
-
-        if (!incomingState.formas && Array.isArray(incomingState.pages)) {
-          incomingState.formas = (formas || []).map((f: Forma) =>
-            f.id === (incomingState.activeFormaId || baseState.activeFormaId || 1)
-              ? { ...f, pages: incomingState.pages.map(normalizeCatalogPage) }
+        let formas = incoming.formas || base.formas || buildFormasForTemplate(base.activeTemplate || Template1);
+        
+        if (!incoming.formas && Array.isArray(incoming.pages)) {
+          formas = formas.map((f: Forma) =>
+            f.id === (incoming.activeFormaId || base.activeFormaId || 1)
+              ? { ...f, pages: incoming.pages.map(normalizeCatalogPage) }
               : f
           );
         }
@@ -1027,14 +1019,10 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         return {
           ...base,
           ...incoming,
-          state: {
-            ...baseState,
-            ...incomingState,
-            formas: (incomingState.formas || formas).map(normalizeForma),
-            activeFormaId: incomingState.activeFormaId || baseState.activeFormaId || 1,
-            activeTab: incomingState.activeTab || (incomingState.activeFormaId === 2 ? "inner" : "outer"),
-            globalSettings: normalizedGlobalSettings,
-          }
+          formas: formas.map(normalizeForma),
+          activeFormaId: incoming.activeFormaId || base.activeFormaId || 1,
+          activeTab: incoming.activeTab || (incoming.activeFormaId === 2 ? "inner" : "outer"),
+          globalSettings: normalizedGlobalSettings,
         };
       },
     }

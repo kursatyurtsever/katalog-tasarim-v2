@@ -43,7 +43,7 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
 
   toggleZoom: () => set((state) => ({ isZoomed: !state.isZoomed })),
 
-  toggleSlotSelection: (id, isMulti) => set((state) => {
+toggleSlotSelection: (id, isMulti) => set((state) => {
     let newSelectedIds = [];
     if (isMulti) {
       if (state.selectedSlotIds.includes(id)) newSelectedIds = state.selectedSlotIds.filter((x) => x !== id);
@@ -55,6 +55,10 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
       selectedSlotIds: newSelectedIds,
       selectedPageNumber: null,
       selectedTextElement: null,
+      sidebarState: { 
+        ...state.sidebarState, 
+        activePanel: newSelectedIds.length > 0 ? "selection" : state.sidebarState.activePanel 
+      }
     };
   }),
 

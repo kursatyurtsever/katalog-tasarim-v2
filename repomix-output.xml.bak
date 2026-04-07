@@ -44,16 +44,12 @@ The content is organized as follows:
 .gitignore
 Angebot.pdf
 Angebot.xlsx
-build-output.txt
 cline_deploy_instructions.txt
 components.json
-current_errors.txt
-current_tsc_errors.txt
 deploy.bat
 deploy.ps1
 docker-compose.yml
 Dockerfile
-errors.txt
 eslint.config.mjs
 next.config.ts
 ozet.py
@@ -130,13 +126,11 @@ src/store/useLayerStore.ts
 src/store/usePizzaStore.ts
 src/store/useUIStore.ts
 src/types/document.ts
-ts-output.txt
 tsc_errors.txt
 tsc-check.txt
 tsc-errors.txt
 tsc-errors2.txt
 tsc-errors3.txt
-tsc-output.txt
 tsconfig.json
 urunler.xlsx
 </directory_structure>
@@ -144,60 +138,42 @@ urunler.xlsx
 <files>
 This section contains the contents of the repository's files.
 
-<file path="build-output.txt">
-> katalog-tasarim-v2@0.1.0 build
-> next build
-
-Ôû▓ Next.js 16.1.6 (Turbopack)
-- Experiments (use with caution):
-  ┬À serverActions
-
-  Creating an optimized production build ...
-Ô£ô Compiled successfully in 8.5s
-  Running TypeScript ...
-  Collecting page data using 23 workers ...
-  Generating static pages using 23 workers (0/5) ...
-  Generating static pages using 23 workers (1/5) 
-  Generating static pages using 23 workers (2/5) 
-  Generating static pages using 23 workers (3/5) 
-Ô£ô Generating static pages using 23 workers (5/5) in 426.6ms
-  Finalizing page optimization ...
-
-Route (app)
-Ôöî Ôùï /
-Ôö£ Ôùï /_not-found
-Ôöö ãÆ /api/upload
-
-
-Ôùï  (Static)   prerendered as static content
-ãÆ  (Dynamic)  server-rendered on demand
-</file>
-
-<file path="current_errors.txt">
-
-</file>
-
-<file path="current_tsc_errors.txt">
-
-</file>
-
-<file path="errors.txt">
-
-</file>
-
-<file path="ts-output.txt">
-
-</file>
-
-<file path="tsc-output.txt">
-
-</file>
-
 <file path="cline_deploy_instructions.txt">
 1. Açık olan tüm dosyaları kaydet.
 2. VS Code'un SFTP eklentisinin dosyaları otomatik yüklemesi için 2 saniye bekle.
 3. Terminalde `powershell -ExecutionPolicy Bypass -File .\deploy.ps1` komutunu çalıştır.
 4. İşlem bittiğinde bana sonucun ekran çıktısını ver.
+</file>
+
+<file path="deploy.ps1">
+# 1. Dosya Yollarını Tanımla
+$SSH_KEY = "D:\US\Oracle\Guvenlik_keyleri\ssh-key-2025-09-20.key"
+$REMOTE_USER = "ubuntu"
+$REMOTE_IP = "161.118.172.246"
+$REMOTE_PATH = "/home/katalog.161.118.172.246.nip.io/public_html"
+
+Write-Host "🚀 Guncelleme baslatiliyor..." -ForegroundColor Cyan
+
+# 2. Sunucuda Docker'i guncelle ve LiteSpeed'i yenile
+$COMMANDS = "cd $REMOTE_PATH && sudo docker compose up -d --build && sudo systemctl restart lsws"
+
+Write-Host "🖥️ Sunucuya baglaniliyor ve Docker tetikleniyor..." -ForegroundColor Yellow
+ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_IP" "$COMMANDS"
+
+Write-Host "✅ Islem Basariyla Tamamlandi! Site Guncellendi." -ForegroundColor Green
+</file>
+
+<file path=".dockerignore">
+node_modules
+.next
+.git
+public/images
+repomix-output.xml
+*.xlsx
+*.pdf
+proje_rontgeni_*.txt
+deploy.bat
+deploy.ps1
 </file>
 
 <file path="components.json">
@@ -233,27 +209,6 @@ Route (app)
 echo Sunucuya baglaniliyor ve TEMIZ guncelleme baslatiliyor...
 ssh -i "D:\US\Oracle\Guvenlik_keyleri\ssh-key-2025-09-20.key" ubuntu@161.118.172.246 "cd /home/katalog.161.118.172.246.nip.io/public_html && sudo docker compose build --no-cache && sudo docker compose up -d"
 echo Islem tamamlandi!
-</file>
-
-<file path="deploy.ps1">
-# 1. Dosya Yollarını Tanımla
-$SSH_KEY = "D:\US\Oracle\Guvenlik_keyleri\ssh-key-2025-09-20.key"
-$REMOTE_USER = "ubuntu"
-$REMOTE_IP = "161.118.172.246"
-$REMOTE_PATH = "/home/katalog.161.118.172.246.nip.io/public_html"
-
-Write-Host "----------------------------------------------" -ForegroundColor Gray
-Write-Host "🚀 Guncelleme baslatiliyor..." -ForegroundColor Cyan
-Write-Host "----------------------------------------------" -ForegroundColor Gray
-
-# 2. Sunucuda Docker'i guncelle
-$COMMANDS = "cd $REMOTE_PATH && sudo docker compose build --no-cache && sudo docker compose up -d"
-
-Write-Host "🖥️ Sunucuya baglaniliyor ve Docker tetikleniyor..." -ForegroundColor Yellow
-ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_IP" "$COMMANDS"
-
-Write-Host "----------------------------------------------" -ForegroundColor Gray
-Write-Host "✅ Islem Basariyla Tamamlandi! Site Guncellendi." -ForegroundColor Green
 </file>
 
 <file path="Dockerfile">
@@ -3273,15 +3228,15 @@ export function GlobalGridSettings() {
   return (
     <div className="space-y-4">
       <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm space-y-3">
-        <h4 className="text-[10px] font-black text-slate-500 tracking-widest">Varsayılan Ayarlar</h4>
+        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Varsayılan Ayarlar</h4>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-[9px] font-bold text-slate-400">Satır</label>
-<input 
+            <input 
               type="number" 
               min="1" max="10" 
-              value={globalSettings.defaultGrid?.rows || 4}
-              onChange={(e) => updateGridSettings("global", { ...(globalSettings.defaultGrid || {rows: 4, cols: 4}), rows: parseInt(e.target.value) || 1 })}
+              value={globalSettings.defaultGrid.rows}
+              onChange={(e) => updateGridSettings("global", { ...globalSettings.defaultGrid, rows: parseInt(e.target.value) || 1 })}
               className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
             />
           </div>
@@ -3290,8 +3245,8 @@ export function GlobalGridSettings() {
             <input 
               type="number" 
               min="1" max="10"
-              value={globalSettings.defaultGrid?.cols || 4}
-              onChange={(e) => updateGridSettings("global", { ...(globalSettings.defaultGrid || {rows: 4, cols: 4}), cols: parseInt(e.target.value) || 1 })}
+              value={globalSettings.defaultGrid.cols}
+              onChange={(e) => updateGridSettings("global", { ...globalSettings.defaultGrid, cols: parseInt(e.target.value) || 1 })}
               className="w-full mt-1 text-sm font-bold text-slate-700 border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500"
             />
           </div>
@@ -3299,7 +3254,7 @@ export function GlobalGridSettings() {
       </div>
 
       <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm space-y-3">
-        <h4 className="text-[10px] font-black text-slate-500 tracking-widest">Sayfa Bazlı Özelleştirme</h4>
+        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sayfa Bazlı Özelleştirme</h4>
         <div className="flex flex-wrap gap-2">
           {activeForma?.pages.map(page => {
             const isCustom = !!page.gridSettings;
@@ -3308,7 +3263,7 @@ export function GlobalGridSettings() {
               <button
                 key={page.pageNumber}
                 onClick={() => setSelectedPage(isSelected ? null : page.pageNumber)}
-                className={`relative min-w-9 h-9 rounded border text-xs font-black transition-all ${
+                className={`relative min-w-[36px] h-9 rounded border text-xs font-black transition-all ${
                   isSelected ? "bg-blue-600 border-blue-600 text-white shadow-md z-10" :
                   isCustom ? "bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100" :
                   "bg-white border-slate-200 text-slate-600 hover:border-slate-400"
@@ -3327,7 +3282,7 @@ export function GlobalGridSettings() {
         onClick={handleApply}
         className="w-full py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-md shadow-md transition-all mt-2"
       >
-        Tüm Ayarları Uygula
+        TÜM AYARLARI UYGULA
       </button>
     </div>
   );
@@ -3348,12 +3303,12 @@ export function PageGridSettings({ pageNumber, onClose }: Props) {
   const { formas, activeFormaId, globalSettings, updateGridSettings, revertToGlobalGrid, applyPageGridChange } = useCatalogStore();
   const activeForma = formas.find((f: Forma) => f.id === activeFormaId);
   const page = activeForma?.pages.find((p: CatalogPage) => p.pageNumber === pageNumber);
-const currentSettings = page?.gridSettings || globalSettings.defaultGrid || { rows: 4, cols: 4 };
+  const currentSettings = page?.gridSettings || globalSettings.defaultGrid;
 
   return (
     <div className="bg-slate-50 p-3 mt-3 rounded-md border border-slate-200 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
       <div className="flex justify-between items-center">
-        <h5 className="text-xs font-black text-blue-600">Sayfa {pageNumber} Ayarları</h5>
+        <h5 className="text-xs font-black text-blue-600">SAYFA {pageNumber} AYARLARI</h5>
         <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-slate-700">Kapat &times;</button>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -3549,7 +3504,7 @@ export function TypographyPicker({ title, value, onChange }: Props) {
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion"
 
 import { cn } from "@/lib/utils"
-import { CaretDown as ChevronDownIcon, CaretUp as ChevronUpIcon } from "@phosphor-icons/react"
+import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 function Accordion({ className, ...props }: AccordionPrimitive.Root.Props) {
   return (
@@ -3691,7 +3646,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { X as XIcon } from "@phosphor-icons/react"
+import { XIcon } from "lucide-react"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -3717,7 +3672,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-99999 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -3739,7 +3694,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-99999 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
@@ -3853,7 +3808,7 @@ import * as React from "react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
 import { cn } from "@/lib/utils"
-import { CaretRight as ChevronRightIcon, Check as CheckIcon } from "@phosphor-icons/react"
+import { ChevronRightIcon, CheckIcon } from "lucide-react"
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
   return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />
@@ -3882,7 +3837,7 @@ function DropdownMenuContent({
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
-        className="isolate z-99999 outline-none"
+        className="isolate z-50 outline-none"
         align={align}
         alignOffset={alignOffset}
         side={side}
@@ -3890,7 +3845,7 @@ function DropdownMenuContent({
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
-          className={cn("z-99999 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 outline-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:overflow-hidden data-closed:fade-out-0 data-closed:zoom-out-95", className )}
+          className={cn("z-50 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 outline-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:overflow-hidden data-closed:fade-out-0 data-closed:zoom-out-95", className )}
           {...props}
         />
       </MenuPrimitive.Positioner>
@@ -3984,7 +3939,7 @@ function DropdownMenuSubContent({
   return (
     <DropdownMenuContent
       data-slot="dropdown-menu-sub-content"
-      className={cn("w-auto min-w-24 rounded-lg bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10 duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95", className )}
+      className={cn("w-auto min-w-[96px] rounded-lg bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10 duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95", className )}
       align={align}
       alignOffset={alignOffset}
       side={side}
@@ -4175,12 +4130,12 @@ function PopoverContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-99999"
+        className="isolate z-50"
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
-            "z-99999 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
           )}
           {...props}
@@ -4240,7 +4195,7 @@ import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
 import { cn } from "@/lib/utils"
-import { CaretDown as ChevronDownIcon, Check as CheckIcon, CaretUp as ChevronUpIcon } from "@phosphor-icons/react"
+import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
 const Select = SelectPrimitive.Root
 
@@ -4314,12 +4269,12 @@ function SelectContent({
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
-        className="isolate z-99999"
+        className="isolate z-50"
       >
         <SelectPrimitive.Popup
           data-slot="select-content"
           data-align-trigger={alignItemWithTrigger}
-          className={cn("relative isolate z-99999 max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95", className )}
+          className={cn("relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95", className )}
           {...props}
         >
           <SelectScrollUpButton />
@@ -4627,24 +4582,24 @@ function TooltipContent({
   >) {
   return (
     <TooltipPrimitive.Portal>
-        <TooltipPrimitive.Positioner
-          align={align}
-          alignOffset={alignOffset}
-          side={side}
-          sideOffset={sideOffset}
-          className="isolate z-99999"
+      <TooltipPrimitive.Positioner
+        align={align}
+        alignOffset={alignOffset}
+        side={side}
+        sideOffset={sideOffset}
+        className="isolate z-50"
+      >
+        <TooltipPrimitive.Popup
+          data-slot="tooltip-content"
+          className={cn(
+            "z-50 inline-flex w-fit max-w-xs origin-(--transform-origin) items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background has-data-[slot=kbd]:pr-1.5 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-sm data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            className
+          )}
+          {...props}
         >
-          <TooltipPrimitive.Popup
-            data-slot="tooltip-content"
-            className={cn(
-              "z-99999 inline-flex w-fit max-w-xs origin-(--transform-origin) items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background has-data-[slot=kbd]:pr-1.5 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-99999 **:data-[slot=kbd]:rounded-sm data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-              className
-            )}
-            {...props}
-          >
-            {children}
-            <TooltipPrimitive.Arrow className="z-99999 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-xs bg-foreground fill-foreground data-[side=bottom]:top-1 data-[side=inline-end]:top-1/2! data-[side=inline-end]:-left-1 data-[side=inline-end]:-translate-y-1/2 data-[side=inline-start]:top-1/2! data-[side=inline-start]:-right-1 data-[side=inline-start]:-translate-y-1/2 data-[side=left]:top-1/2! data-[side=left]:-right-1 data-[side=left]:-translate-y-1/2 data-[side=right]:top-1/2! data-[side=right]:-left-1 data-[side=right]:-translate-y-1/2 data-[side=top]:-bottom-2.5" />
-          </TooltipPrimitive.Popup>
+          {children}
+          <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground data-[side=bottom]:top-1 data-[side=inline-end]:top-1/2! data-[side=inline-end]:-left-1 data-[side=inline-end]:-translate-y-1/2 data-[side=inline-start]:top-1/2! data-[side=inline-start]:-right-1 data-[side=inline-start]:-translate-y-1/2 data-[side=left]:top-1/2! data-[side=left]:-right-1 data-[side=left]:-translate-y-1/2 data-[side=right]:top-1/2! data-[side=right]:-left-1 data-[side=right]:-translate-y-1/2 data-[side=top]:-bottom-2.5" />
+        </TooltipPrimitive.Popup>
       </TooltipPrimitive.Positioner>
     </TooltipPrimitive.Portal>
   )
@@ -4700,7 +4655,7 @@ export const collectExportData = (): ExportData => {
     globalSettings: catalogState.globalSettings,
     formas: catalogState.formas,
     layers: layerState.layers,
-    banners: bannerState.bannerSettings ? [bannerState.bannerSettings] : [],
+    banners: (bannerState as any).banners || [],
     metadata: {
       version: "2.0.0-LMS",
       renderer: "AG-Export-Pipeline-v1",
@@ -4780,8 +4735,7 @@ export async function uploadImage(formData: FormData) {
     const savePath = path.join(targetDir, filename);
     await fs.writeFile(savePath, buffer);
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-    return { success: true, path: `${baseUrl}/images/products/${filename}` };
+    return { success: true, path: `/images/products/${filename}` };
   } catch (error: any) {
     console.error("Sunucu tarafında resim yükleme hatası:", error);
     return { success: false, error: error.message || "Bilinmeyen bir sunucu hatası." };
@@ -5986,19 +5940,6 @@ src/store/useCatalogStore.ts(1037,22): error TS2339: Property 'background' does 
 }
 </file>
 
-<file path=".dockerignore">
-node_modules
-.next
-.git
-public/images
-repomix-output.xml
-*.xlsx
-*.pdf
-proje_rontgeni_*.txt
-deploy.bat
-deploy.ps1
-</file>
-
 <file path=".gitignore">
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
@@ -6062,8 +6003,6 @@ services:
     restart: always
     ports:
       - "3001:3000"
-    environment:
-      - NEXT_PUBLIC_BASE_URL=https://katalog.161.118.172.246.nip.io
     volumes:
       # Yüklenen resimleri sunucuda kalıcı hale getiren ayar:
       - ./public/images/products:/app/public/images/products
@@ -6961,7 +6900,7 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
 
   toggleZoom: () => set((state) => ({ isZoomed: !state.isZoomed })),
 
-toggleSlotSelection: (id, isMulti) => set((state) => {
+  toggleSlotSelection: (id, isMulti) => set((state) => {
     let newSelectedIds = [];
     if (isMulti) {
       if (state.selectedSlotIds.includes(id)) newSelectedIds = state.selectedSlotIds.filter((x) => x !== id);
@@ -6973,10 +6912,6 @@ toggleSlotSelection: (id, isMulti) => set((state) => {
       selectedSlotIds: newSelectedIds,
       selectedPageNumber: null,
       selectedTextElement: null,
-      sidebarState: { 
-        ...state.sidebarState, 
-        activePanel: newSelectedIds.length > 0 ? "selection" : state.sidebarState.activePanel 
-      }
     };
   }),
 
@@ -7040,21 +6975,13 @@ export default function Home() {
       <div className="flex-1 flex flex-row min-h-0">
         
         {/* Sol ve Orta Alan (Broşür Kısmı) */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 relative items-center">
-          <div className="inline-flex justify-center bg-(--bg-panel) shadow-md rounded-b-lg border-b border-x border-(--border-color) overflow-hidden shrink-0 z-50 mb-2">
-            <ContextualBar /> {/* YENİ: Seçime göre değişen 2 cm'lik şerit */}
-          </div>
-          <div className="flex-1 w-full relative min-h-0">
-            <Canvas />
-          </div>
+        <div className="flex-1 flex flex-col min-w-0 relative">
+          <ContextualBar /> {/* YENİ: Seçime göre değişen 2 cm'lik şerit */}
+          <Canvas />
         </div>
 
         {/* Sağ Alan: Yan Panel (Artık TopBar'ın altında başlıyor) */}
-        <div className="pt-4 pr-4 pb-4 h-full shrink-0 flex relative z-1000">
-          <div className="rounded-xl shadow-xl h-full flex flex-col relative z-1000">
-            <Sidebar />
-          </div>
-        </div>
+        <Sidebar />
         
       </div>
     </main>
@@ -7302,22 +7229,22 @@ export function BannerSettingsPanel() {
   return (
     <div className="space-y-4">
       
-      <div className="bg-slate-50 p-2 rounded border border-slate-200 shadow-sm">
+      <div className="bg-slate-900 p-2 rounded border border-slate-700 shadow-sm">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-[9px] font-bold text-slate-700">Banner Izgarası (8x4)</span>
-          <span className="text-[8px] text-slate-500">Çoklu seçim: Ctrl veya Shift</span>
+          <span className="text-[9px] font-bold text-slate-300 uppercase">Banner Izgarası (8x4)</span>
+          <span className="text-[8px] text-slate-400">Çoklu seçim: Ctrl veya Shift</span>
         </div>
         
-        <div className="grid grid-cols-8 gap-px bg-slate-200 border border-slate-200 p-px rounded-sm">
+        <div className="grid grid-cols-8 gap-[1px] bg-slate-700 border border-slate-700 p-[1px] rounded-sm">
           {bannerSettings.cells.filter(c => !c.hidden).map(cell => (
             <div
               key={cell.id}
               onClick={(e) => toggleBannerCellSelection(cell.id, e.ctrlKey || e.shiftKey)}
               style={{ gridColumn: `span ${cell.colSpan}`, gridRow: `span ${cell.rowSpan}` }}
-              className={`min-h-6 flex items-center justify-center text-[8px] cursor-pointer transition-colors overflow-hidden ${
+              className={`min-h-[24px] flex items-center justify-center text-[8px] cursor-pointer transition-colors overflow-hidden ${
                 selectedBannerCellIds.includes(cell.id) 
                   ? "bg-blue-100 ring-1 ring-inset ring-blue-500 text-blue-700 font-bold" 
-                  : "bg-white hover:bg-slate-100 text-slate-500"
+                  : "bg-slate-900 hover:bg-slate-800 text-slate-400"
               }`}
             >
               {cell.image ? "🖼️" : (cell.text ? cell.text.substring(0, 5) + "..." : "Boş")}
@@ -7326,13 +7253,13 @@ export function BannerSettingsPanel() {
         </div>
       </div>
 
-      <div className="space-y-3 mt-3">
+      <div className="space-y-3">
         {selectedBannerCellIds.length === 0 ? (
-          <div className="text-[10px] text-center text-slate-500 font-bold p-4 bg-slate-50 rounded border border-slate-200 shadow-sm">
+          <div className="text-[10px] text-center text-slate-300 font-bold p-4 bg-slate-900 rounded border border-slate-700 shadow-sm">
             Izgaradan düzenlemek istediğiniz hücre(ler)i seçin.
           </div>
         ) : (
-          <div className="bg-slate-50 p-3 rounded border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-slate-900 p-3 rounded border border-slate-700 shadow-sm space-y-4">
             
             <div className="flex gap-2">
               <button onClick={handleMerge} disabled={selectedBannerCellIds.length < 2} className={`flex-1 py-2 rounded text-[10px] font-bold transition-colors ${selectedBannerCellIds.length >= 2 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}>
@@ -7345,18 +7272,18 @@ export function BannerSettingsPanel() {
 
             {selectedBannerCellIds.length === 1 && (
               <>
-                <div className="space-y-1 border-t border-slate-200 pt-3 relative z-70">
-                  <span className="text-[9px] font-bold text-slate-500">Hücre Metni</span>
-                  <textarea rows={2} value={refCell!.text} onChange={(e) => updateBannerCell(refCell!.id, { text: e.target.value })} className="w-full text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded p-1.5 outline-none focus:border-blue-500 resize-none" placeholder="Hücreye yazılacak metin..." />
+                <div className="space-y-1 border-t border-slate-700 pt-3 relative z-[70]">
+                  <span className="text-[9px] font-bold text-slate-400">Hücre Metni</span>
+                  <textarea rows={2} value={refCell!.text} onChange={(e) => updateBannerCell(refCell!.id, { text: e.target.value })} className="w-full text-[10px] font-bold text-slate-200 bg-slate-800 border border-slate-600 rounded p-1.5 outline-none focus:border-blue-500 resize-none" placeholder="Hücreye yazılacak metin..." />
                 </div>
-                <div className="space-y-1 border-t border-slate-200 pt-3 relative z-60">
-                  <span className="text-[9px] font-bold text-slate-500">Resim Ekle</span>
+                <div className="space-y-1 border-t border-slate-700 pt-3 relative z-[60]">
+                  <span className="text-[9px] font-bold text-slate-400">Resim Ekle</span>
                   <input type="file" accept="image/*" className="hidden" id="banner-image-upload" ref={fileInputRef} onChange={handleImageUpload} />
                   <div className="flex gap-1">
-                    <label htmlFor="banner-image-upload" className="flex-1 h-7.5 flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-blue-400 rounded cursor-pointer transition-all">
+                    <label htmlFor="banner-image-upload" className="flex-1 h-[30px] flex items-center justify-center text-[10px] font-bold text-slate-200 bg-slate-800 border border-slate-600 hover:border-blue-400 rounded cursor-pointer transition-all">
                       {isUploading ? "Yükleniyor..." : (refCell!.image ? "Resmi Değiştir" : "Bilgisayardan Seç")}
                     </label>
-                    {refCell!.image && <button onClick={() => updateBannerCell(refCell!.id, { image: null })} className="h-7.5 px-3 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition-colors">Sil</button>}
+                    {refCell!.image && <button onClick={() => updateBannerCell(refCell!.id, { image: null })} className="h-[30px] px-3 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition-colors">Sil</button>}
                   </div>
                 </div>
               </>
@@ -7368,45 +7295,45 @@ export function BannerSettingsPanel() {
               </div>
             )}
 
-            <div className="flex items-center justify-between border-t border-slate-200 pt-3 relative z-50">
-              <span className="text-[10px] font-bold text-slate-700">Hücre Dolgu Rengi</span>
+            <div className="flex items-center justify-between border-t border-slate-700 pt-3 relative z-[50]">
+              <span className="text-[10px] font-bold text-slate-300">Hücre Dolgu Rengi</span>
               <ColorOpacityPicker color={refCell!.bgColor.c} opacity={refCell!.bgColor.o} onChange={(c, o) => updateSelectedBannerCells({ bgColor: { c, o } })} />
             </div>
 
-            <div className="border-t border-slate-200 pt-3 space-y-2 relative z-40">
-              <span className="text-[10px] font-bold text-slate-700">Hücre Çerçevesi (Border)</span>
+            <div className="border-t border-slate-700 pt-3 space-y-2 relative z-[40]">
+              <span className="text-[10px] font-bold text-slate-300">Hücre Çerçevesi (Border)</span>
               <div className="flex items-center justify-between">
                 <ColorOpacityPicker color={refCell!.border.color.c} opacity={refCell!.border.color.o} onChange={(c, o) => updateSelectedBannerCells({ border: { color: { c, o } } })} />
-                <select value={refCell!.border.style} onChange={(e) => updateSelectedBannerCells({ border: { style: e.target.value as any } })} className="text-[10px] text-slate-700 bg-white border border-slate-200 rounded p-1 outline-none">
+                <select value={refCell!.border.style} onChange={(e) => updateSelectedBannerCells({ border: { style: e.target.value as any } })} className="text-[10px] text-slate-200 bg-slate-800 border border-slate-600 rounded p-1 outline-none">
                   <option value="solid">Düz</option>
                   <option value="dashed">Kesik</option>
                   <option value="dotted">Noktalı</option>
                 </select>
               </div>
               
-              <div className="grid grid-cols-5 gap-1 bg-white p-1.5 rounded border border-slate-200">
-                <button onClick={() => handleBorderChange('linked', refCell!.border.linked ? 0 : 1)} className={`flex items-center justify-center p-1 rounded text-[10px] ${refCell!.border.linked ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`} title={refCell!.border.linked ? "Kenarlar Bağlı" : "Kenarlar Bağımsız"}>
+              <div className="grid grid-cols-5 gap-1 bg-slate-800 p-1.5 rounded border border-slate-700">
+                <button onClick={() => handleBorderChange('linked', refCell!.border.linked ? 0 : 1)} className={`flex items-center justify-center p-1 rounded text-[10px] ${refCell!.border.linked ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`} title={refCell!.border.linked ? "Kenarlar Bağlı" : "Kenarlar Bağımsız"}>
                   {refCell!.border.linked ? "🔗" : "🔓"}
                 </button>
                 {['t', 'r', 'b', 'l'].map(side => (
-                  <div key={side} className="flex flex-col items-center relative z-30">
-                    <span className="text-[8px] text-slate-500">{side === 't' ? 'Üst' : side === 'b' ? 'Alt' : side === 'r' ? 'Sağ' : 'Sol'}</span>
-                    <input type="number" min="0" max="20" value={refCell!.border[side as 't' | 'r' | 'b' | 'l']} onChange={(e) => { const val = parseInt(e.target.value) || 0; if (refCell!.border.linked) { handleBorderChange('all', val); } else { handleBorderChange(side, val); } }} className="w-full text-[10px] text-center bg-slate-50 text-slate-700 border border-slate-200 rounded p-0.5 outline-none focus:border-blue-500" />
+                  <div key={side} className="flex flex-col items-center relative z-[30]">
+                    <span className="text-[8px] text-slate-400 uppercase">{side === 't' ? 'Üst' : side === 'b' ? 'Alt' : side === 'r' ? 'Sağ' : 'Sol'}</span>
+                    <input type="number" min="0" max="20" value={refCell!.border[side as 't' | 'r' | 'b' | 'l']} onChange={(e) => { const val = parseInt(e.target.value) || 0; if (refCell!.border.linked) { handleBorderChange('all', val); } else { handleBorderChange(side, val); } }} className="w-full text-[10px] text-center bg-slate-900 text-slate-200 border border-slate-600 rounded p-0.5 outline-none focus:border-blue-500" />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="border-t border-slate-200 pt-3 relative z-20">
+            <div className="border-t border-slate-700 pt-3 relative z-[20]">
               <TypographyPicker title="Font ve Hizalama" value={refCell!.font} onChange={(val) => updateSelectedBannerCells({ font: val })} />
             </div>
 
-            <div className="border-t border-slate-200 pt-3 relative z-10">
+            <div className="border-t border-slate-700 pt-3 relative z-[10]">
               <SpacingPicker title="Hücre İç Boşluğu (Padding)" value={refCell!.padding} onChange={(val) => updateSelectedBannerCells({ padding: val })} />
             </div>
 
             {/* YENİ: SIFIRLAMA BUTONU EKLENDİ */}
-            <div className="border-t border-slate-200 pt-3 relative z-5">
+            <div className="border-t border-slate-700 pt-3 relative z-[5]">
               <button 
                 onClick={() => {
                   if (window.confirm("Seçili hücrelerin tüm tasarım ayarlarını (resim ve metin dahil) varsayılan haline döndürmek istediğinize emin misiniz?")) {
@@ -7536,97 +7463,71 @@ export interface Layer {
 </file>
 
 <file path="src/app/globals.css">
-/* stylelint-disable */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Roboto:wght@400;500;700;900&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --bg-canvas: #f0f4f8;       
-  --bg-panel: #ffffff;        
-  --bg-subpanel: #f8fafc;     
-  --bg-dark: #1e293b;         
-  --border-color: #e2e8f0;    
-  --border-dark: #e2e8f0;     
-  --text-main: #1e293b;       
-  --text-muted: #64748b;      
-  --text-light: #f8fafc;      
-  --primary: #4f46e5;         
-  --primary-hover: #4338ca;   
-  --primary-light: #e0e7ff;   
-  --success: #10b981;         
-  --danger: #ef4444;          
-  --warning: #f59e0b;         
-
-  --background: var(--bg-panel);
-  --foreground: var(--text-main);
-  --card: var(--bg-panel);
-  --card-foreground: var(--text-main);
-  --popover: var(--bg-panel);
-  --popover-foreground: var(--text-main);
-  --muted: var(--bg-subpanel);
-  --muted-foreground: var(--text-muted);
-  --border: var(--border-color);
-  --input: var(--border-color);
-  --ring: var(--primary);
-  --radius: 0.5rem;
-
-  --product-bg: #e8e8f2;
-  --price-bg: #e60000;
-  --font-main: "Inter", sans-serif;
-  --border-width: 1px;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Inter", sans-serif;
-  --font-heading: "Inter", sans-serif;
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
-  --color-destructive: var(--danger);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
-  --color-primary-foreground: #ffffff;
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Çift kaydırma çubuğunu engellemek için */
 html, body {
   margin: 0;
   padding: 0;
   overflow: hidden !important; 
   width: 100vw;
   height: 100vh;
-  background-color: var(--bg-canvas);
-  color: var(--text-main);
-  font-family: "Inter", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-.section-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+body {
+  font-family: "Arial", sans-serif;
 }
 
-.ui-text {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-main);
-}
-
-.ui-text-small {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
+/* Range Input (Slider) Thumb Taşma Düzenlemesi */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -7638,39 +7539,114 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-runnable-track {
   width: 100%;
   height: 4px;
-  background: var(--border-color);
-  border-radius: 4px;
+  background: #e2e8f0;
+  border-radius: 10px;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
-  background: var(--primary);
+  width: 12px;
+  height: 12px;
+  background: #2563eb;
   border-radius: 50%;
-  margin-top: -5px;
-  border: 2px solid var(--bg-panel);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  transition: transform 0.1s, background 0.1s;
+  margin-top: -4px; /* Track ortalaması için */
+  border: none;
 }
 
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  background: var(--primary-hover);
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #2563eb;
+  border-radius: 50%;
+  border: none;
 }
 
+/* Genel ince scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { 
-  background-color: var(--border-color); 
-  border-radius: 10px; 
+::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
-::-webkit-scrollbar-thumb:hover { background-color: var(--text-muted); }
-* { scrollbar-width: thin; scrollbar-color: var(--border-color) transparent; }
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
 
 @layer base {
-  * { @apply border-border outline-ring/50; }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }
 </file>
 
@@ -7861,8 +7837,8 @@ export function Canvas() {
 
     const observer = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
-      const scaleW = (width - 60) / referenceWidthPx;
-      const scaleH = (height - 60) / referenceHeightPx;
+      const scaleW = (width - 80) / referenceWidthPx;
+      const scaleH = (height - 80) / referenceHeightPx;
       setScale(Math.min(scaleW, scaleH));
     });
 
@@ -8095,9 +8071,11 @@ import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useBannerStore } from "@/store/useBannerStore";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CaretDown, DownloadSimple, FilePdf, Image as ImageIcon } from "@phosphor-icons/react";
 
 export function DownloadMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -8105,6 +8083,7 @@ export function DownloadMenu() {
 
   const activeTab = useCatalogStore((state) => state.activeTab);
   const setActiveTab = useCatalogStore((state) => state.setActiveTab);
+  
   const clearSelection = useUIStore((state) => state.clearSelection);
   const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
 
@@ -8114,12 +8093,29 @@ export function DownloadMenu() {
     const pages = Array.from(document.querySelectorAll('.physical-page')) as HTMLElement[];
     if (pages.length === 0) return null;
 
-    const options = { quality: 1.0, pixelRatio: 2, backgroundColor: "#ffffff", filter: (node: HTMLElement) => { if (node?.hasAttribute && node.hasAttribute('data-hide-on-export')) return false; return true; } };
+    const options = {
+      quality: 1.0,
+      pixelRatio: 2,
+      backgroundColor: "#ffffff",
+      filter: (node: HTMLElement) => {
+        if (node?.hasAttribute && node.hasAttribute('data-hide-on-export')) {
+          return false;
+        }
+        return true;
+      }
+    };
 
     const pageImages = [];
     for (const page of pages) {
-      const dataUrl = format === "jpeg" ? await toJpeg(page, options) : await toPng(page, options);
-      pageImages.push({ dataUrl, width: page.offsetWidth, height: page.offsetHeight });
+      const dataUrl = format === "jpeg" 
+        ? await toJpeg(page, options)
+        : await toPng(page, options);
+        
+      pageImages.push({
+        dataUrl,
+        width: page.offsetWidth,
+        height: page.offsetHeight
+      });
     }
 
     const canvas = document.createElement("canvas");
@@ -8130,88 +8126,107 @@ export function DownloadMenu() {
     const totalWidth = pageImages.reduce((sum, img) => sum + (img.width * scale), 0);
     const maxHeight = Math.max(...pageImages.map(img => img.height * scale));
 
-    canvas.width = totalWidth; canvas.height = maxHeight;
+    canvas.width = totalWidth;
+    canvas.height = maxHeight;
+
     let currentX = 0;
     for (const img of pageImages) {
       const imageEl = new Image();
       imageEl.src = img.dataUrl;
       await new Promise((resolve) => { imageEl.onload = resolve; });
+      
       ctx.drawImage(imageEl, currentX, 0, img.width * scale, img.height * scale);
       currentX += img.width * scale;
     }
 
-    return { dataUrl: canvas.toDataURL(`image/${format}`, 1.0), widthMm: (totalWidth / scale) * 0.264583, heightMm: (maxHeight / scale) * 0.264583 };
+    return {
+      dataUrl: canvas.toDataURL(`image/${format}`, 1.0),
+      widthMm: (totalWidth / scale) * 0.264583,
+      heightMm: (maxHeight / scale) * 0.264583
+    };
   };
 
   const handleExport = async (format: "pdf" | "jpeg" | "png") => {
-    setIsOpen(false); setIsExporting(true);
-    clearSelection(); if (clearBannerSelection) clearBannerSelection();
-    await delay(300); 
+    setIsOpen(false);
+    setIsExporting(true);
+
+    clearSelection();
+    clearBannerSelection();
+    await delay(100); 
 
     const originalTab = activeTab;
+
     try {
-      setActiveTab("outer"); await delay(1000); 
-      const outerData = await captureCurrentView(format === "png" ? "png" : "jpeg");
-      setActiveTab("inner"); await delay(1000);
-      const innerData = await captureCurrentView(format === "png" ? "png" : "jpeg");
+      setActiveTab("outer");
+      await delay(600); 
+      const outerImageFormat = format === "png" ? "png" : "jpeg";
+      const outerData = await captureCurrentView(outerImageFormat);
+
+      setActiveTab("inner");
+      await delay(600);
+      const innerData = await captureCurrentView(outerImageFormat);
+
       setActiveTab(originalTab);
 
-      if (!outerData || !innerData) throw new Error("Sayfalar yakalanamadı.");
+      if (!outerData || !innerData) {
+        throw new Error("Sayfalar yakalanamadı.");
+      }
 
       if (format === "pdf") {
-        const pdf = new jsPDF({ orientation: outerData.widthMm > outerData.heightMm ? "landscape" : "portrait", unit: "mm", format: [outerData.widthMm, outerData.heightMm] });
+        const pdf = new jsPDF({
+          orientation: outerData.widthMm > outerData.heightMm ? "landscape" : "portrait",
+          unit: "mm",
+          format: [outerData.widthMm, outerData.heightMm]
+        });
         pdf.addImage(outerData.dataUrl, "JPEG", 0, 0, outerData.widthMm, outerData.heightMm);
+        
         pdf.addPage([innerData.widthMm, innerData.heightMm], innerData.widthMm > innerData.heightMm ? "landscape" : "portrait");
         pdf.addImage(innerData.dataUrl, "JPEG", 0, 0, innerData.widthMm, innerData.heightMm);
-        pdf.save(`Katalog-Projesi-${Date.now()}.pdf`);
+
+        pdf.save(`Katalog-Tam-${Date.now()}.pdf`);
       } else {
-        const link = document.createElement("a");
-        link.download = `Katalog-Dis-${Date.now()}.${format}`; link.href = outerData.dataUrl; link.click();
+        const linkOuter = document.createElement("a");
+        linkOuter.download = `Katalog-Dis-Sayfalar-${Date.now()}.${format}`;
+        linkOuter.href = outerData.dataUrl;
+        linkOuter.click();
+
         await delay(500);
-        const link2 = document.createElement("a");
-        link2.download = `Katalog-Ic-${Date.now()}.${format}`; link2.href = innerData.dataUrl; link2.click();
+
+        const linkInner = document.createElement("a");
+        linkInner.download = `Katalog-Ic-Sayfalar-${Date.now()}.${format}`;
+        linkInner.href = innerData.dataUrl;
+        linkInner.click();
       }
+
     } catch (error) {
-      console.error("Export Error:", error); alert("İndirme işlemi sırasında bir hata oluştu.");
+      console.error("Çıktı alınırken hata:", error);
+      alert("Çıktı alınırken bir hata oluştu. Lütfen konsolu kontrol edin.");
     } finally {
       setIsExporting(false);
     }
   };
 
   return (
-    <div className="w-full">
-      <DropdownMenu open={isOpen} onOpenChange={(open: boolean) => setIsOpen(open)}>
+    <div className="relative z-[9999]">
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        {/* asChild KULLANMADAN, SINIFLARI DOĞRUDAN TRIGGER'A VERDİK */}
         <DropdownMenuTrigger
           disabled={isExporting}
-          className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-primary hover:bg-(--primary-hover) text-white text-[12px] font-bold rounded-lg shadow-md transition-all active:scale-95 disabled:opacity-50 outline-none"
+          className={`flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold rounded shadow-md transition-colors outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {isExporting ? (
-            <span className="flex items-center gap-2 animate-pulse"><DownloadSimple size={18} weight="bold" /> HAZIRLANIYOR...</span>
-          ) : (
-            <>
-              <DownloadSimple size={18} weight="bold" />
-              İNDİR (EXPORT)
-              <CaretDown size={14} weight="bold" className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-            </>
-          )}
+          {isExporting ? "Hazırlanıyor..." : "İndir ▼"}
         </DropdownMenuTrigger>
-        <DropdownMenuPortal>
-          <DropdownMenuContent align="center" side="top" sideOffset={12} className="w-56 bg-(--bg-panel) z-99999 shadow-2xl border-(--border-color) p-1.5 rounded-xl">
-            <DropdownMenuItem onClick={() => handleExport("pdf")} className="flex items-center gap-3 p-3 cursor-pointer rounded-lg hover:bg-(--primary-light) focus:bg-(--primary-light) transition-colors group">
-              <div className="w-8 h-8 bg-red-50 text-red-500 rounded-md flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-colors"><FilePdf size={18} weight="fill" /></div>
-              <div className="flex flex-col"><span className="ui-text">PDF Belgesi</span><span className="ui-text-small text-[9px]">Yüksek Kalite Baskı</span></div>
-            </DropdownMenuItem>
-            <div className="h-px bg-(--border-color) my-1 opacity-50" />
-            <DropdownMenuItem onClick={() => handleExport("jpeg")} className="flex items-center gap-3 p-3 cursor-pointer rounded-lg hover:bg-(--primary-light) focus:bg-(--primary-light) transition-colors group">
-              <div className="w-8 h-8 bg-blue-50 text-blue-500 rounded-md flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors"><ImageIcon size={18} weight="fill" /></div>
-              <div className="flex flex-col"><span className="ui-text">JPEG Resim</span><span className="ui-text-small text-[9px]">Dijital Paylaşım</span></div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport("png")} className="flex items-center gap-3 p-3 cursor-pointer rounded-lg hover:bg-(--primary-light) focus:bg-(--primary-light) transition-colors group">
-              <div className="w-8 h-8 bg-emerald-50 text-emerald-500 rounded-md flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors"><ImageIcon size={18} weight="fill" /></div>
-              <div className="flex flex-col"><span className="ui-text">PNG Resim</span><span className="ui-text-small text-[9px]">Kayıpsız / Şeffaf</span></div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenuPortal>
+        <DropdownMenuContent align="end" className="w-32 bg-white z-[9999] shadow-xl border-slate-200">
+          <DropdownMenuItem onClick={() => handleExport("pdf")} className="cursor-pointer font-bold text-slate-700 hover:bg-blue-50 focus:bg-blue-50">
+            PDF Olarak İndir
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleExport("jpeg")} className="cursor-pointer font-bold text-slate-700 hover:bg-blue-50 focus:bg-blue-50">
+            JPEG Olarak İndir
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleExport("png")} className="cursor-pointer font-bold text-slate-700 hover:bg-blue-50 focus:bg-blue-50">
+            PNG Olarak İndir
+          </DropdownMenuItem>
+        </DropdownMenuContent>
       </DropdownMenu>
     </div>
   );
@@ -8429,7 +8444,7 @@ export function ProductInfoSettings() {
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-slate-500">Ürün Adı (Bezeichnung)</span>
+              <span className="text-[9px] font-bold text-slate-500">Ürün Adı (BEZEICHNUNG)</span>
               <textarea 
                 rows={2}
                 value={selectedSlot?.product?.name || ""} 
@@ -8440,7 +8455,7 @@ export function ProductInfoSettings() {
             
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Satış Fiyatı (VK Netto)</span>
+                  <span className="text-[9px] font-bold text-slate-500">Satış Fiyatı (VK_NETTO)</span>
                   <input 
                     type="text" 
                     value={selectedSlot?.product?.price || ""} 
@@ -8461,7 +8476,7 @@ export function ProductInfoSettings() {
 
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Ürün Kodu (Artnr)</span>
+                  <span className="text-[9px] font-bold text-slate-500">Ürün Kodu (ARTNR)</span>
                   <input 
                     type="text" 
                     value={selectedSlot?.product?.sku || ""} 
@@ -8470,8 +8485,8 @@ export function ProductInfoSettings() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Kâr Oranı (Kar %)</span>
-                  <div className={`w-full text-[10px] font-bold border rounded p-1.5 flex items-center justify-center h-8.5 ${hasCost ? (isLoss ? "bg-red-50 border-red-200 text-red-600" : "bg-green-50 border-green-200 text-green-600") : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                  <span className="text-[9px] font-bold text-slate-500">Kâr Oranı (KAR_%)</span>
+                  <div className={`w-full text-[10px] font-bold border rounded p-1.5 flex items-center justify-center h-[34px] ${hasCost ? (isLoss ? "bg-red-50 border-red-200 text-red-600" : "bg-green-50 border-green-200 text-green-600") : "bg-slate-50 border-slate-200 text-slate-400"}`}>
                     {hasCost ? `%${profit.toFixed(1)}` : "Maliyet Yok"}
                   </div>
                 </div>
@@ -8479,7 +8494,7 @@ export function ProductInfoSettings() {
             
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Kategori (Artgrp)</span>
+                  <span className="text-[9px] font-bold text-slate-500">Kategori (ARTGRP)</span>
                   <input 
                     type="text" 
                     value={selectedSlot?.product?.category || ""} 
@@ -8488,8 +8503,8 @@ export function ProductInfoSettings() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Sıra (Pos)</span>
-                  <div className="w-full h-8.5 flex items-center justify-center text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded p-1.5 cursor-not-allowed">
+                  <span className="text-[9px] font-bold text-slate-500">Sıra (POS)</span>
+                  <div className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded p-1.5 cursor-not-allowed">
                     {masterProductPool.some(p => p.sku === selectedSlot?.product?.sku) ? selectedSlot?.product?.raw?.POS : `${nextPos} (Yeni)`}
                   </div>
                 </div>
@@ -8499,7 +8514,7 @@ export function ProductInfoSettings() {
             <div className="space-y-1 pt-1">
               <span className="text-[9px] font-bold text-slate-500">Görsel Seç</span>
               <input type="file" accept="image/*" className="hidden" id="image-upload" ref={fileInputRef} onChange={handleFileChange} />
-              <label htmlFor="image-upload" className="w-full h-8.5 flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-300 hover:border-blue-400 rounded p-1.5 cursor-pointer shadow-sm transition-all">
+              <label htmlFor="image-upload" className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-300 hover:border-blue-400 rounded p-1.5 cursor-pointer shadow-sm transition-all">
                 {selectedFile ? selectedFile.name : "Bilgisayardan Görsel Seç"}
               </label>
             </div>
@@ -8982,13 +8997,13 @@ export const usePizzaStore = create<PizzaStore>((set) => ({
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
-    "@phosphor-icons/react": "^2.1.10",
     "@types/uuid": "^10.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
+    "lucide-react": "^1.7.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -9079,8 +9094,8 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
 const [mt, mr, mb, ml] = pageConfig.safeZone;
   
-const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings.defaultGrid?.cols || 4;
-  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings.defaultGrid?.rows || 4;
+  const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings.defaultGrid.cols;
+  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings.defaultGrid.rows;
   
   const totalRows = Math.max(configuredRows, Math.ceil(currentPage.slots.length / totalColumns));
 
@@ -9122,8 +9137,8 @@ const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState(
 
   return (
     <>
-{contextMenu && createPortal(
-        <div className="fixed z-9999 bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-37.5" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+      {contextMenu && createPortal(
+        <div className="fixed z-[9999] bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-[150px]" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
           {contextMenu.canMerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50" onClick={() => { mergeSelected(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreleri Birleştir</button>}
           {contextMenu.canUnmerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-red-50" onClick={() => { unmergeSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreyi Dağıt</button>}
           {contextMenu.hasProduct && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50" onClick={() => { clearSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Temizle</button>}
@@ -9230,16 +9245,19 @@ import { useLayerStore } from "@/store/useLayerStore";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { Layer } from "@/types/document";
 import { 
+  Eye, 
+  EyeOff, 
   Image as ImageIcon, 
   Palette, 
-  Trash, 
-  ArrowsOut, 
-  Intersect, 
-  SplitHorizontal,
-  Sparkle,
+  Trash2, 
+  Maximize, 
+  Combine, 
+  Split, 
+  Layers,
+  Sparkles,
   Info,
-  CheckCircle
-} from "@phosphor-icons/react";
+  CheckCircle2
+} from "lucide-react";
 
 interface GradientConfig {
   type: 'linear' | 'radial' | 'conic';
@@ -9494,8 +9512,8 @@ export function BackgroundSettingsPanel() {
           {/* A. HÜCRE BİRLEŞTİRME (EXCEL MANTIĞI) */}
           <section className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <label className="text-[9px] font-black tracking-[0.18em] text-slate-500 flex items-center gap-1.5">
-                <Intersect size={14} weight="bold" /> Sayfa Birleştirme
+              <label className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500 flex items-center gap-1.5">
+                <Combine className="w-3 h-3" /> Sayfa Birleştirme
               </label>
               <div className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
                 Forma {activeForma?.id}
@@ -9518,7 +9536,7 @@ export function BackgroundSettingsPanel() {
                         setSelectedPagesInLayerStore([...selectedPageIds, page.id]);
                       }
                     }}
-                    className={`relative min-w-10 h-10 rounded border text-[11px] font-black transition-all flex items-center justify-center ${
+                    className={`relative min-w-[40px] h-10 rounded border text-[11px] font-black transition-all flex items-center justify-center ${
                       isSelected
                         ? "border-blue-600 bg-blue-600 text-white shadow-md z-10 scale-105"
                         : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -9537,26 +9555,26 @@ export function BackgroundSettingsPanel() {
               <button
                 onClick={handleMerge}
                 disabled={selectedPageIds.length < 2}
-                className="flex items-center justify-center gap-2 py-2 rounded bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900 disabled:opacity-30 transition-all font-sans"
+                className="flex items-center justify-center gap-2 py-2 rounded bg-slate-800 text-white text-[10px] font-black uppercase hover:bg-slate-900 disabled:opacity-30 transition-all font-sans"
               >
-                <Intersect size={14} weight="bold" /> Seçili Sayfaları Birleştir
+                <Combine className="w-3.5 h-3.5" /> Seçili Sayfaları Birleştir
               </button>
               <button
                 onClick={handleSplit}
                 disabled={targetGroups.length === 0 || !targetGroups.some(g => g.length > 1)}
-                className="flex items-center justify-center gap-2 py-2 rounded border border-slate-300 bg-white text-slate-700 text-[10px] font-black hover:bg-slate-50 disabled:opacity-30 transition-all font-sans"
+                className="flex items-center justify-center gap-2 py-2 rounded border border-slate-300 bg-white text-slate-700 text-[10px] font-black uppercase hover:bg-slate-50 disabled:opacity-30 transition-all font-sans"
               >
-                <SplitHorizontal size={14} weight="bold" /> Grubu Ayır
+                <Split className="w-3.5 h-3.5" /> Grubu Ayır
               </button>
             </div>
 
             {/* SELECTION SUMMARY UI */}
             {targetGroups.length > 0 && (
               <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-100 p-2.5 rounded animate-in fade-in slide-in-from-top-1 duration-300">
-                <CheckCircle size={18} weight="fill" className="text-emerald-600 mt-0.5 shrink-0" />
+                <CheckCircle2 size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
                 <div className="space-y-1">
-                  <div className="text-[10px] font-black text-emerald-800 tracking-tighter">
-                    {targetGroups.length} Tasarım Hücresi Seçildi
+                  <div className="text-[10px] font-black text-emerald-800 uppercase tracking-tighter">
+                    {targetGroups.length} TASARIM HÜCRESİ SEÇİLDİ
                   </div>
                   <div className="text-[9px] text-emerald-700 leading-tight">
                     Yapacağınız değişiklikler toplam <strong>{selectedPageIds.length} sayfayı</strong> etkileyecek.
@@ -9573,9 +9591,9 @@ export function BackgroundSettingsPanel() {
             <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Palette size={16} weight="duotone" className="text-emerald-500" />
+                  <Palette className="w-4 h-4 text-emerald-500" />
                   <div>
-                    <span className="text-[11px] font-black text-slate-700">Zemin Rengi (Base)</span>
+                    <span className="text-[11px] font-black text-slate-700 uppercase">Zemin Rengi (Base)</span>
                     <p className="text-[9px] text-slate-400 font-medium">Temel dolgu veya gradyan</p>
                   </div>
                 </div>
@@ -9591,10 +9609,10 @@ export function BackgroundSettingsPanel() {
               {/* GRADIENT BUILDER */}
               <div className="space-y-3 pt-3 border-t border-slate-100 mt-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-700 tracking-widest">Gelişmiş Gradyan (Geçiş)</span>
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Gelişmiş Gradyan (Geçiş)</span>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" className="sr-only peer" checked={hasGradient} onChange={toggleGradient} disabled={targetGroups.length === 0} />
-                    <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                    <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
                   </label>
                 </div>
 
@@ -9678,15 +9696,15 @@ export function BackgroundSettingsPanel() {
             <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ImageIcon size={16} weight="duotone" className="text-blue-500" />
+                  <ImageIcon className="w-4 h-4 text-blue-500" />
                   <div>
-                    <span className="text-[11px] font-black text-slate-700">Doku & Görsel (Overlay)</span>
+                    <span className="text-[11px] font-black text-slate-700 uppercase">Doku & Görsel (Overlay)</span>
                     <p className="text-[9px] text-slate-400 font-medium">Renk üzerine binen katman</p>
                   </div>
                 </div>
                 {groupLayers.overlay && (
                   <button onClick={removeOverlay} className="p-1.5 rounded hover:bg-rose-50 text-rose-500 transition-colors">
-                    <Trash size={16} weight="bold" />
+                    <Trash2 size={14} />
                   </button>
                 )}
               </div>
@@ -9706,8 +9724,8 @@ export function BackgroundSettingsPanel() {
                     htmlFor="overlay-upload"
                     className={`w-full h-16 rounded border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all ${targetGroups.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
                   >
-                    <span className="text-[10px] font-black text-slate-500 tracking-tighter">
-                      {isUploading ? "Yükleniyor..." : "Görsel Veya Doku Yükle"}
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">
+                      {isUploading ? "YÜKLENİYOR..." : "GÖRSEL VEYA DOKU YÜKLE"}
                     </span>
                     <span className="text-[9px] text-slate-400">PNG, JPG veya SVG</span>
                   </label>
@@ -9721,7 +9739,7 @@ export function BackgroundSettingsPanel() {
                       alt="Overlay Preview" 
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                       <label htmlFor="overlay-upload" className="px-3 py-1.5 bg-white rounded text-[10px] font-black text-slate-800 cursor-pointer shadow-xl">Değiştir</label>
+                       <label htmlFor="overlay-upload" className="px-3 py-1.5 bg-white rounded text-[10px] font-black text-slate-800 cursor-pointer shadow-xl">DEĞİŞTİR</label>
                     </div>
                   </div>
 
@@ -9783,7 +9801,7 @@ export function BackgroundSettingsPanel() {
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-600 outline-none"
             >
-              <Sparkle size={14} weight="fill" /> {showAdvanced ? "Gelişmiş Ayarları Gizle" : "Gelişmiş Ayarları Göster"}
+              <Sparkles size={12} /> {showAdvanced ? "GELİŞMİŞ AYARLARI GİZLE" : "GELİŞMİŞ AYARLARI GÖSTER"}
             </button>
 
             {showAdvanced && (
@@ -9791,7 +9809,7 @@ export function BackgroundSettingsPanel() {
                 {/* TRANSFORM CONTROLS FOR OVERLAY */}
                 {groupLayers.overlay && (
                   <div className="space-y-3">
-                    <h4 className="text-[9px] font-black text-blue-600 tracking-widest">Görsel Transform</h4>
+                    <h4 className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Görsel Transform</h4>
                     
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -9846,7 +9864,7 @@ export function BackgroundSettingsPanel() {
                         }}
                         className="py-2 flex items-center justify-center gap-1.5 text-[9px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
                       >
-                        <ArrowsOut size={12} className="rotate-90" weight="bold" /> Enine Sığdır
+                        <Maximize size={10} className="rotate-90" /> Enine Sığdır
                       </button>
                       <button
                         onClick={() => {
@@ -9863,14 +9881,14 @@ export function BackgroundSettingsPanel() {
                         }}
                         className="py-2 flex items-center justify-center gap-1.5 text-[9px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
                       >
-                        <ArrowsOut size={12} weight="bold" /> Boyuna Sığdır
+                        <Maximize size={10} /> Boyuna Sığdır
                       </button>
                     </div>
                   </div>
                 )}
 
                 <div className="p-2 rounded bg-amber-50 border border-amber-100 text-[9px] text-amber-700 font-bold flex gap-2">
-                  <Info size={16} weight="fill" className="shrink-0" />
+                  <Info size={14} className="flex-shrink-0" />
                   Gelişmiş modda görselleri milimetrik olarak kaydırabilir ve döndürebilirsiniz.
                 </div>
               </div>
@@ -9885,10 +9903,7 @@ export function BackgroundSettingsPanel() {
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { useCatalogStore } from "../../store/useCatalogStore";
-import { useLayerStore } from "../../store/useLayerStore";
-import { useBannerStore } from "../../store/useBannerStore";
-
+import { useCatalogStore } from "@/store/useCatalogStore";
 import * as XLSX from "xlsx";
 
 export function ProductManagement() {
@@ -9898,83 +9913,18 @@ export function ProductManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const layoutFileRef = useRef<HTMLInputElement>(null);
   const masterFileRef = useRef<HTMLInputElement>(null);
-  const projectFileRef = useRef<HTMLInputElement>(null);
-  const [isLayoutDragging, setIsLayoutDragging] = useState(false);
-  const [isMasterDragging, setIsMasterDragging] = useState(false);
 
-  const handleExportProject = () => {
-    const catalogState = useCatalogStore.getState();
-    const layerState = useLayerStore.getState();
-    const bannerState = useBannerStore.getState();
-
-    const projectData = {
-      catalog: {
-        activeTemplate: catalogState.activeTemplate,
-        formas: catalogState.formas,
-        globalSettings: catalogState.globalSettings,
-        productPool: catalogState.productPool,
-        masterProductPool: catalogState.masterProductPool,
-      },
-      layers: layerState.layers,
-      banner: {
-        bannerSettings: bannerState.bannerSettings
-      }
-    };
-
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `katalog-proje-${Date.now()}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  };
-
-  const handleImportProject = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLayoutFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const projectData = JSON.parse(evt.target?.result as string);
-        
-        if (projectData.catalog) {
-          useCatalogStore.setState({
-            activeTemplate: projectData.catalog.activeTemplate,
-            formas: projectData.catalog.formas,
-            globalSettings: projectData.catalog.globalSettings,
-            productPool: projectData.catalog.productPool || [],
-            masterProductPool: projectData.catalog.masterProductPool || [],
-          });
-        }
-        
-        if (projectData.layers) {
-          useLayerStore.setState({ layers: projectData.layers });
-        }
-        
-        if (projectData.banner) {
-          useBannerStore.setState({ bannerSettings: projectData.banner.bannerSettings });
-        }
-        
-        alert("Proje başarıyla yüklendi!");
-      } catch {
-        alert("Geçersiz veya bozuk proje dosyası!");
-      }
-    };
-    reader.readAsText(file);
-    if (e.target) e.target.value = '';
-  };
-
-  const processLayoutFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const data = new Uint8Array(evt.target?.result as ArrayBuffer);
       const workbook = XLSX.read(data, { type: "array" });
+      // defval: "" ile boş hücrelerin hata vermesini engelliyoruz
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const formatted = rows.map((row: any, i: number) => ({
+      const formatted = rows.map((row: any, i) => ({
         id: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
         name: row.BEZEICHNUNG || row.URUN_ADI || "İsimsiz",
         price: row.VK_NETTO?.toString() || row.FIYAT?.toString() || "0",
@@ -9988,20 +9938,16 @@ export function ProductManagement() {
     reader.readAsArrayBuffer(file);
   };
 
-  const handleLayoutFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) processLayoutFile(e.target.files[0]);
-    if (layoutFileRef.current) layoutFileRef.current.value = "";
-  };
-
-  const processMasterFile = (file: File) => {
+  const handleMasterFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (evt) => {
       const data = new Uint8Array(evt.target?.result as ArrayBuffer);
       const workbook = XLSX.read(data, { type: "array" });
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const formatted = rows.map((row: any, i: number) => ({
+      const formatted = rows.map((row: any, i) => ({
         id: row.ARTNR?.toString() || row.KOD?.toString() || `u-${i}`,
         name: row.BEZEICHNUNG || row.URUN_ADI || "İsimsiz",
         price: row.VK_NETTO?.toString() || row.FIYAT?.toString() || "0",
@@ -10013,11 +9959,6 @@ export function ProductManagement() {
       setMasterProductPool(formatted);
     };
     reader.readAsArrayBuffer(file);
-  };
-
-  const handleMasterFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) processMasterFile(e.target.files[0]);
-    if (masterFileRef.current) masterFileRef.current.value = "";
   };
 
   const handleClearAll = () => {
@@ -10043,77 +9984,10 @@ export function ProductManagement() {
 
   return (
     <>
-      <div className="p-4 border-b border-(--border-color) bg-(--bg-panel) space-y-4 shadow-sm shrink-0">
-        <div>
-          <label className="section-title block mb-2 text-primary">1. Otomatik Dizilim Excel</label>
-          <div 
-            onDragOver={(e) => { e.preventDefault(); setIsLayoutDragging(true); }}
-            onDragLeave={() => setIsLayoutDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setIsLayoutDragging(false); if (e.dataTransfer.files?.[0]) processLayoutFile(e.dataTransfer.files[0]); }}
-            onClick={() => layoutFileRef.current?.click()}
-            className={`border-2 border-dashed rounded-md p-4 text-center cursor-pointer transition-all shadow-sm ${isLayoutDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-blue-300'}`}
-          >
-            <div className="text-[11px] font-bold text-slate-600 mb-1">Excel dosyasını buraya sürükleyin</div>
-            <div className="text-[9px] text-slate-400">veya seçmek için tıklayın (.xlsx, .xls, .csv)</div>
-          </div>
-          <input ref={layoutFileRef} type="file" accept=".xlsx, .xls, .csv" onChange={handleLayoutFileUpload} className="hidden" />
-        </div>
-        <div className="flex gap-1 bg-slate-50 p-2 rounded border border-slate-200 shadow-sm w-full">
-          <button 
-            onClick={() => autoFillSlots()} 
-            disabled={productPool.length === 0} 
-            className={`flex-1 py-1.5 rounded text-[10px] font-bold border transition-colors ${productPool.length > 0 ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100' : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'}`}
-          >
-            Yerleştir
-          </button>
-          <button 
-            onClick={handleClearAll} 
-            className="flex-1 py-1.5 bg-slate-100 text-slate-600 border border-slate-200 rounded text-[10px] font-bold hover:bg-slate-200 transition-colors"
-          >
-            Temizle
-          </button>
-          <button 
-            onClick={() => resetCatalog()} 
-            className="flex-1 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition-colors"
-          >
-            Sıfırla
-          </button>
-        </div>
-        
-        <div className="pt-3 border-t border-(--border-color)">
-          <label className="section-title block mb-2 text-primary">2. Tüm Ürün Havuzu Excel</label>
-          <div 
-            onDragOver={(e) => { e.preventDefault(); setIsMasterDragging(true); }}
-            onDragLeave={() => setIsMasterDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setIsMasterDragging(false); if (e.dataTransfer.files?.[0]) processMasterFile(e.dataTransfer.files[0]); }}
-            onClick={() => masterFileRef.current?.click()}
-            className={`border-2 border-dashed rounded-md p-4 text-center cursor-pointer transition-all shadow-sm ${isMasterDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-blue-300'}`}
-          >
-            <div className="text-[11px] font-bold text-slate-600 mb-1">Excel dosyasını buraya sürükleyin</div>
-            <div className="text-[9px] text-slate-400">veya seçmek için tıklayın (.xlsx, .xls, .csv)</div>
-          </div>
-          <input ref={masterFileRef} type="file" accept=".xlsx, .xls, .csv" onChange={handleMasterFileUpload} className="hidden" />
-        </div>
-        
-        {/* Proje Kaydet / Yükle */}
-        <div className="pt-3 border-t border-(--border-color)">
-          <label className="section-title block mb-2 text-primary">3. Proje Yönetimi (Geçici)</label>
-          <div className="flex gap-1 bg-slate-50 p-2 rounded border border-slate-200 shadow-sm w-full">
-            <button 
-              onClick={handleExportProject} 
-              className="flex-1 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[10px] font-bold hover:bg-blue-100 transition-colors"
-            >
-              Projeyi Kaydet
-            </button>
-            <button 
-              onClick={() => projectFileRef.current?.click()} 
-              className="flex-1 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded text-[10px] font-bold hover:bg-green-100 transition-colors"
-            >
-              Projeyi Yükle
-            </button>
-            <input type="file" accept=".json" ref={projectFileRef} onChange={handleImportProject} className="hidden" />
-          </div>
-        </div>
+      <div className="p-4 border-b border-slate-200 bg-white space-y-4 shadow-sm shrink-0">
+        <div><label className="block text-[10px] font-bold text-blue-600 mb-2 uppercase tracking-wider">1. Otomatik Dizilim Excel</label><input ref={layoutFileRef} type="file" accept=".xlsx, .xls, .csv" onChange={handleLayoutFileUpload} className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-md" /></div>
+<div className="flex gap-2 w-full"><button onClick={() => autoFillSlots()} disabled={productPool.length === 0} className={`flex-1 font-bold py-2.5 rounded-md text-[11px] transition-all shadow-sm ${productPool.length > 0 ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed"}`}>Yerleştir</button><button onClick={handleClearAll} className="flex-1 font-bold py-2.5 rounded-md text-[11px] bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm">Temizle</button><button onClick={() => resetCatalog()} className="flex-1 font-bold py-2.5 rounded-md text-[11px] bg-red-600 hover:bg-red-700 text-white transition-all shadow-sm">Sıfırla</button></div>
+        <div className="pt-3 border-t border-slate-100"><label className="block text-[10px] font-bold text-purple-600 mb-2 uppercase tracking-wider">2. Tüm Ürün Havuzu Excel</label><input ref={masterFileRef} type="file" accept=".xlsx, .xls, .csv" onChange={handleMasterFileUpload} className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer border border-slate-200 rounded-md" /></div>
       </div>
       <div className="flex-1 p-3 bg-slate-100 flex flex-col min-h-0">
         <div className="mb-3 shrink-0 relative"><input type="text" placeholder="Ürün Ara..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm" /><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2.5 top-2.5 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
@@ -10124,7 +9998,7 @@ export function ProductManagement() {
                 <div className="flex items-center justify-between px-2 py-1.5 bg-slate-200 rounded text-[11px] font-bold text-slate-700 mb-2"><span>{category}</span><span className="bg-white px-1.5 rounded">{products.length}</span></div>
                 <div className="flex flex-col gap-1.5">{products.map((product, index) => {
                   const isActive = activeSkus.has(product.sku || "");
-                  return (<div key={`${product.id || product.sku}-${index}`} draggable={!isActive} onDragStart={(e) => { if (!isActive) e.dataTransfer.setData("newProductFromSidebar", JSON.stringify(product)); }} className={`flex items-center gap-2 p-1.5 rounded-md border transition-all ${isActive ? "bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed grayscale" : "bg-white border-slate-200 hover:border-blue-300 shadow-sm cursor-grab active:cursor-grabbing"}`}><div className="w-8 h-8 bg-slate-50 rounded border flex justify-center items-center overflow-hidden shrink-0">{product.image ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={product.image} alt={product.name || "Ürün resmi"} className="max-w-full max-h-full object-contain" /> : <span className="text-[8px] text-slate-400 font-bold">Yok</span>}</div><div className="flex-1 min-w-0"><div className="text-[10px] font-bold text-slate-800 truncate leading-none">{product.name}</div><div className="flex justify-between mt-1"><span className="text-[9px] font-semibold text-slate-500">{product.sku}</span><span className="text-[9px] font-bold text-blue-600">{product.price} TL</span></div></div></div>);
+                  return (<div key={`${product.id || product.sku}-${index}`} draggable={!isActive} onDragStart={(e) => { if (!isActive) e.dataTransfer.setData("newProductFromSidebar", JSON.stringify(product)); }} className={`flex items-center gap-2 p-1.5 rounded-md border transition-all ${isActive ? "bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed grayscale" : "bg-white border-slate-200 hover:border-blue-300 shadow-sm cursor-grab active:cursor-grabbing"}`}><div className="w-8 h-8 bg-slate-50 rounded border flex justify-center items-center overflow-hidden shrink-0">{product.image ? <img src={product.image} className="max-w-full max-h-full object-contain" /> : <span className="text-[8px] text-slate-400 font-bold">Yok</span>}</div><div className="flex-1 min-w-0"><div className="text-[10px] font-bold text-slate-800 truncate leading-none">{product.name}</div><div className="flex justify-between mt-1"><span className="text-[9px] font-semibold text-slate-500">{product.sku}</span><span className="text-[9px] font-bold text-blue-600">{product.price} TL</span></div></div></div>);
                 })}</div>
               </div>
             ))
@@ -10143,28 +10017,49 @@ import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useHistoryStore } from "@/store/useHistoryStore";
 import { useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DownloadMenu } from "./DownloadMenu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { MagnifyingGlass, ArrowUUpLeft, ArrowUUpRight } from "@phosphor-icons/react";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 
 export function TopBar() {
+  // Yeni Forma Yapısı State'leri
   const formas = useCatalogStore((state) => state.formas || []);
   const activeFormaId = useCatalogStore((state) => state.activeFormaId);
   const setActiveFormaId = useCatalogStore((state) => state.setActiveFormaId);
 
+  // Zoom ve Yardımcı Fonksiyonlar
   const toggleZoom = useUIStore((state) => state.toggleZoom);
   const isZoomed = useUIStore((state) => state.isZoomed);
 
+  // Geri - İleri (Undo/Redo)
   const undo = useHistoryStore((state) => state.undo);
   const redo = useHistoryStore((state) => state.redo);
   const pastPages = useHistoryStore((state) => state.past || []);
   const futurePages = useHistoryStore((state) => state.future || []);
 
+  // Klavye Kısayolları (Ctrl+Z ve Ctrl+Shift+Z)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        if (e.shiftKey) { e.preventDefault(); redo(); } 
-        else { e.preventDefault(); undo(); }
+        if (e.shiftKey) {
+          e.preventDefault();
+          redo();
+        } else {
+          e.preventDefault();
+          undo();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -10172,19 +10067,25 @@ export function TopBar() {
   }, [undo, redo]);
 
   return (
-    <div className="h-12 bg-(--bg-panel) border-b border-(--border-color) flex items-center justify-between px-4 shrink-0 shadow-sm relative z-1001">
+    <div className="h-14 bg-white border-b flex items-center justify-between px-4 shrink-0 shadow-sm relative z-50">
+      {/* SOL KISIM: FORMA SEÇİCİ (DROPDOWN) */}
       <div className="flex items-center gap-3">
-        <label htmlFor="forma-select" className="section-title">Görünüm:</label>
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <Select value={activeFormaId.toString()} onValueChange={(val: any) => val && setActiveFormaId(Number(val))}>
-          <SelectTrigger className="bg-(--bg-subpanel) text-(--text-main) text-[12px] font-semibold px-3 py-1.5 rounded-md outline-none border border-(--border-color) cursor-pointer hover:bg-slate-100 transition-all min-w-45 h-8">
-            {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-            {/* @ts-ignore - Base UI placeholder tip denetimi uyumluluğu */}
+        <label
+          htmlFor="forma-select"
+          className="text-xs font-bold text-slate-400 uppercase tracking-wider"
+        >
+          Görünüm:
+        </label>
+        <Select
+          value={activeFormaId.toString()}
+          onValueChange={(value) => setActiveFormaId(Number(value))}
+        >
+          <SelectTrigger className="bg-slate-800 text-white text-sm font-bold px-4 py-1.5 rounded-lg outline-none border-none shadow-md cursor-pointer hover:bg-slate-700 transition-all min-w-[180px] h-auto">
             <SelectValue placeholder="Görünüm seç..." />
           </SelectTrigger>
-          <SelectContent className="z-99999">
+          <SelectContent>
             {formas.map((forma) => (
-              <SelectItem key={forma.id} value={forma.id.toString()} className="text-[12px] font-medium">
+              <SelectItem key={forma.id} value={forma.id.toString()}>
                 {forma.name}
               </SelectItem>
             ))}
@@ -10192,29 +10093,72 @@ export function TopBar() {
         </Select>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1 mr-2 border-r pr-3 border-(--border-color)">
-          <Button variant="ghost" onClick={undo} disabled={pastPages.length === 0} className="h-8 px-2.5 text-(--text-muted) hover:text-(--text-main) hover:bg-(--bg-canvas)" title="Geri Al (Ctrl+Z)">
-            <ArrowUUpLeft size={16} weight="regular" />
-            <span className="ml-1.5 text-[11px] font-medium">Geri</span>
+      {/* SAĞ KISIM: ARAÇLAR */}
+      <div className="flex items-center gap-4">
+        {/* GERİ / İLERİ BUTONLARI */}
+        <div className="flex items-center gap-1 mr-2 border-r pr-4 border-slate-200">
+          <Button
+            variant="ghost"
+            onClick={undo}
+            disabled={pastPages.length === 0}
+            size="sm"
+            title="Geri Al (Ctrl+Z)"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 7v6h6" />
+              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+            </svg>
+            <span className="ml-2">Geri</span>
           </Button>
-          <Button variant="ghost" onClick={redo} disabled={futurePages.length === 0} className="h-8 px-2.5 text-(--text-muted) hover:text-(--text-main) hover:bg-(--bg-canvas)" title="İleri Al (Ctrl+Shift+Z)">
-            <span className="mr-1.5 text-[11px] font-medium">İleri</span>
-            <ArrowUUpRight size={16} weight="regular" />
+          <Button
+            variant="ghost"
+            onClick={redo}
+            disabled={futurePages.length === 0}
+            size="sm"
+            title="İleri Al (Ctrl+Shift+Z)"
+          >
+            <span className="mr-2">İleri</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 7v6h-6" />
+              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+            </svg>
           </Button>
         </div>
 
+        {/* ZOOM BUTONU */}
         <button
           onClick={toggleZoom}
-          className={`h-8 px-3.5 rounded-md text-[11px] font-semibold border transition-all flex items-center gap-1.5 ${
+          className={`px-4 py-1.5 rounded-md text-sm font-bold border transition-all flex items-center gap-2 ${
             isZoomed
-              ? "bg-primary border-primary text-white hover:bg-(--primary-hover)"
-              : "bg-(--bg-panel) border-(--border-color) text-(--text-main) hover:bg-(--bg-canvas)"
+              ? "bg-blue-50 border-blue-200 text-blue-700"
+              : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
           }`}
         >
-          <MagnifyingGlass size={16} weight="regular" />
-          {isZoomed ? "Uzaklaş" : "Yakınlaş"}
+          {isZoomed ? "🔍 Uzaklaş" : "🔍 Yakınlaş"}
         </button>
+
+        {/* İNDİRME MENÜSÜ */}
+        <DownloadMenu />
       </div>
     </div>
   );
@@ -10402,11 +10346,11 @@ import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore"; // UI Store eklendi
 import {
   Image as ImageIcon,
-  Square, Cube, Copy, ClipboardText, Eraser, SlidersHorizontal,
-  MagicWand, Intersect, Stack as Layers,
-  TextT, TextAlignLeft, TextAlignCenter, TextAlignRight,
-  ArrowsOut
-} from "@phosphor-icons/react";
+  Square, Box, Copy, ClipboardPaste, Eraser, Settings2,
+  Wand2, Combine, Layers,
+  Type, AlignLeft, AlignCenter, AlignRight,
+  Maximize
+} from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ColorOpacityPicker } from "./ColorOpacityPicker";
 import { BorderRadiusPicker } from "./BorderRadiusPicker";
@@ -10419,9 +10363,7 @@ import { Layer } from "@/types/document";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isObject(item: any) { return (item && typeof item === 'object' && !Array.isArray(item)); }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function deepMerge(target: any, source: any) {
   if (!target) return source;
   if (!source) return target;
@@ -10440,7 +10382,7 @@ const Divider = () => <div className="w-px h-5 bg-slate-200 mx-1"></div>;
 
 // HATASIZ ICON BUTTON: asChild kullanmadan doğrudan Trigger'ı stilize eder
 interface IconButtonProps {
-  icon: React.ElementType;
+  icon: any;
   label: string;
   onClick?: (e: React.MouseEvent) => void;
   disabled?: boolean;
@@ -10473,9 +10415,9 @@ const IconButton = ({
           className={buttonClass}
           title={label}
         >
-          <Icon size={14} weight="bold" />
+          <Icon size={14} strokeWidth={2.5} />
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-3 z-99999 shadow-xl border-slate-200 bg-white" align="start" sideOffset={8}>
+        <PopoverContent className="w-72 p-3 z-[99999] shadow-xl border-slate-200 bg-white" align="start" sideOffset={8}>
           {popoverContent}
         </PopoverContent>
       </Popover>
@@ -10489,7 +10431,7 @@ const IconButton = ({
       className={buttonClass}
       title={label}
     >
-      <Icon size={14} weight="bold" />
+      <Icon size={14} strokeWidth={2.5} />
     </button>
   );
 };
@@ -10622,7 +10564,6 @@ export function ContextualBar() {
   const [activePopover, setActivePopover] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selectedSlot: any = null;
   let selectedPageNum = -1;
 
@@ -10644,7 +10585,6 @@ export function ContextualBar() {
   const imgEditMode = selectedSlot?.imageSettings?.editMode ?? activeSettings.imageEditMode;
   const imgScale = selectedSlot?.imageSettings?.scale ?? activeSettings.imageScale;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSettingUpdate = (updates: any) => {
     if (selectedSlot?.isCustom) {
       updateSlotCustomSettings(updates);
@@ -10675,7 +10615,6 @@ export function ContextualBar() {
 
     const currentFont = isName ? activeSettings.fonts.productName : isPrice ? activeSettings.fonts.price : (activeSettings.badge?.font || activeSettings.fonts.productName);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleFontUpdate = (newFont: any) => {
       if (isName) handleSettingUpdate({ fonts: { ...activeSettings.fonts, productName: newFont } });
       if (isPrice) handleSettingUpdate({ fonts: { ...activeSettings.fonts, price: newFont } });
@@ -10683,9 +10622,9 @@ export function ContextualBar() {
     };
 
     return (
-      <div ref={barRef} className="h-12 bg-(--primary-light) flex items-center justify-center px-4 gap-2 shrink-0 z-40 relative">
+      <div ref={barRef} className="h-12 bg-indigo-50 border-b border-indigo-200 flex items-center justify-center px-4 gap-2 shrink-0 shadow-sm z-40 relative">
         <div className="flex items-center gap-1.5 pr-2 mr-1">
-          <TextT size={16} weight="bold" className="text-indigo-600" />
+          <Type size={14} className="text-indigo-600" />
           <span className="text-[11px] font-black text-indigo-800 uppercase tracking-widest">
             {isName ? 'Ürün İsmi' : isPrice ? 'Fiyat' : 'Etiket'}
           </span>
@@ -10734,9 +10673,9 @@ export function ContextualBar() {
         <Divider />
 
         <div className="flex items-center bg-white border border-slate-200 rounded overflow-hidden">
-          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'left' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'left' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><TextAlignLeft size={16} weight="bold" /></button>
-          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'center' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'center' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><TextAlignCenter size={16} weight="bold" /></button>
-          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'right' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'right' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><TextAlignRight size={16} weight="bold" /></button>
+          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'left' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'left' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><AlignLeft size={14} /></button>
+          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'center' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'center' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><AlignCenter size={14} /></button>
+          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'right' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'right' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><AlignRight size={14} /></button>
         </div>
 
         <Divider />
@@ -10761,7 +10700,7 @@ export function ContextualBar() {
           }}
           className="h-8 text-[10px] font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50"
         >
-          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylar
+          <Settings2 className="h-3 w-3 mr-1" /> Detaylar
         </Button>
       </div>
     );
@@ -10772,7 +10711,7 @@ export function ContextualBar() {
   // ==========================================
   if (selectedSlotIds.length > 0) {
     return (
-      <div ref={barRef} className="h-12 bg-transparent flex items-center justify-center px-4 gap-1.5 shrink-0 z-40 relative">
+      <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center justify-center px-4 gap-1.5 shrink-0 shadow-sm z-40 relative">
         <div className="flex items-center gap-2 pr-2 mr-1">
           <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
             {selectedSlotIds.length > 1 ? `${selectedSlotIds.length} HÜCRE` : 'HÜCRE'}
@@ -10814,18 +10753,16 @@ export function ContextualBar() {
             onTogglePopover={setActivePopover}
             isActive={activePopover === 'borderRadius'} 
             label="Köşe Ovalliği" 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             popoverContent={<BorderRadiusPicker value={activeSettings?.radiuses?.cell!} onChange={(val: any) => handleSettingUpdate({ radiuses: { cell: val } })} />}
           />
 
           <IconButton 
-            icon={Cube} 
+            icon={Box} 
             label="Hücre Gölgesi" 
             popoverId="boxShadow" 
             activePopover={activePopover}
             onTogglePopover={setActivePopover}
             isActive={activePopover === 'boxShadow'} 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             popoverContent={<ShadowPicker value={activeSettings?.shadows?.cell!} onChange={(val: any) => handleSettingUpdate({ shadows: { cell: val } })} />}
           />
         </div>
@@ -10834,12 +10771,12 @@ export function ContextualBar() {
 
         <div className="flex items-center gap-0.5 relative">
           <IconButton icon={Copy} label="Kopyala" onClick={copySlotSettings} />
-          <IconButton icon={ClipboardText} label="Yapıştır" onClick={pasteSlotSettings} disabled={!copiedSlotSettings} />
+          <IconButton icon={ClipboardPaste} label="Yapıştır" onClick={pasteSlotSettings} disabled={!copiedSlotSettings} />
           <Divider />
           {selectedSlot?.isCustom ? (
-            <IconButton icon={Intersect} label="Global Yap" onClick={clearSlotSettings} isActive={true} />
+            <IconButton icon={Combine} label="Global Yap" onClick={clearSlotSettings} isActive={true} />
           ) : (
-            <IconButton icon={MagicWand} label="Özelleştir" onClick={() => toggleSlotCustomSettings(true)} />
+            <IconButton icon={Wand2} label="Özelleştir" onClick={() => toggleSlotCustomSettings(true)} />
           )}
           <IconButton icon={Eraser} label="Temizle" onClick={clearSlotSettings} danger />
         </div>
@@ -10848,7 +10785,7 @@ export function ContextualBar() {
 
         <div className="flex items-center gap-0.5 relative">
           {selectedSlot?.role === 'free' ? (
-            <IconButton icon={Cube} label="Ürün Alanına Çevir" onClick={() => toggleSlotRole('product')} isActive={false} />
+            <IconButton icon={Box} label="Ürün Alanına Çevir" onClick={() => toggleSlotRole('product')} isActive={false} />
           ) : (
             <IconButton icon={Layers} label="Serbest Alan Yap" onClick={() => toggleSlotRole('free')} isActive={false} />
           )}
@@ -10868,7 +10805,7 @@ export function ContextualBar() {
           }}
           className="h-8 text-[10px] font-bold"
         >
-          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylar
+          <Settings2 className="h-3 w-3 mr-1" /> Detaylar
         </Button>
       </div>
     );
@@ -10878,7 +10815,7 @@ export function ContextualBar() {
   // 3. ARKA PLAN ARAÇ ÇUBUĞU (VARSAYILAN)
   // ==========================================
   return (
-    <div ref={barRef} className="h-12 bg-transparent flex items-center justify-between px-4 shrink-0 z-40 relative">
+    <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-40 relative">
       <div className="flex flex-row items-center gap-4 w-full">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold text-slate-700">Tüm Broşür</span>
@@ -10956,7 +10893,7 @@ export function ContextualBar() {
         <Divider />
 
         <IconButton 
-          icon={ArrowsOut} 
+          icon={Maximize} 
           label="Spread Yap" 
           onClick={() => {
             const targetIds = contextualBarSelectedPages.map(num => currentFormaScope?.pages.find(p => p.pageNumber === num)?.id).filter(Boolean) as string[];
@@ -10977,7 +10914,7 @@ export function ContextualBar() {
           onClick={() => setSidebarState("settings", "background", null)}
           className="h-8 text-[10px] font-bold"
         >
-          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylı Ayarlar
+          <Settings2 className="h-3 w-3 mr-1" /> Detaylı Ayarlar
         </Button>
       </div>
     </div>
@@ -11337,16 +11274,16 @@ export function CustomCellSettings() {
   return (
     <div className="space-y-4">
       {selectedSlotIds.length !== 1 ? (
-        <div className="text-[10px] text-center text-slate-500 font-bold p-4 bg-slate-50 rounded border border-slate-200 shadow-sm">
+        <div className="text-[10px] text-center text-slate-300 font-bold p-4 bg-slate-900 rounded border border-slate-700 shadow-sm">
           Lütfen tablodan sadece BİR adet hücre seçin.
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between bg-slate-50 p-2 rounded border border-slate-200 shadow-sm">
-            <span className="text-[10px] font-black text-slate-700">Seçili Hücre: #{selectedGlobalNumber}</span>
+          <div className="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700 shadow-sm">
+            <span className="text-[10px] font-black text-slate-200">Seçili Hücre: #{selectedGlobalNumber}</span>
           </div>
           
-          <div className="flex gap-1 bg-slate-50 p-2 rounded border border-slate-200 shadow-sm">
+          <div className="flex gap-1 bg-slate-900 p-2 rounded border border-slate-700 shadow-sm">
             <button onClick={copySlotSettings} className="flex-1 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[9px] font-bold hover:bg-blue-100 transition-colors">
               Kopyala
             </button>
@@ -11362,21 +11299,21 @@ export function CustomCellSettings() {
             </button>
           </div>
 
-          <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded border border-slate-200 shadow-sm mt-4">
-            <span className="text-[10px] font-black text-slate-700">Bu Hücreyi Özelleştir</span>
+          <div className="flex items-center justify-between bg-slate-900 p-2.5 rounded border border-slate-700 shadow-sm mt-4">
+            <span className="text-[10px] font-black text-slate-200">Bu Hücreyi Özelleştir</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={isCustomActive} onChange={(e) => toggleSlotCustomSettings(e.target.checked)} />
-              <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+              <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
             </label>
           </div>
 
           <div className={`space-y-2 transition-all duration-300 ${isCustomActive ? "opacity-100" : "opacity-30 pointer-events-none blur-[1px]"}`}>
             
             {/* 1. HÜCRE TASARIMI */}
-            <div className={`bg-slate-50 rounded border border-slate-200 shadow-sm relative z-60 ${activeTab === 'cell' ? 'overflow-visible' : 'overflow-hidden'}`}>
-              <button onClick={() => setActiveTab(activeTab === 'cell' ? null : 'cell')} className="w-full flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 transition-colors border-b border-slate-200">
-                <span className="text-[10px] font-black text-slate-700 tracking-wider">1. Hücre Tasarımı</span>
-                <span className="text-slate-500 font-bold">{activeTab === 'cell' ? "▼" : "▶"}</span>
+            <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[60] ${activeTab === 'cell' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <button onClick={() => setActiveTab(activeTab === 'cell' ? null : 'cell')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
+                <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">1. Hücre Tasarımı</span>
+                <span className="text-slate-400 font-bold">{activeTab === 'cell' ? "▼" : "▶"}</span>
               </button>
               {activeTab === 'cell' && (
                 <div className="p-3 space-y-4">
@@ -11406,10 +11343,10 @@ export function CustomCellSettings() {
             </div>
 
             {/* 2. ÜRÜN İSMİ */}
-            <div className={`bg-slate-50 rounded border border-slate-200 shadow-sm relative z-40 ${activeTab === 'name' ? 'overflow-visible' : 'overflow-hidden'}`}>
-              <button onClick={() => setActiveTab(activeTab === 'name' ? null : 'name')} className="w-full flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 transition-colors border-b border-slate-200">
-                <span className="text-[10px] font-black text-slate-700 tracking-wider">2. Ürün İsmi</span>
-                <span className="text-slate-500 font-bold">{activeTab === 'name' ? "▼" : "▶"}</span>
+            <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[40] ${activeTab === 'name' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <button onClick={() => setActiveTab(activeTab === 'name' ? null : 'name')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
+                <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">2. Ürün İsmi</span>
+                <span className="text-slate-400 font-bold">{activeTab === 'name' ? "▼" : "▶"}</span>
               </button>
               {activeTab === 'name' && (
                 <div className="p-3">
@@ -11419,10 +11356,10 @@ export function CustomCellSettings() {
             </div>
 
             {/* 3. FİYAT KUTUSU */}
-            <div className={`bg-slate-50 rounded border border-slate-200 shadow-sm relative z-30 ${activeTab === 'price' ? 'overflow-visible' : 'overflow-hidden'}`}>
-              <button onClick={() => setActiveTab(activeTab === 'price' ? null : 'price')} className="w-full flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 transition-colors border-b border-slate-200">
-                <span className="text-[10px] font-black text-slate-700 tracking-wider">3. Fiyat Kutusu</span>
-                <span className="text-slate-500 font-bold">{activeTab === 'price' ? "▼" : "▶"}</span>
+            <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[30] ${activeTab === 'price' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <button onClick={() => setActiveTab(activeTab === 'price' ? null : 'price')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
+                <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">3. Fiyat Kutusu</span>
+                <span className="text-slate-400 font-bold">{activeTab === 'price' ? "▼" : "▶"}</span>
               </button>
               {activeTab === 'price' && (
                 <div className="p-3 space-y-4">
@@ -11488,13 +11425,13 @@ export function CustomCellSettings() {
             </div>
 
             {/* 4. PROMOSYON ETİKETİ */}
-            <div className={`bg-slate-50 rounded border border-slate-200 shadow-sm relative z-20 ${activeTab === 'badge' ? 'overflow-visible' : 'overflow-hidden'}`}>
-              <button onClick={() => setActiveTab(activeTab === 'badge' ? null : 'badge')} className="w-full flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 transition-colors border-b border-slate-200">
+            <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[20] ${activeTab === 'badge' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <button onClick={() => setActiveTab(activeTab === 'badge' ? null : 'badge')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black text-slate-700 tracking-wider">4. Promosyon Etiketi</span>
+                  <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">4. Promosyon Etiketi</span>
                   {customSettings.badge?.active && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>}
                 </div>
-                <span className="text-slate-500 font-bold">{activeTab === 'badge' ? "▼" : "▶"}</span>
+                <span className="text-slate-400 font-bold">{activeTab === 'badge' ? "▼" : "▶"}</span>
               </button>
               {activeTab === 'badge' && (
                 <div className="p-3 space-y-4">
@@ -11502,18 +11439,18 @@ export function CustomCellSettings() {
                     <span className="text-[10px] font-bold text-slate-700">Etiketi Göster</span>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" checked={customSettings.badge?.active || false} onChange={(e) => updateSlotCustomSettings({ badge: { ...customSettings.badge!, active: e.target.checked } })} />
-                      <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
+                      <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
                     </label>
                   </div>
 
                   <div className={`space-y-3 transition-all duration-300 ${customSettings.badge?.active ? 'opacity-100' : 'opacity-40 pointer-events-none hidden'}`}>
                     
-                    <div className="bg-slate-50 p-2 rounded border border-slate-200 shadow-inner space-y-3 mb-3 relative z-9">
+                    <div className="bg-slate-50 p-2 rounded border border-slate-200 shadow-inner space-y-3 mb-3 relative z-[9]">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-slate-700">Serbest Konum</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" checked={customSettings.badge?.isFreePosition || false} onChange={(e) => updateSlotCustomSettings({ badge: { ...customSettings.badge!, isFreePosition: e.target.checked } })} />
-                          <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
+                          <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
                         </label>
                       </div>
 
@@ -11560,7 +11497,7 @@ export function CustomCellSettings() {
                     </div>
 
                     <div className="space-y-1 pt-2 border-t border-green-50">
-                      <span className="text-[9px] font-bold text-slate-500 tracking-wide">Etiket Şekli</span>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Etiket Şekli</span>
                       <div className="grid grid-cols-2 gap-1 bg-slate-50 p-1 rounded border border-slate-100">
                         {[
                           { id: 'rectangle', label: 'Klasik' }, { id: 'pill', label: 'Oval (Pill)' },
@@ -11574,8 +11511,8 @@ export function CustomCellSettings() {
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 p-2 rounded border border-slate-200 space-y-2 mt-3 shadow-inner relative z-8">
-                      <h4 className="text-[10px] font-black text-green-700 border-b border-green-100 pb-1 mb-2 tracking-wider">Kenarlık (Kontur)</h4>
+                    <div className="bg-slate-50 p-2 rounded border border-slate-200 space-y-2 mt-3 shadow-inner relative z-[8]">
+                      <h4 className="text-[10px] font-black text-green-700 border-b border-green-100 pb-1 mb-2 uppercase tracking-wider">Kenarlık (Kontur)</h4>
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] font-bold text-slate-600">Kenarlık Rengi</span>
                         <ColorOpacityPicker color={customSettings.badge?.borderColor || "#ffffff"} opacity={100} onChange={(c, o) => updateSlotCustomSettings({ badge: { ...customSettings.badge!, borderColor: c } })} />
@@ -11630,155 +11567,199 @@ import { BannerSettingsPanel } from "./sidebar-panels/BannerSettingsPanel";
 import { BackgroundSettingsPanel } from "./sidebar-panels/BackgroundSettingsPanel";
 import { GlobalGridSettings } from "./sidebar-panels/GlobalGridSettings";
 import { useUIStore } from "@/store/useUIStore";
-import { useCatalogStore } from "@/store/useCatalogStore";
-import { DownloadMenu } from "./DownloadMenu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { 
-  Package, FileDashed, Target, DownloadSimple, 
-  Layout, GridFour, Image as ImageIcon, PaintBucket, Tag, 
-  Megaphone, Pizza, CaretLeft, CaretRight, Info, SlidersHorizontal 
-} from "@phosphor-icons/react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export function Sidebar() {
-  const { sidebarState, setSidebarState, editingContent, selectedSlotIds } = useUIStore();
-  const { formas, activeFormaId } = useCatalogStore();
-
-  const activeForma = formas.find(f => f.id === activeFormaId);
-  const pages = activeForma?.pages || [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let selectedSlot: any = null;
-  if (selectedSlotIds.length > 0) {
-    for (const p of pages) {
-      const s = p.slots.find(slot => slot.id === selectedSlotIds[0]);
-      if (s) { selectedSlot = s; break; }
-    }
-  }
+  const { sidebarState, setSidebarState, editingContent } = useUIStore();
 
   useEffect(() => {
-    if (editingContent) { setSidebarState('selection', null, null); }
+    if (editingContent) {
+      switch (editingContent.contentType) {
+        case 'product':
+          setSidebarState('settings', 'productInfo', null);
+          break;
+        case 'banner':
+          setSidebarState('settings', 'banner', null);
+          break;
+        case 'pizza':
+          setSidebarState('settings', 'pizza', null);
+          break;
+        default:
+          break;
+      }
+    }
   }, [editingContent, setSidebarState]);
-
   const isOpen = sidebarState.activePanel !== null;
 
   const toggleOpen = () => {
-    if (isOpen) setSidebarState(null, null);
-    else setSidebarState("products", null);
+    if (isOpen) {
+      setSidebarState(null, null);
+    } else {
+      setSidebarState("products", null);
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    if (value === "products" || value === "settings" || value === "modules") {
+      setSidebarState(value, null);
+    }
   };
 
   return (
-    <aside className={`relative z-1000 w-85 flex flex-col h-full bg-(--bg-panel) rounded-xl border border-(--border-color) shrink-0 shadow-2xl transition-all duration-300 ease-in-out ${isOpen ? "mr-0" : "-mr-89"}`}>
-      <button
-        onClick={toggleOpen}
-        className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-16 bg-primary text-white hover:bg-(--primary-hover) flex items-center justify-center rounded-l-md shadow-[-4px_0_10px_rgba(0,0,0,0.1)] border-y border-l border-primary transition-colors z-10000"
-        title={isOpen ? "Paneli Gizle" : "Paneli Göster"}
-      >
-        {isOpen ? <CaretRight size={20} weight="bold" /> : <CaretLeft size={20} weight="bold" />}
+<aside
+  className={`relative z-9999 w-85 flex flex-col h-full bg-slate-50 border-l border-slate-200 shrink-0 shadow-xl transition-all duration-300 ease-in-out ${isOpen ? "mr-0" : "-mr-85"}`}>
+<button
+    onClick={toggleOpen}
+    className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-16 bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center rounded-l-md shadow-[-4px_0_10px_rgba(0,0,0,0.1)] border-y border-l border-slate-700 hover:bg-slate-700 transition-colors z-10000"
+    title={isOpen ? "Paneli Gizle" : "Paneli Göster"}
+  >
+        {isOpen ? (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        ) : (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        )}
       </button>
 
-      <div className="w-full h-full overflow-hidden rounded-xl flex flex-col">
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <Tabs value={sidebarState.activePanel ?? "products"} onValueChange={(val: any) => setSidebarState(val, null)} className="flex flex-col w-full h-full">
-        
-        <div className="shrink-0 relative z-50">
-          <TabsList className="w-full bg-primary p-0 gap-0 rounded-t-xl h-16 flex items-stretch shadow-md overflow-hidden">
-            <TabsTrigger value="products" className="flex-1 bg-transparent text-[11px] font-semibold text-white/80 data-[state=active]:bg-(--primary-hover) data-[state=active]:text-white rounded-none transition-all flex flex-col items-center justify-center gap-1 hover:bg-(--primary-hover) hover:text-white tracking-wide"><Package size={20} weight="regular" />Ürünler</TabsTrigger>
-            <TabsTrigger value="page" className="flex-1 bg-transparent text-[11px] font-semibold text-white/80 data-[state=active]:bg-(--primary-hover) data-[state=active]:text-white rounded-none transition-all flex flex-col items-center justify-center gap-1 hover:bg-(--primary-hover) hover:text-white tracking-wide"><FileDashed size={20} weight="regular" />Sayfa</TabsTrigger>
-            <TabsTrigger value="selection" className="flex-1 bg-transparent text-[11px] font-semibold text-white/80 data-[state=active]:bg-(--primary-hover) data-[state=active]:text-white rounded-none transition-all flex flex-col items-center justify-center gap-1 hover:bg-(--primary-hover) hover:text-white tracking-wide"><Target size={20} weight="regular" />Seçim</TabsTrigger>
-            <TabsTrigger value="export" className="flex-1 bg-transparent text-[11px] font-semibold text-white/80 data-[state=active]:bg-(--primary-hover) data-[state=active]:text-white rounded-none transition-all flex flex-col items-center justify-center gap-1 hover:bg-(--primary-hover) hover:text-white tracking-wide"><DownloadSimple size={20} weight="regular" />Çıktı</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="products" className="flex-1 flex flex-col min-h-0 data-[state=active]:flex p-0 m-0 border-none outline-none">
+      <Tabs
+        value={sidebarState.activePanel ?? ""}
+        onValueChange={handleTabChange}
+        className="flex flex-col w-full h-full"
+      >
+<TabsList className="w-full bg-slate-900 p-2 gap-1 shrink-0 rounded-none border-b border-slate-700">
+      <TabsTrigger 
+        value="products" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        ÜRÜNLER
+      </TabsTrigger>
+      <TabsTrigger 
+        value="modules" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        MODÜLLER
+      </TabsTrigger>
+      <TabsTrigger 
+        value="settings" 
+        className="flex-1 py-2 text-xs font-bold transition-all text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-slate-100"
+      >
+        AYARLAR
+      </TabsTrigger>
+    </TabsList>
+        <TabsContent value="products" className="flex-1 flex flex-col min-h-0">
           <ProductManagement />
         </TabsContent>
-
-        <TabsContent value="page" className="flex-1 overflow-y-auto p-4 bg-(--bg-subpanel) pb-20 data-[state=active]:block m-0 border-none outline-none">
-          <h3 className="section-title mb-3">Katalog Yapısı</h3>
-          <Accordion className="w-full space-y-2">
-            <AccordionItem value="template" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex gap-2"><Layout size={16} weight="bold" className="text-(--text-muted)"/> Şablon Seçimi</AccordionTrigger><AccordionContent><TemplateSettingsPanel /></AccordionContent></AccordionItem>
-            <AccordionItem value="grid" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex justify-between w-full"><div className="flex gap-2"><GridFour size={16} weight="bold" className="text-(--text-muted)"/> Izgara (Grid)</div></AccordionTrigger><AccordionContent><GlobalGridSettings /></AccordionContent></AccordionItem>
-            <AccordionItem value="background" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex justify-between w-full"><div className="flex gap-2"><ImageIcon size={16} weight="bold" className="text-(--text-muted)"/> Arka Plan</div></AccordionTrigger><AccordionContent><BackgroundSettingsPanel /></AccordionContent></AccordionItem>
-          </Accordion>
-
-          <h3 className="section-title mt-6 mb-3">Varsayılan Tasarım</h3>
-          <Accordion className="w-full space-y-2">
-            <AccordionItem value="cell" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex justify-between w-full"><div className="flex gap-2"><PaintBucket size={16} weight="bold" className="text-(--text-muted)"/> Hücre Görünümü</div></AccordionTrigger><AccordionContent><GlobalCellSettings /></AccordionContent></AccordionItem>
-            <AccordionItem value="price" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex justify-between w-full"><div className="flex gap-2"><Tag size={16} weight="bold" className="text-(--text-muted)"/> Fiyat Kutusu</div></AccordionTrigger><AccordionContent><GlobalPriceSettings /></AccordionContent></AccordionItem>
-          </Accordion>
-
-          <h3 className="section-title mt-6 mb-3">Sürüklenebilir Modüller</h3>
+        <TabsContent value="modules" className="flex-1 flex flex-col min-h-0 p-4 bg-slate-50">
+          <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">Sürüklenebilir Modüller</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div draggable onDragStart={(e) => e.dataTransfer.setData("newModuleType", "banner")} className="bg-(--bg-panel) p-4 rounded-xl border border-(--border-color) shadow-sm hover:border-primary cursor-grab flex flex-col items-center gap-2 transition-all">
-              <Megaphone size={28} weight="duotone" className="text-primary" />
-              <span className="ui-text-small font-semibold">Banner (Izgara)</span>
+            <div draggable onDragStart={(e) => e.dataTransfer.setData("newModuleType", "banner")} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-500 hover:shadow-md cursor-grab active:cursor-grabbing flex flex-col items-center gap-2 transition-all">
+              <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center">B</div>
+              <span className="text-[11px] font-bold text-slate-700">Banner (Izgara)</span>
             </div>
-            <div draggable onDragStart={(e) => e.dataTransfer.setData("newModuleType", "pizza")} className="bg-(--bg-panel) p-4 rounded-xl border border-(--border-color) shadow-sm hover:border-orange-500 cursor-grab flex flex-col items-center gap-2 transition-all">
-              <Pizza size={28} weight="duotone" className="text-orange-500" />
-              <span className="ui-text-small font-semibold">Pizza Menüsü</span>
+            <div draggable onDragStart={(e) => e.dataTransfer.setData("newModuleType", "pizza")} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:orange-blue-500 hover:shadow-md cursor-grab active:cursor-grabbing flex flex-col items-center gap-2 transition-all">
+              <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-lg flex items-center justify-center">P</div>
+              <span className="text-[11px] font-bold text-slate-700">Pizza Fiyat Listesi</span>
             </div>
           </div>
+          <p className="text-[10px] text-slate-400 mt-6 text-center">Modülü tutup katalogdaki \"Serbest Alan\" hücrelerinin içine bırakın.</p>
         </TabsContent>
-
-        <TabsContent value="selection" className="flex-1 overflow-y-auto p-4 bg-(--bg-subpanel) pb-20 data-[state=active]:block m-0 border-none outline-none">
-          {!selectedSlot && !editingContent ? (
-            <div className="bg-(--primary-light) border border-primary rounded-xl p-6 text-center mt-4 shadow-inner flex flex-col items-center gap-3">
-              <Target size={40} weight="duotone" className="text-primary" />
-              <strong className="text-[13px] text-primary">Hiçbir öğe seçili değil</strong>
-              <span className="text-[11px] text-primary opacity-80 leading-relaxed">Katalogdaki bir hücreye veya modüle tıkladığınızda, o öğeye özel tüm ayarlar burada belirecektir.</span>
-            </div>
-          ) : (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
-              {selectedSlot?.role === 'product' && (
-                <>
-                  <div className="bg-(--primary-light) border border-primary p-3 rounded-lg flex items-center gap-2 shadow-sm">
-                    <Package size={20} weight="fill" className="text-primary" />
-                    <span className="text-[11px] font-bold text-primary tracking-wider">Ürün Hücresi Seçili</span>
-                  </div>
-                  <Accordion className="w-full space-y-2">
-                    <AccordionItem value="info" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex gap-2"><Info size={16} weight="bold" className="text-(--text-muted)"/> Ürün Bilgisi</AccordionTrigger><AccordionContent><ProductInfoSettings /></AccordionContent></AccordionItem>
-                    <AccordionItem value="custom" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex gap-2"><SlidersHorizontal size={16} weight="bold" className="text-(--text-muted)"/> Özel Ayarlar</AccordionTrigger><AccordionContent><CustomCellSettings /></AccordionContent></AccordionItem>
-                  </Accordion>
-                </>
-              )}
-              {selectedSlot?.role === 'free' && selectedSlot?.moduleData?.type === 'banner' && (
-                <>
-                  <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg flex items-center gap-2 shadow-sm">
-                    <Megaphone size={20} weight="fill" className="text-purple-600" />
-                    <span className="text-[11px] font-bold text-purple-800 tracking-wider">Banner Modülü Seçili</span>
-                  </div>
-                  <BannerSettingsPanel />
-                </>
-              )}
-              {selectedSlot?.role === 'free' && selectedSlot?.moduleData?.type === 'pizza' && (
-                <>
-                  <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg flex items-center gap-2 shadow-sm">
-                    <Pizza size={20} weight="fill" className="text-orange-600" />
-                    <span className="text-[11px] font-bold text-orange-800 tracking-wider">Pizza Menüsü Seçili</span>
-                  </div>
-                  <PizzaSettingsPanel />
-                </>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="export" className="flex-1 overflow-y-auto p-4 bg-(--bg-subpanel) pb-20 data-[state=active]:block m-0 border-none outline-none">
-           <h3 className="section-title mb-3">Dışa Aktar</h3>
-           <div className="bg-(--bg-panel) p-4 rounded-xl border border-(--border-color) shadow-sm space-y-4">
-             <div className="flex items-start gap-3 bg-(--primary-light) p-3 rounded-lg border border-primary">
-               <Info size={20} weight="fill" className="text-primary shrink-0" />
-               <p className="text-[11px] text-primary font-medium leading-relaxed">Kataloğunuzun hazır olduğunu düşünüyorsanız, çıktıyı almak için aşağıdaki butonu kullanabilirsiniz.</p>
-             </div>
-             
-             <div className="flex justify-center p-4 bg-(--bg-subpanel) rounded-xl border border-(--border-color) shadow-inner">
-                <DownloadMenu />
-             </div>
-           </div>
+        <TabsContent value="settings" className="flex-1 overflow-y-auto p-4 bg-slate-50/50 pb-20">
+          <Accordion
+            className="w-full"
+            value={sidebarState.activeTab ? [sidebarState.activeTab] : []}
+            onValueChange={(val) =>
+              setSidebarState("settings", val[0] || null, null)
+            }
+          >
+            <AccordionItem value="template">
+              <AccordionTrigger>Şablon Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <TemplateSettingsPanel />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="grid">
+              <AccordionTrigger>Izgara (Grid) Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <GlobalGridSettings />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="background">
+              <AccordionTrigger>Arkaplan Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <BackgroundSettingsPanel />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="cell">
+              <AccordionTrigger>Genel Hücre Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <GlobalCellSettings />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="price">
+              <AccordionTrigger>Genel Fiyat Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <GlobalPriceSettings />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="productInfo">
+              <AccordionTrigger>Ürün Bilgisi Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <ProductInfoSettings />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="customCell">
+              <AccordionTrigger>Özel Hücre Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <CustomCellSettings />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="banner">
+              <AccordionTrigger>Banner Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <BannerSettingsPanel />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="pizza">
+              <AccordionTrigger>Pizza Dilimi Ayarları</AccordionTrigger>
+              <AccordionContent>
+                <PizzaSettingsPanel />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </TabsContent>
       </Tabs>
-      </div>
     </aside>
   );
 }
@@ -12736,8 +12717,11 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newPages = [...currentPages];
         newPages[pageIndex] = { ...page, slots: newSlots };
         
-setActivePages(newPages);
+        setActivePages(newPages);
         clearSelection();
+
+        // Birleştirme sonrası ürünleri yeni ızgaraya göre kaydırarak diz
+        setTimeout(() => get().autoFillSlots(), 50);
 
         return { success: true };
       },
@@ -12762,8 +12746,11 @@ setActivePages(newPages);
         const newPages = [...currentPages];
         newPages[pageIndex] = { ...page, slots: newSlots };
         
-setActivePages(newPages);
+        setActivePages(newPages);
         clearSelection();
+
+        // Hücre dağıtıldıktan sonra açılan boşluklara ürünleri kaydırarak diz
+        setTimeout(() => get().autoFillSlots(), 50);
       },
 
       toggleSlotCustomSettings: (enabled) => {
@@ -13071,7 +13058,7 @@ setActivePages(newPages);
         const newFormas = cloneDeep(formas);
         newFormas.forEach(f => {
           f.pages.forEach(p => {
-const currentGrid = p.gridSettings || globalSettings.defaultGrid || { rows: 4, cols: 4 };
+            const currentGrid = p.gridSettings || globalSettings.defaultGrid;
             const newSlotCount = currentGrid.rows * currentGrid.cols;
             
             // 1. Dolu slotları (ürün, serbest alan veya özel ayarı olanları) yedekle
@@ -13099,7 +13086,10 @@ const currentGrid = p.gridSettings || globalSettings.defaultGrid || { rows: 4, c
           });
         });
 
-set({ formas: newFormas });
+        set({ formas: newFormas });
+        
+        // Ürünleri yeni grid yapısına göre tekrar hizala
+        setTimeout(() => get().autoFillSlots(), 50);
       },
 
       applyPageGridChange: (pageNumber) => {
@@ -13111,7 +13101,7 @@ set({ formas: newFormas });
         newFormas.forEach(f => {
           const page = f.pages.find(p => p.pageNumber === pageNumber);
           if (page) {
-const currentGrid = page.gridSettings || globalSettings.defaultGrid || { rows: 4, cols: 4 };
+            const currentGrid = page.gridSettings || globalSettings.defaultGrid;
             const newSlotCount = currentGrid.rows * currentGrid.cols;
             
             // SADECE bu sayfanın slotlarını yeni ölçüye göre baştan oluştur. Diğer sayfalara ASLA dokunma!
@@ -13119,7 +13109,10 @@ const currentGrid = page.gridSettings || globalSettings.defaultGrid || { rows: 4
           }
         });
 
-set({ formas: newFormas });
+        set({ formas: newFormas });
+        
+        // Diğer sayfalar sabit kaldığı için, ürünler yeni slot dizilimine göre boşluklara otomatik kayarak yerleşir
+        setTimeout(() => get().autoFillSlots(), 50);
       },
 
       revertToGlobalGrid: (pageNumber) => {
@@ -13138,26 +13131,22 @@ set({ formas: newFormas });
     }),
     {
       name: "catalog-storage-v2",
-merge: (persisted, current) => {
+      merge: (persisted, current) => {
         const incoming = (persisted as any) || {};
         const base = current as any;
-        
-        const mergedGlobal = deepMerge(base.globalSettings || initialGlobalSettings, incoming.globalSettings || {});
-        
-        if (!mergedGlobal.defaultGrid) {
-          mergedGlobal.defaultGrid = { rows: 4, cols: 4 };
-        }
-
+        const baseState = base?.state || {};
+        const mergedGlobal = deepMerge(baseState.globalSettings || initialGlobalSettings, incoming?.state?.globalSettings || {});
         const normalizedGlobalSettings: CatalogSettings = {
           ...mergedGlobal,
         };
 
-        let formas = incoming.formas || base.formas || buildFormasForTemplate(base.activeTemplate || Template1);
-        
-        if (!incoming.formas && Array.isArray(incoming.pages)) {
-          formas = formas.map((f: Forma) =>
-            f.id === (incoming.activeFormaId || base.activeFormaId || 1)
-              ? { ...f, pages: incoming.pages.map(normalizeCatalogPage) }
+        const incomingState = { ...(incoming?.state || {}) };
+        const formas = (incomingState.formas || baseState.formas || buildFormasForTemplate(baseState.activeTemplate || Template1)).map(normalizeForma);
+
+        if (!incomingState.formas && Array.isArray(incomingState.pages)) {
+          incomingState.formas = (formas || []).map((f: Forma) =>
+            f.id === (incomingState.activeFormaId || baseState.activeFormaId || 1)
+              ? { ...f, pages: incomingState.pages.map(normalizeCatalogPage) }
               : f
           );
         }
@@ -13165,10 +13154,14 @@ merge: (persisted, current) => {
         return {
           ...base,
           ...incoming,
-          formas: formas.map(normalizeForma),
-          activeFormaId: incoming.activeFormaId || base.activeFormaId || 1,
-          activeTab: incoming.activeTab || (incoming.activeFormaId === 2 ? "inner" : "outer"),
-          globalSettings: normalizedGlobalSettings,
+          state: {
+            ...baseState,
+            ...incomingState,
+            formas: (incomingState.formas || formas).map(normalizeForma),
+            activeFormaId: incomingState.activeFormaId || baseState.activeFormaId || 1,
+            activeTab: incomingState.activeTab || (incomingState.activeFormaId === 2 ? "inner" : "outer"),
+            globalSettings: normalizedGlobalSettings,
+          }
         };
       },
     }

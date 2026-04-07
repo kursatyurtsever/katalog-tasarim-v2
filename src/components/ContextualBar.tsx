@@ -1,15 +1,14 @@
-
 "use client";
 
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore"; // UI Store eklendi
 import {
   Image as ImageIcon,
-  Square, Box, Copy, ClipboardPaste, Eraser, Settings2,
-  Wand2, Combine, Layers,
-  Type, AlignLeft, AlignCenter, AlignRight,
-  Maximize
-} from "lucide-react";
+  Square, Cube, Copy, ClipboardText, Eraser, SlidersHorizontal,
+  MagicWand, Intersect, Stack as Layers,
+  TextT, TextAlignLeft, TextAlignCenter, TextAlignRight,
+  ArrowsOut
+} from "@phosphor-icons/react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ColorOpacityPicker } from "./ColorOpacityPicker";
 import { BorderRadiusPicker } from "./BorderRadiusPicker";
@@ -22,7 +21,9 @@ import { Layer } from "@/types/document";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isObject(item: any) { return (item && typeof item === 'object' && !Array.isArray(item)); }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function deepMerge(target: any, source: any) {
   if (!target) return source;
   if (!source) return target;
@@ -41,7 +42,7 @@ const Divider = () => <div className="w-px h-5 bg-slate-200 mx-1"></div>;
 
 // HATASIZ ICON BUTTON: asChild kullanmadan doğrudan Trigger'ı stilize eder
 interface IconButtonProps {
-  icon: any;
+  icon: React.ElementType;
   label: string;
   onClick?: (e: React.MouseEvent) => void;
   disabled?: boolean;
@@ -74,9 +75,9 @@ const IconButton = ({
           className={buttonClass}
           title={label}
         >
-          <Icon size={14} strokeWidth={2.5} />
+          <Icon size={14} weight="bold" />
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-3 z-[99999] shadow-xl border-slate-200 bg-white" align="start" sideOffset={8}>
+        <PopoverContent className="w-72 p-3 z-99999 shadow-xl border-slate-200 bg-white" align="start" sideOffset={8}>
           {popoverContent}
         </PopoverContent>
       </Popover>
@@ -90,7 +91,7 @@ const IconButton = ({
       className={buttonClass}
       title={label}
     >
-      <Icon size={14} strokeWidth={2.5} />
+      <Icon size={14} weight="bold" />
     </button>
   );
 };
@@ -223,6 +224,7 @@ export function ContextualBar() {
   const [activePopover, setActivePopover] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selectedSlot: any = null;
   let selectedPageNum = -1;
 
@@ -244,6 +246,7 @@ export function ContextualBar() {
   const imgEditMode = selectedSlot?.imageSettings?.editMode ?? activeSettings.imageEditMode;
   const imgScale = selectedSlot?.imageSettings?.scale ?? activeSettings.imageScale;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSettingUpdate = (updates: any) => {
     if (selectedSlot?.isCustom) {
       updateSlotCustomSettings(updates);
@@ -274,6 +277,7 @@ export function ContextualBar() {
 
     const currentFont = isName ? activeSettings.fonts.productName : isPrice ? activeSettings.fonts.price : (activeSettings.badge?.font || activeSettings.fonts.productName);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleFontUpdate = (newFont: any) => {
       if (isName) handleSettingUpdate({ fonts: { ...activeSettings.fonts, productName: newFont } });
       if (isPrice) handleSettingUpdate({ fonts: { ...activeSettings.fonts, price: newFont } });
@@ -281,9 +285,9 @@ export function ContextualBar() {
     };
 
     return (
-      <div ref={barRef} className="h-12 bg-indigo-50 border-b border-indigo-200 flex items-center justify-center px-4 gap-2 shrink-0 shadow-sm z-40 relative">
+      <div ref={barRef} className="h-12 bg-(--primary-light) flex items-center justify-center px-4 gap-2 shrink-0 z-40 relative">
         <div className="flex items-center gap-1.5 pr-2 mr-1">
-          <Type size={14} className="text-indigo-600" />
+          <TextT size={16} weight="bold" className="text-indigo-600" />
           <span className="text-[11px] font-black text-indigo-800 uppercase tracking-widest">
             {isName ? 'Ürün İsmi' : isPrice ? 'Fiyat' : 'Etiket'}
           </span>
@@ -332,9 +336,9 @@ export function ContextualBar() {
         <Divider />
 
         <div className="flex items-center bg-white border border-slate-200 rounded overflow-hidden">
-          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'left' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'left' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><AlignLeft size={14} /></button>
-          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'center' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'center' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><AlignCenter size={14} /></button>
-          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'right' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'right' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><AlignRight size={14} /></button>
+          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'left' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'left' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><TextAlignLeft size={16} weight="bold" /></button>
+          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'center' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'center' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><TextAlignCenter size={16} weight="bold" /></button>
+          <button onClick={() => handleFontUpdate({ ...currentFont, textAlign: 'right' })} className={`p-1.5 transition-colors ${currentFont.textAlign === 'right' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><TextAlignRight size={16} weight="bold" /></button>
         </div>
 
         <Divider />
@@ -359,7 +363,7 @@ export function ContextualBar() {
           }}
           className="h-8 text-[10px] font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50"
         >
-          <Settings2 className="h-3 w-3 mr-1" /> Detaylar
+          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylar
         </Button>
       </div>
     );
@@ -370,7 +374,7 @@ export function ContextualBar() {
   // ==========================================
   if (selectedSlotIds.length > 0) {
     return (
-      <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center justify-center px-4 gap-1.5 shrink-0 shadow-sm z-40 relative">
+      <div ref={barRef} className="h-12 bg-transparent flex items-center justify-center px-4 gap-1.5 shrink-0 z-40 relative">
         <div className="flex items-center gap-2 pr-2 mr-1">
           <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
             {selectedSlotIds.length > 1 ? `${selectedSlotIds.length} HÜCRE` : 'HÜCRE'}
@@ -412,16 +416,18 @@ export function ContextualBar() {
             onTogglePopover={setActivePopover}
             isActive={activePopover === 'borderRadius'} 
             label="Köşe Ovalliği" 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             popoverContent={<BorderRadiusPicker value={activeSettings?.radiuses?.cell!} onChange={(val: any) => handleSettingUpdate({ radiuses: { cell: val } })} />}
           />
 
           <IconButton 
-            icon={Box} 
+            icon={Cube} 
             label="Hücre Gölgesi" 
             popoverId="boxShadow" 
             activePopover={activePopover}
             onTogglePopover={setActivePopover}
             isActive={activePopover === 'boxShadow'} 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             popoverContent={<ShadowPicker value={activeSettings?.shadows?.cell!} onChange={(val: any) => handleSettingUpdate({ shadows: { cell: val } })} />}
           />
         </div>
@@ -430,12 +436,12 @@ export function ContextualBar() {
 
         <div className="flex items-center gap-0.5 relative">
           <IconButton icon={Copy} label="Kopyala" onClick={copySlotSettings} />
-          <IconButton icon={ClipboardPaste} label="Yapıştır" onClick={pasteSlotSettings} disabled={!copiedSlotSettings} />
+          <IconButton icon={ClipboardText} label="Yapıştır" onClick={pasteSlotSettings} disabled={!copiedSlotSettings} />
           <Divider />
           {selectedSlot?.isCustom ? (
-            <IconButton icon={Combine} label="Global Yap" onClick={clearSlotSettings} isActive={true} />
+            <IconButton icon={Intersect} label="Global Yap" onClick={clearSlotSettings} isActive={true} />
           ) : (
-            <IconButton icon={Wand2} label="Özelleştir" onClick={() => toggleSlotCustomSettings(true)} />
+            <IconButton icon={MagicWand} label="Özelleştir" onClick={() => toggleSlotCustomSettings(true)} />
           )}
           <IconButton icon={Eraser} label="Temizle" onClick={clearSlotSettings} danger />
         </div>
@@ -444,7 +450,7 @@ export function ContextualBar() {
 
         <div className="flex items-center gap-0.5 relative">
           {selectedSlot?.role === 'free' ? (
-            <IconButton icon={Box} label="Ürün Alanına Çevir" onClick={() => toggleSlotRole('product')} isActive={false} />
+            <IconButton icon={Cube} label="Ürün Alanına Çevir" onClick={() => toggleSlotRole('product')} isActive={false} />
           ) : (
             <IconButton icon={Layers} label="Serbest Alan Yap" onClick={() => toggleSlotRole('free')} isActive={false} />
           )}
@@ -464,7 +470,7 @@ export function ContextualBar() {
           }}
           className="h-8 text-[10px] font-bold"
         >
-          <Settings2 className="h-3 w-3 mr-1" /> Detaylar
+          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylar
         </Button>
       </div>
     );
@@ -474,7 +480,7 @@ export function ContextualBar() {
   // 3. ARKA PLAN ARAÇ ÇUBUĞU (VARSAYILAN)
   // ==========================================
   return (
-    <div ref={barRef} className="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-40 relative">
+    <div ref={barRef} className="h-12 bg-transparent flex items-center justify-between px-4 shrink-0 z-40 relative">
       <div className="flex flex-row items-center gap-4 w-full">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold text-slate-700">Tüm Broşür</span>
@@ -552,7 +558,7 @@ export function ContextualBar() {
         <Divider />
 
         <IconButton 
-          icon={Maximize} 
+          icon={ArrowsOut} 
           label="Spread Yap" 
           onClick={() => {
             const targetIds = contextualBarSelectedPages.map(num => currentFormaScope?.pages.find(p => p.pageNumber === num)?.id).filter(Boolean) as string[];
@@ -573,7 +579,7 @@ export function ContextualBar() {
           onClick={() => setSidebarState("settings", "background", null)}
           className="h-8 text-[10px] font-bold"
         >
-          <Settings2 className="h-3 w-3 mr-1" /> Detaylı Ayarlar
+          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylı Ayarlar
         </Button>
       </div>
     </div>

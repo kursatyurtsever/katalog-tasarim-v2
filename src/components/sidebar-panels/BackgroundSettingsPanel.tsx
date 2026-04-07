@@ -8,19 +8,16 @@ import { useLayerStore } from "@/store/useLayerStore";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { Layer } from "@/types/document";
 import { 
-  Eye, 
-  EyeOff, 
   Image as ImageIcon, 
   Palette, 
-  Trash2, 
-  Maximize, 
-  Combine, 
-  Split, 
-  Layers,
-  Sparkles,
+  Trash, 
+  ArrowsOut, 
+  Intersect, 
+  SplitHorizontal,
+  Sparkle,
   Info,
-  CheckCircle2
-} from "lucide-react";
+  CheckCircle
+} from "@phosphor-icons/react";
 
 interface GradientConfig {
   type: 'linear' | 'radial' | 'conic';
@@ -275,8 +272,8 @@ export function BackgroundSettingsPanel() {
           {/* A. HÜCRE BİRLEŞTİRME (EXCEL MANTIĞI) */}
           <section className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <label className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500 flex items-center gap-1.5">
-                <Combine className="w-3 h-3" /> Sayfa Birleştirme
+              <label className="text-[9px] font-black tracking-[0.18em] text-slate-500 flex items-center gap-1.5">
+                <Intersect size={14} weight="bold" /> Sayfa Birleştirme
               </label>
               <div className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
                 Forma {activeForma?.id}
@@ -299,7 +296,7 @@ export function BackgroundSettingsPanel() {
                         setSelectedPagesInLayerStore([...selectedPageIds, page.id]);
                       }
                     }}
-                    className={`relative min-w-[40px] h-10 rounded border text-[11px] font-black transition-all flex items-center justify-center ${
+                    className={`relative min-w-10 h-10 rounded border text-[11px] font-black transition-all flex items-center justify-center ${
                       isSelected
                         ? "border-blue-600 bg-blue-600 text-white shadow-md z-10 scale-105"
                         : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -318,26 +315,26 @@ export function BackgroundSettingsPanel() {
               <button
                 onClick={handleMerge}
                 disabled={selectedPageIds.length < 2}
-                className="flex items-center justify-center gap-2 py-2 rounded bg-slate-800 text-white text-[10px] font-black uppercase hover:bg-slate-900 disabled:opacity-30 transition-all font-sans"
+                className="flex items-center justify-center gap-2 py-2 rounded bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900 disabled:opacity-30 transition-all font-sans"
               >
-                <Combine className="w-3.5 h-3.5" /> Seçili Sayfaları Birleştir
+                <Intersect size={14} weight="bold" /> Seçili Sayfaları Birleştir
               </button>
               <button
                 onClick={handleSplit}
                 disabled={targetGroups.length === 0 || !targetGroups.some(g => g.length > 1)}
-                className="flex items-center justify-center gap-2 py-2 rounded border border-slate-300 bg-white text-slate-700 text-[10px] font-black uppercase hover:bg-slate-50 disabled:opacity-30 transition-all font-sans"
+                className="flex items-center justify-center gap-2 py-2 rounded border border-slate-300 bg-white text-slate-700 text-[10px] font-black hover:bg-slate-50 disabled:opacity-30 transition-all font-sans"
               >
-                <Split className="w-3.5 h-3.5" /> Grubu Ayır
+                <SplitHorizontal size={14} weight="bold" /> Grubu Ayır
               </button>
             </div>
 
             {/* SELECTION SUMMARY UI */}
             {targetGroups.length > 0 && (
               <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-100 p-2.5 rounded animate-in fade-in slide-in-from-top-1 duration-300">
-                <CheckCircle2 size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                <CheckCircle size={18} weight="fill" className="text-emerald-600 mt-0.5 shrink-0" />
                 <div className="space-y-1">
-                  <div className="text-[10px] font-black text-emerald-800 uppercase tracking-tighter">
-                    {targetGroups.length} TASARIM HÜCRESİ SEÇİLDİ
+                  <div className="text-[10px] font-black text-emerald-800 tracking-tighter">
+                    {targetGroups.length} Tasarım Hücresi Seçildi
                   </div>
                   <div className="text-[9px] text-emerald-700 leading-tight">
                     Yapacağınız değişiklikler toplam <strong>{selectedPageIds.length} sayfayı</strong> etkileyecek.
@@ -354,9 +351,9 @@ export function BackgroundSettingsPanel() {
             <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-emerald-500" />
+                  <Palette size={16} weight="duotone" className="text-emerald-500" />
                   <div>
-                    <span className="text-[11px] font-black text-slate-700 uppercase">Zemin Rengi (Base)</span>
+                    <span className="text-[11px] font-black text-slate-700">Zemin Rengi (Base)</span>
                     <p className="text-[9px] text-slate-400 font-medium">Temel dolgu veya gradyan</p>
                   </div>
                 </div>
@@ -372,10 +369,10 @@ export function BackgroundSettingsPanel() {
               {/* GRADIENT BUILDER */}
               <div className="space-y-3 pt-3 border-t border-slate-100 mt-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Gelişmiş Gradyan (Geçiş)</span>
+                  <span className="text-[10px] font-black text-slate-700 tracking-widest">Gelişmiş Gradyan (Geçiş)</span>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" className="sr-only peer" checked={hasGradient} onChange={toggleGradient} disabled={targetGroups.length === 0} />
-                    <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                    <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
                   </label>
                 </div>
 
@@ -459,15 +456,15 @@ export function BackgroundSettingsPanel() {
             <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-blue-500" />
+                  <ImageIcon size={16} weight="duotone" className="text-blue-500" />
                   <div>
-                    <span className="text-[11px] font-black text-slate-700 uppercase">Doku & Görsel (Overlay)</span>
+                    <span className="text-[11px] font-black text-slate-700">Doku & Görsel (Overlay)</span>
                     <p className="text-[9px] text-slate-400 font-medium">Renk üzerine binen katman</p>
                   </div>
                 </div>
                 {groupLayers.overlay && (
                   <button onClick={removeOverlay} className="p-1.5 rounded hover:bg-rose-50 text-rose-500 transition-colors">
-                    <Trash2 size={14} />
+                    <Trash size={16} weight="bold" />
                   </button>
                 )}
               </div>
@@ -487,8 +484,8 @@ export function BackgroundSettingsPanel() {
                     htmlFor="overlay-upload"
                     className={`w-full h-16 rounded border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all ${targetGroups.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
                   >
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">
-                      {isUploading ? "YÜKLENİYOR..." : "GÖRSEL VEYA DOKU YÜKLE"}
+                    <span className="text-[10px] font-black text-slate-500 tracking-tighter">
+                      {isUploading ? "Yükleniyor..." : "Görsel Veya Doku Yükle"}
                     </span>
                     <span className="text-[9px] text-slate-400">PNG, JPG veya SVG</span>
                   </label>
@@ -502,7 +499,7 @@ export function BackgroundSettingsPanel() {
                       alt="Overlay Preview" 
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                       <label htmlFor="overlay-upload" className="px-3 py-1.5 bg-white rounded text-[10px] font-black text-slate-800 cursor-pointer shadow-xl">DEĞİŞTİR</label>
+                       <label htmlFor="overlay-upload" className="px-3 py-1.5 bg-white rounded text-[10px] font-black text-slate-800 cursor-pointer shadow-xl">Değiştir</label>
                     </div>
                   </div>
 
@@ -564,7 +561,7 @@ export function BackgroundSettingsPanel() {
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-600 outline-none"
             >
-              <Sparkles size={12} /> {showAdvanced ? "GELİŞMİŞ AYARLARI GİZLE" : "GELİŞMİŞ AYARLARI GÖSTER"}
+              <Sparkle size={14} weight="fill" /> {showAdvanced ? "Gelişmiş Ayarları Gizle" : "Gelişmiş Ayarları Göster"}
             </button>
 
             {showAdvanced && (
@@ -572,7 +569,7 @@ export function BackgroundSettingsPanel() {
                 {/* TRANSFORM CONTROLS FOR OVERLAY */}
                 {groupLayers.overlay && (
                   <div className="space-y-3">
-                    <h4 className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Görsel Transform</h4>
+                    <h4 className="text-[9px] font-black text-blue-600 tracking-widest">Görsel Transform</h4>
                     
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -627,7 +624,7 @@ export function BackgroundSettingsPanel() {
                         }}
                         className="py-2 flex items-center justify-center gap-1.5 text-[9px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
                       >
-                        <Maximize size={10} className="rotate-90" /> Enine Sığdır
+                        <ArrowsOut size={12} className="rotate-90" weight="bold" /> Enine Sığdır
                       </button>
                       <button
                         onClick={() => {
@@ -644,14 +641,14 @@ export function BackgroundSettingsPanel() {
                         }}
                         className="py-2 flex items-center justify-center gap-1.5 text-[9px] font-black border border-emerald-100 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors"
                       >
-                        <Maximize size={10} /> Boyuna Sığdır
+                        <ArrowsOut size={12} weight="bold" /> Boyuna Sığdır
                       </button>
                     </div>
                   </div>
                 )}
 
                 <div className="p-2 rounded bg-amber-50 border border-amber-100 text-[9px] text-amber-700 font-bold flex gap-2">
-                  <Info size={14} className="flex-shrink-0" />
+                  <Info size={16} weight="fill" className="shrink-0" />
                   Gelişmiş modda görselleri milimetrik olarak kaydırabilir ve döndürebilirsiniz.
                 </div>
               </div>

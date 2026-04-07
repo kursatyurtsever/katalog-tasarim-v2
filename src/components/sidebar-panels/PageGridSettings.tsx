@@ -11,12 +11,12 @@ export function PageGridSettings({ pageNumber, onClose }: Props) {
   const { formas, activeFormaId, globalSettings, updateGridSettings, revertToGlobalGrid, applyPageGridChange } = useCatalogStore();
   const activeForma = formas.find((f: Forma) => f.id === activeFormaId);
   const page = activeForma?.pages.find((p: CatalogPage) => p.pageNumber === pageNumber);
-  const currentSettings = page?.gridSettings || globalSettings.defaultGrid;
+const currentSettings = page?.gridSettings || globalSettings.defaultGrid || { rows: 4, cols: 4 };
 
   return (
     <div className="bg-slate-50 p-3 mt-3 rounded-md border border-slate-200 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
       <div className="flex justify-between items-center">
-        <h5 className="text-xs font-black text-blue-600">SAYFA {pageNumber} AYARLARI</h5>
+        <h5 className="text-xs font-black text-blue-600">Sayfa {pageNumber} Ayarları</h5>
         <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-slate-700">Kapat &times;</button>
       </div>
       <div className="grid grid-cols-2 gap-3">

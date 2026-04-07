@@ -20,7 +20,8 @@ export async function uploadImage(formData: FormData) {
     const savePath = path.join(targetDir, filename);
     await fs.writeFile(savePath, buffer);
 
-    return { success: true, path: `/images/products/${filename}` };
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
+    return { success: true, path: `${baseUrl}/images/products/${filename}` };
   } catch (error: any) {
     console.error("Sunucu tarafında resim yükleme hatası:", error);
     return { success: false, error: error.message || "Bilinmeyen bir sunucu hatası." };

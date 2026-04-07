@@ -50,8 +50,8 @@ export function Canvas() {
 
     const observer = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
-      const scaleW = (width - 80) / referenceWidthPx;
-      const scaleH = (height - 80) / referenceHeightPx;
+      const scaleW = (width - 60) / referenceWidthPx;
+      const scaleH = (height - 60) / referenceHeightPx;
       setScale(Math.min(scaleW, scaleH));
     });
 

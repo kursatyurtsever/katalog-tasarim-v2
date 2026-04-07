@@ -53,16 +53,16 @@ export function CustomCellSettings() {
   return (
     <div className="space-y-4">
       {selectedSlotIds.length !== 1 ? (
-        <div className="text-[10px] text-center text-slate-300 font-bold p-4 bg-slate-900 rounded border border-slate-700 shadow-sm">
+        <div className="text-[10px] text-center text-slate-500 font-bold p-4 bg-slate-50 rounded border border-slate-200 shadow-sm">
           Lütfen tablodan sadece BİR adet hücre seçin.
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700 shadow-sm">
-            <span className="text-[10px] font-black text-slate-200">Seçili Hücre: #{selectedGlobalNumber}</span>
+          <div className="flex items-center justify-between bg-slate-50 p-2 rounded border border-slate-200 shadow-sm">
+            <span className="text-[10px] font-black text-slate-700">Seçili Hücre: #{selectedGlobalNumber}</span>
           </div>
           
-          <div className="flex gap-1 bg-slate-900 p-2 rounded border border-slate-700 shadow-sm">
+          <div className="flex gap-1 bg-slate-50 p-2 rounded border border-slate-200 shadow-sm">
             <button onClick={copySlotSettings} className="flex-1 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[9px] font-bold hover:bg-blue-100 transition-colors">
               Kopyala
             </button>
@@ -78,21 +78,21 @@ export function CustomCellSettings() {
             </button>
           </div>
 
-          <div className="flex items-center justify-between bg-slate-900 p-2.5 rounded border border-slate-700 shadow-sm mt-4">
-            <span className="text-[10px] font-black text-slate-200">Bu Hücreyi Özelleştir</span>
+          <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded border border-slate-200 shadow-sm mt-4">
+            <span className="text-[10px] font-black text-slate-700">Bu Hücreyi Özelleştir</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={isCustomActive} onChange={(e) => toggleSlotCustomSettings(e.target.checked)} />
-              <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+              <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
             </label>
           </div>
 
           <div className={`space-y-2 transition-all duration-300 ${isCustomActive ? "opacity-100" : "opacity-30 pointer-events-none blur-[1px]"}`}>
             
             {/* 1. HÜCRE TASARIMI */}
-            <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[60] ${activeTab === 'cell' ? 'overflow-visible' : 'overflow-hidden'}`}>
-              <button onClick={() => setActiveTab(activeTab === 'cell' ? null : 'cell')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
-                <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">1. Hücre Tasarımı</span>
-                <span className="text-slate-400 font-bold">{activeTab === 'cell' ? "▼" : "▶"}</span>
+            <div className={`bg-slate-50 rounded border border-slate-200 shadow-sm relative z-60 ${activeTab === 'cell' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <button onClick={() => setActiveTab(activeTab === 'cell' ? null : 'cell')} className="w-full flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 transition-colors border-b border-slate-200">
+                <span className="text-[10px] font-black text-slate-700 tracking-wider">1. Hücre Tasarımı</span>
+                <span className="text-slate-500 font-bold">{activeTab === 'cell' ? "▼" : "▶"}</span>
               </button>
               {activeTab === 'cell' && (
                 <div className="p-3 space-y-4">
@@ -122,10 +122,10 @@ export function CustomCellSettings() {
             </div>
 
             {/* 2. ÜRÜN İSMİ */}
-            <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[40] ${activeTab === 'name' ? 'overflow-visible' : 'overflow-hidden'}`}>
-              <button onClick={() => setActiveTab(activeTab === 'name' ? null : 'name')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
-                <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">2. Ürün İsmi</span>
-                <span className="text-slate-400 font-bold">{activeTab === 'name' ? "▼" : "▶"}</span>
+            <div className={`bg-slate-50 rounded border border-slate-200 shadow-sm relative z-40 ${activeTab === 'name' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <button onClick={() => setActiveTab(activeTab === 'name' ? null : 'name')} className="w-full flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 transition-colors border-b border-slate-200">
+                <span className="text-[10px] font-black text-slate-700 tracking-wider">2. Ürün İsmi</span>
+                <span className="text-slate-500 font-bold">{activeTab === 'name' ? "▼" : "▶"}</span>
               </button>
               {activeTab === 'name' && (
                 <div className="p-3">
@@ -135,10 +135,10 @@ export function CustomCellSettings() {
             </div>
 
             {/* 3. FİYAT KUTUSU */}
-            <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[30] ${activeTab === 'price' ? 'overflow-visible' : 'overflow-hidden'}`}>
-              <button onClick={() => setActiveTab(activeTab === 'price' ? null : 'price')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
-                <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">3. Fiyat Kutusu</span>
-                <span className="text-slate-400 font-bold">{activeTab === 'price' ? "▼" : "▶"}</span>
+            <div className={`bg-slate-50 rounded border border-slate-200 shadow-sm relative z-30 ${activeTab === 'price' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <button onClick={() => setActiveTab(activeTab === 'price' ? null : 'price')} className="w-full flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 transition-colors border-b border-slate-200">
+                <span className="text-[10px] font-black text-slate-700 tracking-wider">3. Fiyat Kutusu</span>
+                <span className="text-slate-500 font-bold">{activeTab === 'price' ? "▼" : "▶"}</span>
               </button>
               {activeTab === 'price' && (
                 <div className="p-3 space-y-4">
@@ -204,13 +204,13 @@ export function CustomCellSettings() {
             </div>
 
             {/* 4. PROMOSYON ETİKETİ */}
-            <div className={`bg-slate-900 rounded border border-slate-700 shadow-sm relative z-[20] ${activeTab === 'badge' ? 'overflow-visible' : 'overflow-hidden'}`}>
-              <button onClick={() => setActiveTab(activeTab === 'badge' ? null : 'badge')} className="w-full flex items-center justify-between p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700">
+            <div className={`bg-slate-50 rounded border border-slate-200 shadow-sm relative z-20 ${activeTab === 'badge' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <button onClick={() => setActiveTab(activeTab === 'badge' ? null : 'badge')} className="w-full flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 transition-colors border-b border-slate-200">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black text-slate-200 uppercase tracking-wider">4. Promosyon Etiketi</span>
+                  <span className="text-[10px] font-black text-slate-700 tracking-wider">4. Promosyon Etiketi</span>
                   {customSettings.badge?.active && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>}
                 </div>
-                <span className="text-slate-400 font-bold">{activeTab === 'badge' ? "▼" : "▶"}</span>
+                <span className="text-slate-500 font-bold">{activeTab === 'badge' ? "▼" : "▶"}</span>
               </button>
               {activeTab === 'badge' && (
                 <div className="p-3 space-y-4">
@@ -218,18 +218,18 @@ export function CustomCellSettings() {
                     <span className="text-[10px] font-bold text-slate-700">Etiketi Göster</span>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" checked={customSettings.badge?.active || false} onChange={(e) => updateSlotCustomSettings({ badge: { ...customSettings.badge!, active: e.target.checked } })} />
-                      <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
+                      <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
                     </label>
                   </div>
 
                   <div className={`space-y-3 transition-all duration-300 ${customSettings.badge?.active ? 'opacity-100' : 'opacity-40 pointer-events-none hidden'}`}>
                     
-                    <div className="bg-slate-50 p-2 rounded border border-slate-200 shadow-inner space-y-3 mb-3 relative z-[9]">
+                    <div className="bg-slate-50 p-2 rounded border border-slate-200 shadow-inner space-y-3 mb-3 relative z-9">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-slate-700">Serbest Konum</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" checked={customSettings.badge?.isFreePosition || false} onChange={(e) => updateSlotCustomSettings({ badge: { ...customSettings.badge!, isFreePosition: e.target.checked } })} />
-                          <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
+                          <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
                         </label>
                       </div>
 
@@ -276,7 +276,7 @@ export function CustomCellSettings() {
                     </div>
 
                     <div className="space-y-1 pt-2 border-t border-green-50">
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Etiket Şekli</span>
+                      <span className="text-[9px] font-bold text-slate-500 tracking-wide">Etiket Şekli</span>
                       <div className="grid grid-cols-2 gap-1 bg-slate-50 p-1 rounded border border-slate-100">
                         {[
                           { id: 'rectangle', label: 'Klasik' }, { id: 'pill', label: 'Oval (Pill)' },
@@ -290,8 +290,8 @@ export function CustomCellSettings() {
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 p-2 rounded border border-slate-200 space-y-2 mt-3 shadow-inner relative z-[8]">
-                      <h4 className="text-[10px] font-black text-green-700 border-b border-green-100 pb-1 mb-2 uppercase tracking-wider">Kenarlık (Kontur)</h4>
+                    <div className="bg-slate-50 p-2 rounded border border-slate-200 space-y-2 mt-3 shadow-inner relative z-8">
+                      <h4 className="text-[10px] font-black text-green-700 border-b border-green-100 pb-1 mb-2 tracking-wider">Kenarlık (Kontur)</h4>
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] font-bold text-slate-600">Kenarlık Rengi</span>
                         <ColorOpacityPicker color={customSettings.badge?.borderColor || "#ffffff"} opacity={100} onChange={(c, o) => updateSlotCustomSettings({ badge: { ...customSettings.badge!, borderColor: c } })} />

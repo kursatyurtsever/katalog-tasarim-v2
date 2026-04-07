@@ -4,49 +4,28 @@ import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useHistoryStore } from "@/store/useHistoryStore";
 import { useEffect } from "react";
-import { DownloadMenu } from "./DownloadMenu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
+import { MagnifyingGlass, ArrowUUpLeft, ArrowUUpRight } from "@phosphor-icons/react";
 
 export function TopBar() {
-  // Yeni Forma Yapısı State'leri
   const formas = useCatalogStore((state) => state.formas || []);
   const activeFormaId = useCatalogStore((state) => state.activeFormaId);
   const setActiveFormaId = useCatalogStore((state) => state.setActiveFormaId);
 
-  // Zoom ve Yardımcı Fonksiyonlar
   const toggleZoom = useUIStore((state) => state.toggleZoom);
   const isZoomed = useUIStore((state) => state.isZoomed);
 
-  // Geri - İleri (Undo/Redo)
   const undo = useHistoryStore((state) => state.undo);
   const redo = useHistoryStore((state) => state.redo);
   const pastPages = useHistoryStore((state) => state.past || []);
   const futurePages = useHistoryStore((state) => state.future || []);
 
-  // Klavye Kısayolları (Ctrl+Z ve Ctrl+Shift+Z)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        if (e.shiftKey) {
-          e.preventDefault();
-          redo();
-        } else {
-          e.preventDefault();
-          undo();
-        }
+        if (e.shiftKey) { e.preventDefault(); redo(); } 
+        else { e.preventDefault(); undo(); }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -54,25 +33,19 @@ export function TopBar() {
   }, [undo, redo]);
 
   return (
-    <div className="h-14 bg-white border-b flex items-center justify-between px-4 shrink-0 shadow-sm relative z-50">
-      {/* SOL KISIM: FORMA SEÇİCİ (DROPDOWN) */}
+    <div className="h-12 bg-(--bg-panel) border-b border-(--border-color) flex items-center justify-between px-4 shrink-0 shadow-sm relative z-1001">
       <div className="flex items-center gap-3">
-        <label
-          htmlFor="forma-select"
-          className="text-xs font-bold text-slate-400 uppercase tracking-wider"
-        >
-          Görünüm:
-        </label>
-        <Select
-          value={activeFormaId.toString()}
-          onValueChange={(value) => setActiveFormaId(Number(value))}
-        >
-          <SelectTrigger className="bg-slate-800 text-white text-sm font-bold px-4 py-1.5 rounded-lg outline-none border-none shadow-md cursor-pointer hover:bg-slate-700 transition-all min-w-[180px] h-auto">
+        <label htmlFor="forma-select" className="section-title">Görünüm:</label>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <Select value={activeFormaId.toString()} onValueChange={(val: any) => val && setActiveFormaId(Number(val))}>
+          <SelectTrigger className="bg-(--bg-subpanel) text-(--text-main) text-[12px] font-semibold px-3 py-1.5 rounded-md outline-none border border-(--border-color) cursor-pointer hover:bg-slate-100 transition-all min-w-45 h-8">
+            {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+            {/* @ts-ignore - Base UI placeholder tip denetimi uyumluluğu */}
             <SelectValue placeholder="Görünüm seç..." />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-99999">
             {formas.map((forma) => (
-              <SelectItem key={forma.id} value={forma.id.toString()}>
+              <SelectItem key={forma.id} value={forma.id.toString()} className="text-[12px] font-medium">
                 {forma.name}
               </SelectItem>
             ))}
@@ -80,72 +53,29 @@ export function TopBar() {
         </Select>
       </div>
 
-      {/* SAĞ KISIM: ARAÇLAR */}
-      <div className="flex items-center gap-4">
-        {/* GERİ / İLERİ BUTONLARI */}
-        <div className="flex items-center gap-1 mr-2 border-r pr-4 border-slate-200">
-          <Button
-            variant="ghost"
-            onClick={undo}
-            disabled={pastPages.length === 0}
-            size="sm"
-            title="Geri Al (Ctrl+Z)"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 7v6h6" />
-              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-            </svg>
-            <span className="ml-2">Geri</span>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 mr-2 border-r pr-3 border-(--border-color)">
+          <Button variant="ghost" onClick={undo} disabled={pastPages.length === 0} className="h-8 px-2.5 text-(--text-muted) hover:text-(--text-main) hover:bg-(--bg-canvas)" title="Geri Al (Ctrl+Z)">
+            <ArrowUUpLeft size={16} weight="regular" />
+            <span className="ml-1.5 text-[11px] font-medium">Geri</span>
           </Button>
-          <Button
-            variant="ghost"
-            onClick={redo}
-            disabled={futurePages.length === 0}
-            size="sm"
-            title="İleri Al (Ctrl+Shift+Z)"
-          >
-            <span className="mr-2">İleri</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 7v6h-6" />
-              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
-            </svg>
+          <Button variant="ghost" onClick={redo} disabled={futurePages.length === 0} className="h-8 px-2.5 text-(--text-muted) hover:text-(--text-main) hover:bg-(--bg-canvas)" title="İleri Al (Ctrl+Shift+Z)">
+            <span className="mr-1.5 text-[11px] font-medium">İleri</span>
+            <ArrowUUpRight size={16} weight="regular" />
           </Button>
         </div>
 
-        {/* ZOOM BUTONU */}
         <button
           onClick={toggleZoom}
-          className={`px-4 py-1.5 rounded-md text-sm font-bold border transition-all flex items-center gap-2 ${
+          className={`h-8 px-3.5 rounded-md text-[11px] font-semibold border transition-all flex items-center gap-1.5 ${
             isZoomed
-              ? "bg-blue-50 border-blue-200 text-blue-700"
-              : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+              ? "bg-primary border-primary text-white hover:bg-(--primary-hover)"
+              : "bg-(--bg-panel) border-(--border-color) text-(--text-main) hover:bg-(--bg-canvas)"
           }`}
         >
-          {isZoomed ? "🔍 Uzaklaş" : "🔍 Yakınlaş"}
+          <MagnifyingGlass size={16} weight="regular" />
+          {isZoomed ? "Uzaklaş" : "Yakınlaş"}
         </button>
-
-        {/* İNDİRME MENÜSÜ */}
-        <DownloadMenu />
       </div>
     </div>
   );

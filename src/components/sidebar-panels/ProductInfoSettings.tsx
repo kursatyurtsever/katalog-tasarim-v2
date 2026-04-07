@@ -25,24 +25,32 @@ export function ProductInfoSettings() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  let globalNumberCounter = 0;
-  let selectedGlobalNumber: number | null = null;
-  let selectedSlot: any = null;
-  let selectedPageNumber: number | null = null;
-  
-  pages.forEach(p => {
-    let startIdx = p.pageNumber === 1 ? 4 : p.pageNumber === 6 ? 8 : 0;
-    p.slots.forEach((s, idx) => {
-      if (idx >= startIdx && !s.hidden) {
-        globalNumberCounter++;
-        if (selectedSlotIds.length === 1 && s.id === selectedSlotIds[0]) {
-          selectedGlobalNumber = globalNumberCounter;
-          selectedSlot = s;
-          selectedPageNumber = p.pageNumber;
-        }
-      }
-    });
-  });
+  const allProductSlots = useMemo(() => {
+    const allPages = formas.flatMap(f => f.pages).sort((a, b) => a.pageNumber - b.pageNumber);
+    const slotsWithPage = allPages.flatMap(p => 
+      p.slots
+        .filter(s => s.role === 'product' && !s.hidden)
+        .map(s => ({ ...s, pageNumber: p.pageNumber }))
+    );
+    return slotsWithPage;
+  }, [formas]);
+
+  const { selectedSlot, selectedPageNumber, selectedGlobalNumber } = useMemo(() => {
+    if (selectedSlotIds.length !== 1) {
+      return { selectedSlot: null, selectedPageNumber: null, selectedGlobalNumber: null };
+    }
+    const selectedId = selectedSlotIds[0];
+    const slotIndex = allProductSlots.findIndex(s => s.id === selectedId);
+    if (slotIndex === -1) {
+        return { selectedSlot: null, selectedPageNumber: null, selectedGlobalNumber: null };
+    }
+    const slot = allProductSlots[slotIndex];
+    return {
+      selectedSlot: slot,
+      selectedPageNumber: slot.pageNumber,
+      selectedGlobalNumber: slotIndex + 1,
+    };
+  }, [selectedSlotIds, allProductSlots]);
 
   let profit = 0;
   let hasCost = false;
@@ -116,6 +124,14 @@ export function ProductInfoSettings() {
   // İKİNCİ AŞAMA: Asıl kaydetme işlemi (Onaylandıktan sonra veya onaya gerek yoksa çalışır)
   const executeSave = async () => {
     setShowConfirm(false); // Onay kutusunu kapat
+
+    if (!selectedSlot || !selectedSlot.product) {
+      // This case should ideally not be reached because of the guards in handleSaveClick,
+      // but it satisfies TypeScript's null-check.
+      setIsSaving(false);
+      return;
+    }
+
     setIsSaving(true);
     
     const p = selectedSlot.product;
@@ -209,7 +225,7 @@ export function ProductInfoSettings() {
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-slate-500">Ürün Adı (BEZEICHNUNG)</span>
+              <span className="text-[9px] font-bold text-slate-500">Ürün Adı (Bezeichnung)</span>
               <textarea 
                 rows={2}
                 value={selectedSlot?.product?.name || ""} 
@@ -220,7 +236,7 @@ export function ProductInfoSettings() {
             
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Satış Fiyatı (VK_NETTO)</span>
+                  <span className="text-[9px] font-bold text-slate-500">Satış Fiyatı (VK Netto)</span>
                   <input 
                     type="text" 
                     value={selectedSlot?.product?.price || ""} 
@@ -241,7 +257,7 @@ export function ProductInfoSettings() {
 
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Ürün Kodu (ARTNR)</span>
+                  <span className="text-[9px] font-bold text-slate-500">Ürün Kodu (Artnr)</span>
                   <input 
                     type="text" 
                     value={selectedSlot?.product?.sku || ""} 
@@ -250,8 +266,8 @@ export function ProductInfoSettings() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Kâr Oranı (KAR_%)</span>
-                  <div className={`w-full text-[10px] font-bold border rounded p-1.5 flex items-center justify-center h-[34px] ${hasCost ? (isLoss ? "bg-red-50 border-red-200 text-red-600" : "bg-green-50 border-green-200 text-green-600") : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                  <span className="text-[9px] font-bold text-slate-500">Kâr Oranı (Kar %)</span>
+                  <div className={`w-full text-[10px] font-bold border rounded p-1.5 flex items-center justify-center h-8.5 ${hasCost ? (isLoss ? "bg-red-50 border-red-200 text-red-600" : "bg-green-50 border-green-200 text-green-600") : "bg-slate-50 border-slate-200 text-slate-400"}`}>
                     {hasCost ? `%${profit.toFixed(1)}` : "Maliyet Yok"}
                   </div>
                 </div>
@@ -259,7 +275,7 @@ export function ProductInfoSettings() {
             
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Kategori (ARTGRP)</span>
+                  <span className="text-[9px] font-bold text-slate-500">Kategori (Artgrp)</span>
                   <input 
                     type="text" 
                     value={selectedSlot?.product?.category || ""} 
@@ -268,8 +284,8 @@ export function ProductInfoSettings() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500">Sıra (POS)</span>
-                  <div className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded p-1.5 cursor-not-allowed">
+                  <span className="text-[9px] font-bold text-slate-500">Sıra (Pos)</span>
+                  <div className="w-full h-8.5 flex items-center justify-center text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded p-1.5 cursor-not-allowed">
                     {masterProductPool.some(p => p.sku === selectedSlot?.product?.sku) ? selectedSlot?.product?.raw?.POS : `${nextPos} (Yeni)`}
                   </div>
                 </div>
@@ -279,7 +295,7 @@ export function ProductInfoSettings() {
             <div className="space-y-1 pt-1">
               <span className="text-[9px] font-bold text-slate-500">Görsel Seç</span>
               <input type="file" accept="image/*" className="hidden" id="image-upload" ref={fileInputRef} onChange={handleFileChange} />
-              <label htmlFor="image-upload" className="w-full h-[34px] flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-300 hover:border-blue-400 rounded p-1.5 cursor-pointer shadow-sm transition-all">
+              <label htmlFor="image-upload" className="w-full h-8.5 flex items-center justify-center text-[10px] font-bold text-slate-600 bg-white border border-slate-300 hover:border-blue-400 rounded p-1.5 cursor-pointer shadow-sm transition-all">
                 {selectedFile ? selectedFile.name : "Bilgisayardan Görsel Seç"}
               </label>
             </div>

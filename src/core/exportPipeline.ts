@@ -44,7 +44,7 @@ export const collectExportData = (): ExportData => {
     globalSettings: catalogState.globalSettings,
     formas: catalogState.formas,
     layers: layerState.layers,
-    banners: (bannerState as any).banners || [],
+    banners: bannerState.bannerSettings ? [bannerState.bannerSettings] : [],
     metadata: {
       version: "2.0.0-LMS",
       renderer: "AG-Export-Pipeline-v1",
