@@ -170,6 +170,7 @@ export interface CatalogActions {
   applyGridChanges: () => void;
   applyPageGridChange: (pageNumber: number) => void;
   revertToGlobalGrid: (pageNumber: number) => void;
+  updateSelectedSlotsImageSettings: (settings: any) => void;
 }
 
 const initialGlobalSettings: CatalogSettings = {
@@ -764,6 +765,21 @@ setActivePages(newPages);
             } : s)
           } : p);
           setActivePages(newPages);
+      },
+
+      updateSelectedSlotsImageSettings: (settings) => {
+        const { getActivePages, setActivePages } = get();
+        const { selectedSlotIds } = useUIStore.getState();
+        if (selectedSlotIds.length === 0) return;
+
+        const newPages = getActivePages().map(p => ({
+          ...p,
+          slots: p.slots.map(s => selectedSlotIds.includes(s.id) ? {
+            ...s,
+            imageSettings: { ...(s.imageSettings || {}), ...settings }
+          } : s)
+        }));
+        setActivePages(newPages);
       },
 
       mergePages: (pageIds: string[]) => set((state) => {

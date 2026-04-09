@@ -1,7 +1,7 @@
 "use client";
 
 import { useCatalogStore } from "@/store/useCatalogStore";
-import { useUIStore } from "@/store/useUIStore"; // UI Store eklendi
+import { useUIStore } from "@/store/useUIStore";
 import {
   Image as ImageIcon,
   Square, Cube, Copy, ClipboardText, Eraser, SlidersHorizontal,
@@ -40,7 +40,6 @@ function deepMerge(target: any, source: any) {
 
 const Divider = () => <div className="w-px h-5 bg-slate-200 mx-1"></div>;
 
-// HATASIZ ICON BUTTON: asChild kullanmadan doğrudan Trigger'ı stilize eder
 interface IconButtonProps {
   icon: React.ElementType;
   label: string;
@@ -59,7 +58,6 @@ const IconButton = ({
   popoverId, activePopover, onTogglePopover, popoverContent
 }: IconButtonProps) => {
   
-  // Ortak stil sınıfları
   const buttonClass = `
     inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors
     focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950
@@ -97,21 +95,17 @@ const IconButton = ({
 };
 
 export function ContextualBar() {
-// Store bağlantıları düzeltildi
   const {
     globalSettings, setGlobalSettings, formas, activeTemplate,
     updateSlotImageSettings, updateSlotCustomSettings, toggleSlotCustomSettings,
     clearSlotSettings, copySlotSettings, pasteSlotSettings, setActiveFormaId,
-    toggleSlotRole,
-    activeFormaId,        // <--- Buraya taşındı
-    copiedSlotSettings    // <--- Buraya eklendi
+    toggleSlotRole, activeFormaId, copiedSlotSettings
   } = useCatalogStore();
 
   const {
     selectedSlotIds, selectedTextElement, setSelectedTextElement,
     contextualBarFormaId, contextualBarSelectedPages, setContextualBarFormaId, 
     setContextualBarSelectedPages, setSidebarState
-    // activeFormaId buradan silindi
   } = useUIStore();
 
   const {
@@ -120,7 +114,6 @@ export function ContextualBar() {
   } = useLayerStore();
 
   const isGlobalApplyActive = false;
-
   const currentFormaScope = formas.find(f => f.id === (contextualBarFormaId ? parseInt(contextualBarFormaId) : undefined));
 
   const displayScopeText = () => {
@@ -228,7 +221,7 @@ export function ContextualBar() {
   let selectedSlot: any = null;
   let selectedPageNum = -1;
 
-  if (selectedSlotIds.length > 0) { // Çoklu seçimde ilkini referans al
+  if (selectedSlotIds.length > 0) { 
     for (const page of pages) {
       const slot = page.slots.find(s => s.id === selectedSlotIds[0]);
       if (slot) {
@@ -243,8 +236,9 @@ export function ContextualBar() {
     ? deepMerge(globalSettings, selectedSlot.customSettings)
     : globalSettings;
 
-  const imgEditMode = selectedSlot?.imageSettings?.editMode ?? activeSettings.imageEditMode;
-  const imgScale = selectedSlot?.imageSettings?.scale ?? activeSettings.imageScale;
+  // DÜZELTME: Doğrudan küresel ayarlarla bağlantıyı kurar. (Lokal yoks Global'e düşer)
+  const imgEditMode = selectedSlot?.imageSettings?.editMode ?? activeSettings.imageEditMode ?? false;
+  const imgScale = selectedSlot?.imageSettings?.scale ?? activeSettings.imageScale ?? 100;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSettingUpdate = (updates: any) => {
@@ -258,7 +252,10 @@ export function ContextualBar() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (target.closest('.z-\\[99999\\]')) return;
+      
+      if (!document.contains(target)) return;
+      if (target.closest('.z-\\[99999\\]') || target.closest('[data-slot="popover-content"]')) return;
+      
       if (barRef.current && !barRef.current.contains(target as Node)) {
         setActivePopover(null);
       }
@@ -391,15 +388,40 @@ export function ContextualBar() {
             onTogglePopover={setActivePopover}
             isActive={activePopover === "imageSettings"}
             popoverContent={
-              <div className="flex flex-col gap-3">
+              <div 
+                className="flex flex-col gap-3"
+                onPointerDownCapture={(e) => e.stopPropagation()}
+                onMouseDownCapture={(e) => e.stopPropagation()}
+                onTouchStartCapture={(e) => e.stopPropagation()}
+              >
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ürün Görseli Ayarları</span>
+                
                 <div className="flex items-center justify-between bg-slate-50 p-2 rounded border border-slate-100">
                   <span className="text-xs font-bold text-slate-700">Serbest Konum</span>
-                  <input type="checkbox" checked={imgEditMode} onChange={(e) => updateSlotImageSettings(selectedPageNum, selectedSlot.id, { editMode: e.target.checked })} />
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={imgEditMode} 
+                      onChange={(e) => updateSlotImageSettings(selectedPageNum, selectedSlot.id, { editMode: e.target.checked })} 
+                    />
+                    <div className="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                  </label>
                 </div>
+
                 <div className={`flex flex-col gap-2 ${!imgEditMode ? 'opacity-40' : ''}`}>
-                  <div className="flex justify-between items-center"><span className="text-[10px] font-bold">Büyütme</span><span className="text-[10px] font-bold">%{imgScale}</span></div>
-                  <input type="range" min="10" max="300" value={imgScale} onChange={(e) => updateSlotImageSettings(selectedPageNum, selectedSlot.id, { scale: parseInt(e.target.value) })} className="w-full" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold">Büyütme</span>
+                    <span className="text-[10px] font-bold">%{imgScale}</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="10" 
+                    max="300" 
+                    value={imgScale} 
+                    onChange={(e) => updateSlotImageSettings(selectedPageNum, selectedSlot.id, { scale: parseInt(e.target.value) })} 
+                    className="w-full accent-blue-600" 
+                  />
                 </div>
                 <Button variant="outline" size="sm" onClick={() => updateSlotImageSettings(selectedPageNum, selectedSlot.id, { editMode: false, scale: 100, posX: 0, posY: 0 })} className="w-full">Sıfırla</Button>
               </div>
@@ -416,8 +438,12 @@ export function ContextualBar() {
             onTogglePopover={setActivePopover}
             isActive={activePopover === 'borderRadius'} 
             label="Köşe Ovalliği" 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            popoverContent={<BorderRadiusPicker value={activeSettings?.radiuses?.cell!} onChange={(val: any) => handleSettingUpdate({ radiuses: { cell: val } })} />}
+            popoverContent={
+              <div onPointerDownCapture={(e) => e.stopPropagation()} onMouseDownCapture={(e) => e.stopPropagation()}>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                <BorderRadiusPicker value={activeSettings?.radiuses?.cell!} onChange={(val: any) => handleSettingUpdate({ radiuses: { cell: val } })} />
+              </div>
+            }
           />
 
           <IconButton 
@@ -427,8 +453,12 @@ export function ContextualBar() {
             activePopover={activePopover}
             onTogglePopover={setActivePopover}
             isActive={activePopover === 'boxShadow'} 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            popoverContent={<ShadowPicker value={activeSettings?.shadows?.cell!} onChange={(val: any) => handleSettingUpdate({ shadows: { cell: val } })} />}
+            popoverContent={
+              <div onPointerDownCapture={(e) => e.stopPropagation()} onMouseDownCapture={(e) => e.stopPropagation()}>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                <ShadowPicker value={activeSettings?.shadows?.cell!} onChange={(val: any) => handleSettingUpdate({ shadows: { cell: val } })} />
+              </div>
+            }
           />
         </div>
 

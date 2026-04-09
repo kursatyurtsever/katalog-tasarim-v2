@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCatalogStore } from "@/store/useCatalogStore";
@@ -49,11 +48,10 @@ const getShadowStyle = (s: ShadowData) => {
 const getFontStyle = (font: TypographyData): React.CSSProperties => {
   if (!font) return {};
   
-  // Önceki getFontStyle'den gelen mantık korunur, sadece fontSize'in dinamik olarak uygulanması sağlanır.
   const baseStyle: React.CSSProperties = {
     fontFamily: font.fontFamily,
     fontWeight: font.fontWeight,
-    fontSize: `${font.fontSize}px`, // Önemli: Gelen objenin fontSize'ini kullan!
+    fontSize: `${font.fontSize}px`, 
     lineHeight: font.lineHeight,
     letterSpacing: `${font.letterSpacing}px`,
     textAlign: font.textAlign,
@@ -68,29 +66,48 @@ const getFontStyle = (font: TypographyData): React.CSSProperties => {
 };
 
 export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, slotIndex, globalNumber, onContextMenu, gridPosition, totalRows, totalColumns }, ref) => {
-  // useCatalogStore içindekiler
   const { 
     globalSettings, swapSlotContents, setSlotProduct, setSlotModule,
     updateSlotProduct, updateSlotCustomSettings, updateSlotImageSettings,
-    disableAllImageEditModes // <--- Buraya taşındı
+    disableAllImageEditModes 
   } = useCatalogStore();
 
-  // useUIStore içindekiler
   const { 
     selectedSlotIds, toggleSlotSelection, 
     setSelectedTextElement, selectedTextElement, 
     editingContent, setEditingContent
-    // disableAllImageEditModes buradan silindi
   } = useUIStore();
   
   const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
   const clearPizzaSelection = usePizzaStore((state) => state.clearSelection);
 
   const [isOver, setIsOver] = useState(false);
-  const [editingText, setEditingText] = useState<'name' | 'price' | 'badge' | null>(null);
 
   const [imgDrag, setImgDrag] = useState({ isDragging: false, startX: 0, startY: 0, initialPosX: 0, initialPosY: 0, currentX: 0, currentY: 0 });
-  const [badgeDrag, setBadgeDrag] = useState({ isDragging: false, startX: 0, startY: 0, initialPosX: 0, initialPosY: 0, currentX: 0, currentY: 0 });
+
+  function deepMerge(target: any, source: any) {
+    if (!target || !source) return target || source;
+    const output = { ...target };
+    Object.keys(source).forEach(key => {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && key in target) {
+        output[key] = deepMerge(target[key], source[key]);
+      } else {
+        output[key] = source[key];
+      }
+    });
+    return output;
+  }
+
+  // DÜZELTİLEN BÖLÜM: Küresel ayarların Slot seviyesinde düzgün işlenmesi
+  const finalSettings = (slot.isCustom && slot.customSettings) 
+    ? deepMerge(JSON.parse(JSON.stringify(globalSettings)), slot.customSettings)
+    : globalSettings;
+
+  const imgSettings = slot.imageSettings || {};
+  const isImgEditMode = imgSettings.editMode ?? finalSettings.imageEditMode ?? false;
+  const currentPosX = imgSettings.posX ?? finalSettings.imagePosX ?? 0;
+  const currentPosY = imgSettings.posY ?? finalSettings.imagePosY ?? 0;
+  const currentScale = imgSettings.scale ?? finalSettings.imageScale ?? 100;
 
   useEffect(() => {
     if (!imgDrag.isDragging) return;
@@ -113,26 +130,6 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
 
   const isSelected = selectedSlotIds.includes(slot.id);
   const isEditing = editingContent?.slotId === slot.id;
-  
-  function deepMerge(target: any, source: any) {
-    if (!target || !source) return target || source;
-    const output = { ...target };
-    Object.keys(source).forEach(key => {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && key in target) {
-        output[key] = deepMerge(target[key], source[key]);
-      } else {
-        output[key] = source[key];
-      }
-    });
-    return output;
-  }
-
-  const finalSettings = (slot.isCustom && slot.customSettings) 
-    ? deepMerge(JSON.parse(JSON.stringify(globalSettings)), slot.customSettings)
-    : globalSettings;
-
-  const imgSettings = slot.imageSettings || {};
-  const isImgEditMode = imgSettings.editMode || false;
 
   let profit = 0, isLoss = false, hasCost = false;
   if (slot.product) {
@@ -145,10 +142,8 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
     
     const newModuleType = e.dataTransfer.getData("newModuleType");
     if (newModuleType) {
-      // Eğer hücre 'product' ise önce onu 'free' yapıp içini temizle
       if (slot.role !== 'free') {
-        useCatalogStore.getState().toggleSlotRole('free'); // O an seçiliyse free yapar
-        // Veya manuel olarak objeyi de güncelleyebiliriz ama en garantisi action çağırmak
+        useCatalogStore.getState().toggleSlotRole('free');
       }
       useCatalogStore.getState().setSlotModule(pageNumber, slot.id, newModuleType as any);
       return;
@@ -165,42 +160,33 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
   const handleImgMouseDown = (e: React.MouseEvent) => {
     if (!isImgEditMode) return;
     e.preventDefault(); e.stopPropagation();
-    setImgDrag({ isDragging: true, startX: e.clientX, startY: e.clientY, initialPosX: imgSettings.posX || 0, initialPosY: imgSettings.posY || 0, currentX: imgSettings.posX || 0, currentY: imgSettings.posY || 0 });
+    setImgDrag({ isDragging: true, startX: e.clientX, startY: e.clientY, initialPosX: currentPosX, initialPosY: currentPosY, currentX: currentPosX, currentY: currentPosY });
   };
 
-  const displayX = imgDrag.isDragging ? imgDrag.currentX : (imgSettings.posX || 0);
-  const displayY = imgDrag.isDragging ? imgDrag.currentY : (imgSettings.posY || 0);
-  const displayScale = (imgSettings.scale || 100) / 100;
+  const displayX = imgDrag.isDragging ? imgDrag.currentX : currentPosX;
+  const displayY = imgDrag.isDragging ? imgDrag.currentY : currentPosY;
+  const displayScale = currentScale / 100;
 
   const boxShadow = getShadowStyle(finalSettings.shadows.cell);
 
-  // Serbest Alanı CSS Grid kurallarından tamamen koparıp matematiksel olarak çiviliyoruz
   let freeSlotStyles: React.CSSProperties = {};
 
-// GERÇEK ÖLÇEKLENDİRME HESAPLAMASI (IZGARA BAZLI)
-// Referans tasarım matrisimiz 4x4'tür.
-const baseCols = 4;
-const baseRows = 4;
-const currentCols = totalColumns || 4;
-const currentRows = totalRows || 4;
+  const baseCols = 4;
+  const baseRows = 4;
+  const currentCols = totalColumns || 4;
+  const currentRows = totalRows || 4;
 
-// 1. Hücrenin sayfa içindeki oransal boyutu
-const widthRatio = slot.colSpan / currentCols;
-const heightRatio = slot.rowSpan / currentRows;
+  const widthRatio = slot.colSpan / currentCols;
+  const heightRatio = slot.rowSpan / currentRows;
 
-// 2. Standart 4x4 bir hücrenin oransal boyutu (1/4 = 0.25)
-const baseWidthRatio = 1 / baseCols;
-const baseHeightRatio = 1 / baseRows;
+  const baseWidthRatio = 1 / baseCols;
+  const baseHeightRatio = 1 / baseRows;
 
-// 3. Gerçek Çarpan (Mevcut oran / Standart oran)
-const scaleX = widthRatio / baseWidthRatio;
-const scaleY = heightRatio / baseHeightRatio;
+  const scaleX = widthRatio / baseWidthRatio;
+  const scaleY = heightRatio / baseHeightRatio;
 
-// En dengeli ve taşmayacak oranı al
-const trueScale = Math.min(scaleX, scaleY);
-
-// Aşırı uçları sınırla (Hücre çok küçülürse min %40, çok büyürse max %300)
-const clampedScale = Math.max(0.4, Math.min(3, trueScale));
+  const trueScale = Math.min(scaleX, scaleY);
+  const clampedScale = Math.max(0.4, Math.min(3, trueScale));
   
   if (slot.role === 'free' && gridPosition) {
     const R = totalRows || 4;
@@ -213,7 +199,7 @@ const clampedScale = Math.max(0.4, Math.min(3, trueScale));
 
     freeSlotStyles = {
       position: 'absolute',
-      gridColumn: '1 / -1', // Tüm gridi kapsar, yüzdeler grid container'a göre hesaplanır
+      gridColumn: '1 / -1',
       gridRow: '1 / -1',
       top: `${(r_idx / R) * 100}%`,
       left: `${(c_idx / C) * 100}%`,
@@ -230,19 +216,13 @@ const clampedScale = Math.max(0.4, Math.min(3, trueScale));
       id={`slot-${slot.id}`}
       onClick={(e) => {
         e.stopPropagation();
-        
-        // 1. Eğer halihazırda bu slotun içeriği düzenleniyorsa, tıklamayı modüle bırak
         if (editingContent?.slotId === slot.id) return;
-
-        // 2. Başka bir şey düzenleniyorsa düzenleme modunu kapat
         if (editingContent) setEditingContent(null);
 
-        // 3. Çoklu seçim (Ctrl/Meta) desteğini geri getir
         clearBannerSelection();
         clearPizzaSelection();
         disableAllImageEditModes();
         
-        // useUIStore'dan gelen toggleSlotSelection'ı Ctrl desteğiyle çağır
         toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
       }}
       onDoubleClick={(e) => {
@@ -259,7 +239,7 @@ const clampedScale = Math.max(0.4, Math.min(3, trueScale));
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }} 
        onDragLeave={() => setIsOver(false)} 
        onDrop={handleDrop} 
-       className={`product-slot pointer-events-auto relative overflow-hidden border border-solid transition-all h-full w-full min-w-[50px] min-h-[50px] cursor-pointer ${ isSelected ? "z-50 outline outline-4 outline-blue-500 outline-offset-2 shadow-2xl" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300 z-10"}`}
+       className={`product-slot pointer-events-auto relative overflow-hidden border border-solid transition-all h-full w-full min-w-12.5 min-h-12.5 cursor-pointer ${ isSelected ? "z-50 outline-4 outline-blue-500 outline-offset-2 shadow-2xl" : isOver ? "border-blue-500 scale-[0.98] z-20" : "hover:border-blue-300 z-10"}`}
        style={{ 
          gridColumn: gridPosition ? `${gridPosition.colStart} / span ${slot.colSpan}` : `span ${slot.colSpan}`, 
          gridRow: gridPosition ? `${gridPosition.rowStart} / span ${slot.rowSpan}` : `span ${slot.rowSpan}`, 
@@ -272,12 +252,10 @@ const clampedScale = Math.max(0.4, Math.min(3, trueScale));
          ...freeSlotStyles
        }}
     >
-      {/* GLOBAL SIRA NUMARASI - HER ZAMAN GÖRÜNÜR */}
-      <div className="absolute top-0 left-0 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none z-[50]">{globalNumber}</div>
+      <div className="absolute top-0 left-0 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none z-50">{globalNumber}</div>
 
-      {/* SERBEST ALAN RENDERI */}
       {slot.role === 'free' && (
-        <div className="w-full h-full flex flex-col relative z-[20] overflow-hidden pointer-events-auto rounded-[inherit]">
+        <div className="w-full h-full flex flex-col relative z-20 overflow-hidden pointer-events-auto rounded-[inherit]">
           {!slot.moduleData ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-300 pointer-events-none">
               <span className="text-slate-400 font-bold text-[14px] uppercase tracking-widest flex flex-col items-center gap-2">
@@ -294,7 +272,6 @@ const clampedScale = Math.max(0.4, Math.min(3, trueScale));
         </div>
       )}
 
-      {/* NORMAL ÜRÜN RENDERI */}
       {slot.role !== 'free' && !slot.product && (
         <div className="w-full h-full flex items-center justify-center pointer-events-none">
            <span className="text-[10px] text-slate-200 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Boş Hücre</span>
@@ -302,24 +279,21 @@ const clampedScale = Math.max(0.4, Math.min(3, trueScale));
       )}
 
       {slot.product && (
-        <div 
-  className={`w-full h-full flex flex-col min-w-0 min-h-0 ${editingContent?.slotId === slot.id ? 'opacity-100' : (isSelected ? 'opacity-75' : '')}`}
-        >
-          {/* FİYAT ALANI */}
+        <div className={`w-full h-full flex flex-col min-w-0 min-h-0 ${editingContent?.slotId === slot.id ? 'opacity-100' : (isSelected ? 'opacity-75' : '')}`}>
           <div 
-            className={`absolute top-0 z-[30] flex shadow-sm transition-all px-1.5 py-1 pointer-events-auto outline-none ${
+            className={`absolute top-0 z-30 flex shadow-sm transition-all px-1.5 py-1 pointer-events-auto outline-none ${
               selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'price' ? 'ring-2 ring-blue-500 ring-offset-1 cursor-text' : 'cursor-pointer hover:ring-1 hover:ring-blue-300'
             } ${finalSettings.pricePosition === 'left' ? 'left-0' : finalSettings.pricePosition === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0'}`} 
-style={{
-  width: `${finalSettings.priceWidth}%`, // DİKKAT: Yüzdelik (%) genişlik çarpanla ÇARPILMAZ!
-  height: `${finalSettings.priceHeight * clampedScale}mm`, // Sabit birim (mm) çarpılır.
-  backgroundColor: hexToRgba(finalSettings.colors.priceBg?.c || "#e60000", finalSettings.colors.priceBg?.o ?? 100),
-  borderRadius: getRadiusStyle(finalSettings.radiuses.price),
-  borderStyle: 'solid',
-  borderWidth: `${(finalSettings.priceBorderWidth || 0) * clampedScale}px`, // Çerçeve kalınlığı da küçülüp/büyümeli
-  borderColor: hexToRgba(finalSettings.colors.priceBorder?.c || "#ffffff", finalSettings.colors.priceBorder?.o ?? 100),
-  ...getFontStyle({ ...finalSettings.fonts.price, fontSize: finalSettings.fonts.price.fontSize * clampedScale }) // Font boyutu çarpılır
-}}
+            style={{
+              width: `${finalSettings.priceWidth}%`,
+              height: `${finalSettings.priceHeight * clampedScale}mm`,
+              backgroundColor: hexToRgba(finalSettings.colors.priceBg?.c || "#e60000", finalSettings.colors.priceBg?.o ?? 100),
+              borderRadius: getRadiusStyle(finalSettings.radiuses.price),
+              borderStyle: 'solid',
+              borderWidth: `${(finalSettings.priceBorderWidth || 0) * clampedScale}px`,
+              borderColor: hexToRgba(finalSettings.colors.priceBorder?.c || "#ffffff", finalSettings.colors.priceBorder?.o ?? 100),
+              ...getFontStyle({ ...finalSettings.fonts.price, fontSize: finalSettings.fonts.price.fontSize * clampedScale })
+            }}
             onClick={(e) => {
               e.stopPropagation();
               toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
@@ -329,7 +303,7 @@ style={{
             <div className="flex items-start pointer-events-none"><span style={{ lineHeight: "0.8" }}>{splitPrice(slot.product.price).main},</span><span style={{ fontSize: `${finalSettings.fonts.price.decimalScale}%`, verticalAlign: "top", lineHeight: "1em", marginLeft: "2px" }}>{splitPrice(slot.product.price).decimal}</span></div>
           </div>
 
-          <div className="flex-1 flex items-center justify-center min-h-0 min-w-0 mb-2 mt-6 pointer-events-auto relative z-[10] overflow-hidden">
+          <div className="flex-1 flex items-center justify-center min-h-0 min-w-0 mb-2 mt-6 pointer-events-auto relative z-10 overflow-hidden">
             {slot.product.image ? (
               <img src={slot.product.image} onMouseDown={handleImgMouseDown} draggable={false} className="max-w-full max-h-full object-contain select-none" style={{ transform: `translate(${displayX}px, ${displayY}px) scale(${displayScale})`, cursor: isImgEditMode ? 'grab' : 'default' }} />
             ) : (
@@ -337,7 +311,7 @@ style={{
             )}
           </div>
           
-<div className="shrink-0 w-full flex pointer-events-auto relative z-[20]" style={{ height: "3em", ...getFontStyle({ ...finalSettings.fonts.productName, fontSize: finalSettings.fonts.productName.fontSize * clampedScale }) }}>
+          <div className="shrink-0 w-full flex pointer-events-auto relative z-20" style={{ height: "3em", ...getFontStyle({ ...finalSettings.fonts.productName, fontSize: finalSettings.fonts.productName.fontSize * clampedScale }) }}>
             <div 
               className={`line-clamp-2 w-full outline-none transition-all ${
                 selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'name' ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-blue-300'

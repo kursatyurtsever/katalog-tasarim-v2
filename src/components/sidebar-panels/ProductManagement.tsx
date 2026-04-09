@@ -144,9 +144,16 @@ export function ProductManagement() {
 
   const activeSkus = useMemo(() => {
     const skus = new Set<string>();
-    pages.forEach(p => p.slots.forEach(s => { if (s.product?.sku) skus.add(s.product.sku); }));
+    // Sadece aktif olan 'pages' üzerinde değil, tüm 'formas' üzerinde geziyoruz
+    formas.forEach(f => {
+      f.pages.forEach(p => {
+        p.slots.forEach(s => { 
+          if (s.product?.sku) skus.add(s.product.sku); 
+        });
+      });
+    });
     return skus;
-  }, [pages]);
+  }, [formas]);
 
   const filteredMaster = useMemo(() => masterProductPool.filter(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku?.toLowerCase().includes(searchTerm.toLowerCase())), [masterProductPool, searchTerm]);
 

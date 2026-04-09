@@ -15,77 +15,161 @@ export function DownloadMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  const activeTab = useCatalogStore((state) => state.activeTab);
-  const setActiveTab = useCatalogStore((state) => state.setActiveTab);
+  const { setActiveFormaId } = useCatalogStore();
   const clearSelection = useUIStore((state) => state.clearSelection);
   const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
 
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const captureCurrentView = async (format: "jpeg" | "png") => {
-    const pages = Array.from(document.querySelectorAll('.physical-page')) as HTMLElement[];
-    if (pages.length === 0) return null;
+    const canvasEl = document.getElementById("canvas");
+    if (!canvasEl) return null;
 
-    const options = { quality: 1.0, pixelRatio: 2, backgroundColor: "#ffffff", filter: (node: HTMLElement) => { if (node?.hasAttribute && node.hasAttribute('data-hide-on-export')) return false; return true; } };
+    // html-to-image kütüphanesinin çökmesini engellemek için Canvas'ı anlık olarak
+    // geçiş efektlerinden (transition) ve ölçeklendirmeden arındırıyoruz.
+    const originalTransform = canvasEl.style.transform;
+    const originalTransition = canvasEl.style.transition;
+    const originalOutline = canvasEl.style.outline;
 
-    const pageImages = [];
-    for (const page of pages) {
-      const dataUrl = format === "jpeg" ? await toJpeg(page, options) : await toPng(page, options);
-      pageImages.push({ dataUrl, width: page.offsetWidth, height: page.offsetHeight });
+    try {
+      // Çekim sırasında Canvas'ı tam orijinal boyutuna al ve çizgileri kaldır
+      canvasEl.style.transition = "none";
+      canvasEl.style.outline = "none";
+      
+      // UI "Ekrana Sığdır" veya "Orijinal" modunda olmasına bağlı olarak doğru transformu uygula
+      if (useUIStore.getState().isZoomed) {
+        canvasEl.style.transform = "scale(1)";
+      } else {
+        canvasEl.style.transform = "translate(-50%, -50%) scale(1)";
+      }
+
+      // Tarayıcının DOM'u (yeniden boyutlanmış haliyle) çizmesi için 150ms bekle
+      await delay(150);
+
+      const options = {
+        quality: 1.0,
+        pixelRatio: 2, // Yüksek kalite için
+        backgroundColor: "#ffffff",
+        cacheBust: true,
+        imagePlaceholder: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", // Hatalı resimleri pas geçmek için
+        filter: (node: HTMLElement) => {
+          // Çıktıda görünmemesi gereken UI çizgilerini gizle
+          if (node?.hasAttribute && node.hasAttribute("data-hide-on-export")) return false;
+          return true;
+        }
+      };
+
+      // html-to-image (Tailwind v4 oklab desteği için zorunlu)
+      const dataUrl = format === "jpeg" 
+        ? await toJpeg(canvasEl, options) 
+        : await toPng(canvasEl, options);
+
+      // Gerçek MM ölçülerini Store'dan hesapla
+      const catalogStore = useCatalogStore.getState();
+      const template = catalogStore.activeTemplate;
+      const activeForma = catalogStore.formas.find(f => f.id === catalogStore.activeFormaId);
+
+      let totalWidthMm = 210;
+      if (activeForma) {
+         totalWidthMm = activeForma.pages.reduce((sum, p) => {
+           const pConf = template.pages.find(tp => tp.pageNumber === p.pageNumber);
+           return sum + (pConf ? pConf.widthMm : 210);
+         }, 0) + (template.bleedMm * 2);
+      }
+      const heightMm = template.openHeightMm + (template.bleedMm * 2);
+
+      return { dataUrl, widthMm: totalWidthMm, heightMm };
+    } catch (err) {
+      console.error("Capture Error Detailed:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      throw err;
+    } finally {
+      // Çekim biter bitmez kullanıcı arayüzünü (UI) eski haline geri döndür
+      canvasEl.style.transform = originalTransform;
+      canvasEl.style.transition = originalTransition;
+      canvasEl.style.outline = originalOutline;
     }
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-
-    const scale = 2; 
-    const totalWidth = pageImages.reduce((sum, img) => sum + (img.width * scale), 0);
-    const maxHeight = Math.max(...pageImages.map(img => img.height * scale));
-
-    canvas.width = totalWidth; canvas.height = maxHeight;
-    let currentX = 0;
-    for (const img of pageImages) {
-      const imageEl = new Image();
-      imageEl.src = img.dataUrl;
-      await new Promise((resolve) => { imageEl.onload = resolve; });
-      ctx.drawImage(imageEl, currentX, 0, img.width * scale, img.height * scale);
-      currentX += img.width * scale;
-    }
-
-    return { dataUrl: canvas.toDataURL(`image/${format}`, 1.0), widthMm: (totalWidth / scale) * 0.264583, heightMm: (maxHeight / scale) * 0.264583 };
   };
 
   const handleExport = async (format: "pdf" | "jpeg" | "png") => {
-    setIsOpen(false); setIsExporting(true);
-    clearSelection(); if (clearBannerSelection) clearBannerSelection();
-    await delay(300); 
+    setIsOpen(false); 
+    setIsExporting(true);
+    
+    // Mavi seçim çerçevelerinin çıktıda görünmemesi için seçimleri temizle
+    clearSelection(); 
+    if (clearBannerSelection) clearBannerSelection();
 
-    const originalTab = activeTab;
+    const uiStore = useUIStore.getState();
+    const catalogStore = useCatalogStore.getState();
+
+    const originalFormaId = catalogStore.activeFormaId;
+    const wasZoomed = uiStore.isZoomed;
+
     try {
-      setActiveTab("outer"); await delay(1000); 
-      const outerData = await captureCurrentView(format === "png" ? "png" : "jpeg");
-      setActiveTab("inner"); await delay(1000);
-      const innerData = await captureCurrentView(format === "png" ? "png" : "jpeg");
-      setActiveTab(originalTab);
+      // Çıktının yüksek kalitede olabilmesi için container'ın scroll edilebilir orijinal formata geçmesi gerek
+      if (!wasZoomed) {
+        uiStore.toggleZoom();
+        await delay(800); // UI animasyonunun bitmesini bekle
+      }
 
-      if (!outerData || !innerData) throw new Error("Sayfalar yakalanamadı.");
+      const capturedData = [];
+      const formasToExport = catalogStore.formas;
 
+      // Her bir formayı sırayla DOM'a yükle, bekle ve resmini çek
+      for (const forma of formasToExport) {
+        setActiveFormaId(forma.id);
+        await delay(1500); // Sayfa içeriğinin ve resimlerin DOM'a tam yerleşmesini bekle
+
+        const data = await captureCurrentView(format === "png" ? "png" : "jpeg");
+        if (!data) throw new Error(`${forma.name} yakalanamadı.`);
+
+        capturedData.push({ 
+          ...data, 
+          formaName: forma.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() 
+        });
+      }
+
+      if (capturedData.length === 0) throw new Error("İndirilecek sayfa bulunamadı.");
+
+      // Dosyaları oluştur ve İndir
       if (format === "pdf") {
-        const pdf = new jsPDF({ orientation: outerData.widthMm > outerData.heightMm ? "landscape" : "portrait", unit: "mm", format: [outerData.widthMm, outerData.heightMm] });
-        pdf.addImage(outerData.dataUrl, "JPEG", 0, 0, outerData.widthMm, outerData.heightMm);
-        pdf.addPage([innerData.widthMm, innerData.heightMm], innerData.widthMm > innerData.heightMm ? "landscape" : "portrait");
-        pdf.addImage(innerData.dataUrl, "JPEG", 0, 0, innerData.widthMm, innerData.heightMm);
+        const first = capturedData[0];
+        const pdf = new jsPDF({ 
+          orientation: first.widthMm > first.heightMm ? "landscape" : "portrait", 
+          unit: "mm", 
+          format: [first.widthMm, first.heightMm] 
+        });
+
+        pdf.addImage(first.dataUrl, "JPEG", 0, 0, first.widthMm, first.heightMm);
+
+        for (let i = 1; i < capturedData.length; i++) {
+          const current = capturedData[i];
+          pdf.addPage(
+            [current.widthMm, current.heightMm], 
+            current.widthMm > current.heightMm ? "landscape" : "portrait"
+          );
+          pdf.addImage(current.dataUrl, "JPEG", 0, 0, current.widthMm, current.heightMm);
+        }
+        
         pdf.save(`Katalog-Projesi-${Date.now()}.pdf`);
       } else {
-        const link = document.createElement("a");
-        link.download = `Katalog-Dis-${Date.now()}.${format}`; link.href = outerData.dataUrl; link.click();
-        await delay(500);
-        const link2 = document.createElement("a");
-        link2.download = `Katalog-Ic-${Date.now()}.${format}`; link2.href = innerData.dataUrl; link2.click();
+        // Resim formatı ise her formayı ayrı bir dosya olarak indir
+        for (let i = 0; i < capturedData.length; i++) {
+          const link = document.createElement("a");
+          link.download = `Katalog-${capturedData[i].formaName}-${Date.now()}.${format}`; 
+          link.href = capturedData[i].dataUrl; 
+          link.click();
+          await delay(500); // Tarayıcı çoklu indirmeyi bloklamasın diye yarım saniye es ver
+        }
       }
     } catch (error) {
-      console.error("Export Error:", error); alert("İndirme işlemi sırasında bir hata oluştu.");
+      console.error("Export Error:", error); 
+      alert("İndirme işlemi sırasında bir hata oluştu. Detaylar için konsola bakabilirsiniz.");
     } finally {
+      // Çıktı işlemi bitince kullanıcının ekranını ilk haline (aktif forma ve zoom durumuna) geri getir
+      setActiveFormaId(originalFormaId);
+      if (!wasZoomed && useUIStore.getState().isZoomed) {
+        useUIStore.getState().toggleZoom();
+      }
       setIsExporting(false);
     }
   };
