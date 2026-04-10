@@ -26,12 +26,12 @@ export const Template1: BrochureTemplate = {
   openHeightMm: 297, // INDESIGN'DAN ALINDI
   bleedMm: 2, // INDESIGN'DAN ALINDI (Taşma payı)
   pages: [
-    { pageNumber: 5, widthMm: 207, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 6, widthMm: 210, safeZone: [10, 5, 10, 5] },
-    { pageNumber: 1, widthMm: 210, safeZone: [10, 10, 10, 5] },
-    { pageNumber: 2, widthMm: 210, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 3, widthMm: 210, safeZone: [10, 5, 10, 5] },
-    { pageNumber: 4, widthMm: 207, safeZone: [10, 10, 10, 5] },
+    { pageNumber: 5, widthMm: 207, safeZone: [5, 5, 5, 5] },
+    { pageNumber: 6, widthMm: 210, safeZone: [5, 5, 5, 5] },
+    { pageNumber: 1, widthMm: 210, safeZone: [5, 5, 5, 5] },
+    { pageNumber: 2, widthMm: 210, safeZone: [5, 5, 5, 5] },
+    { pageNumber: 3, widthMm: 210, safeZone: [5, 5, 5, 5] },
+    { pageNumber: 4, widthMm: 207, safeZone: [5, 5, 5, 5] },
   ],
 };
 
@@ -45,10 +45,10 @@ export const Template2: BrochureTemplate = {
   openHeightMm: 297,
   bleedMm: 2,
   pages: [
-    { pageNumber: 4, widthMm: 210, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 1, widthMm: 210, safeZone: [10, 10, 10, 5] },
-    { pageNumber: 2, widthMm: 210, safeZone: [10, 5, 10, 10] },
-    { pageNumber: 3, widthMm: 210, safeZone: [10, 10, 10, 5] },
+    { pageNumber: 4, widthMm: 210, safeZone: [5, 5, 5, 5] },
+    { pageNumber: 1, widthMm: 210, safeZone: [5, 5, 5, 5] },
+    { pageNumber: 2, widthMm: 210, safeZone: [5, 5, 5, 5] },
+    { pageNumber: 3, widthMm: 210, safeZone: [5, 5, 5, 5] },
   ],
 };
 

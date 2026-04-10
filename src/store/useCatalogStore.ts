@@ -1,4 +1,3 @@
-
 "use client";
 
 import { create } from "zustand";
@@ -25,6 +24,24 @@ export const defaultTypography: TypographyData = { fontFamily: "Inter", fontWeig
 export const defaultRadius: BorderRadiusData = { tl: 8, tr: 8, bl: 8, br: 8, linked: true };
 export const defaultSpacing: SpacingData = { t: 8, r: 8, b: 8, l: 8, linked: true };
 export const defaultShadow: ShadowData = { x: 0, y: 4, blur: 6, spread: -1, color: "#000000", opacity: 10, active: false };
+
+export interface FooterCell {
+  id: string;
+  colSpan: number;
+  text: string;
+  image: string | null;
+  hidden: boolean;
+  mergedInto: string | null;
+  font: TypographyData;
+  padding: SpacingData;
+  bgColor: { c: string; o: number };
+  border: { t: number; r: number; b: number; l: number; linked: boolean; color: { c: string; o: number }; style: string };
+}
+
+export interface FooterSettings {
+  heightMm: number;
+  cells: FooterCell[];
+}
 
 export interface ProductInfo {
   id?: string;
@@ -85,6 +102,7 @@ export interface CatalogSettings {
   shadows: {
     cell: ShadowData;
   };
+  footer: FooterSettings;
 }
 
 export interface Slot {
@@ -115,6 +133,8 @@ export interface CatalogPage {
   footerText: string;
   footerLogo: string | null;
   headerData?: { logoUrl: string; title: string; date: string; no: string };
+  footerMode: 'global' | 'custom' | 'hidden';
+  customFooter: FooterSettings | null;
   gridSettings?: { rows: number; cols: number }; // EKLENDİ (Sayfaya özel ezilebilir grid)
 }
 
@@ -145,6 +165,12 @@ export interface CatalogActions {
   updateGlobalSettings: (settings: any) => void;
   updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;
   updatePageHeader: (pageNumber: number, data: Partial<{ logoUrl: string; title: string; date: string; no: string }>) => void;
+  updatePageFooterCells: (pageNumber: number, cellId: string, updates: Partial<FooterCell>) => void;
+  setPageFooterMode: (pageNumber: number, mode: 'global' | 'custom' | 'hidden') => void;
+  updateFooterSettings: (scope: number | 'global', updates: Partial<FooterSettings>) => void;
+  updateFooterCellStore: (scope: number | 'global', cellId: string, updates: Partial<FooterCell>) => void;
+  mergeFooterCellsStore: (scope: number | 'global', selectedIds: string[]) => { success: boolean; error?: string };
+  unmergeFooterCellStore: (scope: number | 'global', cellId: string) => void;
   swapSlotContents: (sourcePageNumber: number, sourceIndex: number, targetPageNumber: number, targetIndex: number) => void;
   setProductPool: (products: ProductInfo[]) => void;
   setMasterProductPool: (products: ProductInfo[]) => void;
@@ -180,6 +206,14 @@ export interface CatalogActions {
   updateSelectedSlotsImageSettings: (settings: any) => void;
   updateSlotModuleData: (pageNumber: number, slotId: string, updates: any) => void;
 }
+
+export const defaultFooterCells = (): FooterCell[] => [
+  { id: 'fc-1', colSpan: 1, text: '', image: null, hidden: false, mergedInto: null, font: { ...defaultTypography }, padding: { ...defaultSpacing, t: 2, b: 2, l: 2, r: 2 }, bgColor: { c: "#ffffff", o: 0 }, border: { t: 0, r: 0, b: 0, l: 0, linked: true, color: { c: "#e2e8f0", o: 100 }, style: "solid" } },
+  { id: 'fc-2', colSpan: 4, text: 'Sayfa altı notu...', image: null, hidden: false, mergedInto: null, font: { ...defaultTypography, textAlign: 'right' }, padding: { ...defaultSpacing, t: 2, b: 2, l: 2, r: 2 }, bgColor: { c: "#ffffff", o: 0 }, border: { t: 0, r: 0, b: 0, l: 0, linked: true, color: { c: "#e2e8f0", o: 100 }, style: "solid" } },
+  { id: 'fc-3', colSpan: 1, text: '', image: null, hidden: true, mergedInto: 'fc-2', font: { ...defaultTypography }, padding: { ...defaultSpacing }, bgColor: { c: "#ffffff", o: 0 }, border: { t: 0, r: 0, b: 0, l: 0, linked: true, color: { c: "#e2e8f0", o: 100 }, style: "solid" } },
+  { id: 'fc-4', colSpan: 1, text: '', image: null, hidden: true, mergedInto: 'fc-2', font: { ...defaultTypography }, padding: { ...defaultSpacing }, bgColor: { c: "#ffffff", o: 0 }, border: { t: 0, r: 0, b: 0, l: 0, linked: true, color: { c: "#e2e8f0", o: 100 }, style: "solid" } },
+  { id: 'fc-5', colSpan: 1, text: '', image: null, hidden: true, mergedInto: 'fc-2', font: { ...defaultTypography }, padding: { ...defaultSpacing }, bgColor: { c: "#ffffff", o: 0 }, border: { t: 0, r: 0, b: 0, l: 0, linked: true, color: { c: "#e2e8f0", o: 100 }, style: "solid" } }
+];
 
 const initialGlobalSettings: CatalogSettings = {
   defaultGrid: { rows: 4, cols: 4 },
@@ -256,6 +290,7 @@ const initialGlobalSettings: CatalogSettings = {
   shadows: {
     cell: { ...defaultShadow, active: false }
   },
+  footer: { heightMm: 15, cells: defaultFooterCells() },
 };
 
 function createPageSlots(pageNumber: number, count: number): Slot[] {
@@ -272,6 +307,8 @@ function buildPagesForTemplate(template: BrochureTemplate): CatalogPage[] {
     slots: createPageSlots(p.pageNumber, 16),
     footerText: "Sayfa altı notu...",
     footerLogo: null,
+    footerMode: 'global',
+    customFooter: null,
   }));
 }
 
@@ -495,6 +532,159 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
             headerData: { ...(p.headerData || { logoUrl: "", title: "SELBSTABHOLER - ANGEBOT", date: "", no: "41" }), ...data } 
           } : p);
           setActivePages(newPages as any);
+      },
+
+      updatePageFooterCells: (pageNumber, cellId, updates) => {
+        const { getActivePages, setActivePages, globalSettings } = get();
+        const currentPages = getActivePages();
+        
+        const newPages = currentPages.map(page => {
+          if (page.pageNumber !== pageNumber) return page;
+
+          // Eğer sayfa global footer kullanıyorsa ve kullanıcı sayfadaki bir hücreye tıkayıp yazı yazıyorsa,
+          // bu sayfayı otomatik olarak 'custom' moda alıp global verileri kopyalamalıyız.
+          let newCustomFooter = page.customFooter;
+          let newFooterMode = page.footerMode;
+
+          if (page.footerMode === 'global') {
+            newFooterMode = 'custom';
+            newCustomFooter = JSON.parse(JSON.stringify(globalSettings.footer));
+          }
+
+          if (newCustomFooter && newCustomFooter.cells) {
+            newCustomFooter.cells = newCustomFooter.cells.map(c => 
+              c.id === cellId ? { ...c, ...updates } : c
+            );
+          }
+
+          return {
+            ...page,
+            footerMode: newFooterMode,
+            customFooter: newCustomFooter
+          };
+        });
+        
+        setActivePages(newPages as any);
+      },
+
+      setPageFooterMode: (pageNumber, mode) => {
+        const { getActivePages, setActivePages, globalSettings } = get();
+        const currentPages = getActivePages();
+        const newPages = currentPages.map(p => {
+          if (p.pageNumber !== pageNumber) return p;
+          let customFooter = p.customFooter;
+          if (mode === 'custom' && !customFooter) {
+            customFooter = JSON.parse(JSON.stringify(globalSettings.footer));
+          }
+          return { ...p, footerMode: mode, customFooter: mode === 'custom' ? customFooter : null };
+        });
+        setActivePages(newPages as any);
+      },
+      
+      updateFooterSettings: (scope, updates) => {
+        if (scope === 'global') {
+          const { globalSettings } = get();
+          set({ globalSettings: { ...globalSettings, footer: { ...globalSettings.footer, ...updates } } });
+        } else {
+          const { getActivePages, setActivePages } = get();
+          const currentPages = getActivePages();
+          const newPages = currentPages.map(p => 
+            p.pageNumber === scope && p.customFooter 
+              ? { ...p, customFooter: { ...p.customFooter, ...updates } } 
+              : p
+          );
+          setActivePages(newPages as any);
+        }
+      },
+
+      updateFooterCellStore: (scope, cellId, updates) => {
+        if (scope === 'global') {
+          const { globalSettings } = get();
+          const newCells = globalSettings.footer.cells.map(c => c.id === cellId ? { ...c, ...updates } : c);
+          set({ globalSettings: { ...globalSettings, footer: { ...globalSettings.footer, cells: newCells } } });
+        } else {
+          const { getActivePages, setActivePages } = get();
+          const currentPages = getActivePages();
+          const newPages = currentPages.map(p => {
+            if (p.pageNumber === scope && p.customFooter) {
+              const newCells = p.customFooter.cells.map(c => c.id === cellId ? { ...c, ...updates } : c);
+              return { ...p, customFooter: { ...p.customFooter, cells: newCells } };
+            }
+            return p;
+          });
+          setActivePages(newPages as any);
+        }
+      },
+
+      mergeFooterCellsStore: (scope, selectedIds) => {
+        if (selectedIds.length < 2) return { success: false, error: "En az 2 hücre seçmelisiniz." };
+        
+        let cells: FooterCell[] = [];
+        if (scope === 'global') {
+          cells = get().globalSettings.footer.cells;
+        } else {
+          const p = get().getActivePages().find(p => p.pageNumber === scope);
+          if (!p || !p.customFooter) return { success: false, error: "Custom footer bulunamadı." };
+          cells = p.customFooter.cells;
+        }
+
+        const visibleCells = cells.filter(c => !c.hidden);
+        const selectedVisible = visibleCells.filter(c => selectedIds.includes(c.id));
+        if (selectedVisible.length !== selectedIds.length) return { success: false, error: "Geçersiz seçim." };
+
+        const sortedSelected = selectedIds.slice().sort((a, b) => cells.findIndex(c => c.id === a) - cells.findIndex(c => c.id === b));
+        const survivorId = sortedSelected[0];
+        const survivorIdx = cells.findIndex(c => c.id === survivorId);
+        
+        let totalColSpan = 0;
+        selectedVisible.forEach(c => totalColSpan += c.colSpan);
+
+        const newCells = JSON.parse(JSON.stringify(cells));
+        newCells[survivorIdx].colSpan = totalColSpan;
+
+        sortedSelected.slice(1).forEach(id => {
+          const idx = newCells.findIndex((c: any) => c.id === id);
+          newCells[idx].hidden = true;
+          newCells[idx].mergedInto = survivorId;
+          newCells[idx].text = "";
+          newCells[idx].image = null;
+        });
+
+        if (scope === 'global') {
+          get().updateFooterSettings('global', { cells: newCells });
+        } else {
+          get().updateFooterSettings(scope, { cells: newCells });
+        }
+        return { success: true };
+      },
+
+      unmergeFooterCellStore: (scope, cellId) => {
+        let cells: FooterCell[] = [];
+        if (scope === 'global') {
+          cells = get().globalSettings.footer.cells;
+        } else {
+          const p = get().getActivePages().find(p => p.pageNumber === scope);
+          if (!p || !p.customFooter) return;
+          cells = p.customFooter.cells;
+        }
+
+        const newCells = JSON.parse(JSON.stringify(cells));
+        const survivorIdx = newCells.findIndex((c: any) => c.id === cellId);
+        if (survivorIdx === -1) return;
+
+        newCells[survivorIdx].colSpan = 1;
+        newCells.forEach((c: any, i: number) => {
+          if (c.mergedInto === cellId) {
+            newCells[i].hidden = false;
+            newCells[i].mergedInto = null;
+          }
+        });
+
+        if (scope === 'global') {
+          get().updateFooterSettings('global', { cells: newCells });
+        } else {
+          get().updateFooterSettings(scope, { cells: newCells });
+        }
       },
       
       setProductPool: (products) => set({ productPool: products }),
@@ -1106,6 +1296,10 @@ merge: (persisted, current) => {
         if (!mergedGlobal.defaultGrid) {
           mergedGlobal.defaultGrid = { rows: 4, cols: 4 };
         }
+        
+        if (!mergedGlobal.footer) {
+          mergedGlobal.footer = initialGlobalSettings.footer;
+        }
 
         // BURAYI DEĞİŞTİRİYORUZ: Global ayarlardaki resim ölçeklerini zorla %100 yapıyoruz
         const normalizedGlobalSettings: CatalogSettings = {
@@ -1152,7 +1346,25 @@ function normalizeForma(forma: Forma): Forma {
   }
 
 function normalizeCatalogPage(page: CatalogPage): CatalogPage {
-return {
-    ...page,
-};
+  let footerMode = page.footerMode;
+  let customFooter = page.customFooter;
+
+  if (!footerMode && (page.footerText || page.footerLogo)) {
+    footerMode = 'custom';
+    customFooter = { heightMm: 18, cells: defaultFooterCells() };
+    if (page.footerLogo) {
+      customFooter.cells[0].image = page.footerLogo;
+    }
+    if (page.footerText) {
+      customFooter.cells[1].text = page.footerText;
+    }
+    page.footerText = "";
+    page.footerLogo = null;
+  }
+
+  return {
+      ...page,
+      footerMode: footerMode || 'global',
+      customFooter: customFooter || null,
+  };
 }

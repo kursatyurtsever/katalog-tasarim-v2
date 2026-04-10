@@ -10,6 +10,7 @@ import { TemplateSettingsPanel } from "./sidebar-panels/TemplateSettingsPanel";
 import { BackgroundSettingsPanel } from "./sidebar-panels/BackgroundSettingsPanel";
 import { ModuleRegistry } from "@/lib/moduleRegistry";
 import { GlobalGridSettings } from "./sidebar-panels/GlobalGridSettings";
+import { FooterSettingsPanel } from "./sidebar-panels/FooterSettingsPanel";
 import { useUIStore } from "@/store/useUIStore";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { DownloadMenu } from "./DownloadMenu";
@@ -89,6 +90,7 @@ export function Sidebar() {
           <Accordion className="w-full space-y-2">
             <AccordionItem value="cell" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex justify-between w-full"><div className="flex gap-2"><PaintBucket size={16} weight="bold" className="text-(--text-muted)"/> Hücre Görünümü</div></AccordionTrigger><AccordionContent><GlobalCellSettings /></AccordionContent></AccordionItem>
             <AccordionItem value="price" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex justify-between w-full"><div className="flex gap-2"><Tag size={16} weight="bold" className="text-(--text-muted)"/> Fiyat Kutusu</div></AccordionTrigger><AccordionContent><GlobalPriceSettings /></AccordionContent></AccordionItem>
+            <AccordionItem value="footer" className="border border-(--border-color) bg-(--bg-panel) rounded-md px-2 shadow-sm"><AccordionTrigger className="py-2.5 text-[12px] font-semibold hover:no-underline flex justify-between w-full"><div className="flex gap-2"><Layout size={16} weight="bold" className="text-(--text-muted)"/> Sayfa Altı (Footer)</div></AccordionTrigger><AccordionContent><FooterSettingsPanel /></AccordionContent></AccordionItem>
           </Accordion>
 
           <h3 className="section-title mt-6 mb-3">Sürüklenebilir Modüller</h3>
@@ -111,7 +113,7 @@ export function Sidebar() {
         </TabsContent>
 
         <TabsContent value="selection" className="flex-1 overflow-y-auto p-4 bg-(--bg-subpanel) pb-20 data-[state=active]:block m-0 border-none outline-none">
-          {!selectedSlot && !editingContent ? (
+          {!selectedSlot && !editingContent && selection.type !== 'footerCell' ? (
             <div className="bg-(--primary-light) border border-primary rounded-xl p-6 text-center mt-4 shadow-inner flex flex-col items-center gap-3">
               <Target size={40} weight="duotone" className="text-primary" />
               <strong className="text-[13px] text-primary">Hiçbir öğe seçili değil</strong>
@@ -119,6 +121,15 @@ export function Sidebar() {
             </div>
           ) : (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+              {selection.type === 'footerCell' && (
+                <>
+                  <div className="bg-(--primary-light) border border-primary p-3 rounded-lg flex items-center gap-2 shadow-sm">
+                    <Layout size={20} weight="fill" className="text-primary" />
+                    <span className="text-[11px] font-bold text-primary tracking-wider">Footer Hücresi Seçili</span>
+                  </div>
+                  <FooterSettingsPanel />
+                </>
+              )}
               {selectedSlot?.role === 'product' && (
                 <>
                   <div className="bg-(--primary-light) border border-primary p-3 rounded-lg flex items-center gap-2 shadow-sm">

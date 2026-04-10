@@ -87,7 +87,7 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
                 toggleElementSelection('bannerCell', cell.id, false, slotId);
               }
             }}
-            className={`flex box-border relative overflow-hidden cursor-pointer transition-all ${isSelected && !isEditing ? 'ring-2 ring-inset ring-blue-500 z-10' : 'z-0'}`}
+            className={`flex box-border relative overflow-hidden transition-all ${isSelected && !isEditing ? 'ring-2 ring-inset ring-blue-500 z-10 cursor-pointer' : isEditing ? 'cursor-text z-20' : 'cursor-pointer z-0'}`}
             style={{
               gridColumn: `span ${cell.colSpan}`,
               gridRow: `span ${cell.rowSpan}`,
@@ -105,31 +105,45 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
           >
             {cell.image ? (
               <img src={cell.image} alt="Banner" className="max-w-full max-h-full object-contain pointer-events-none" />
-            ) : isEditing ? (
-              <textarea
-                autoFocus
-                value={cell.text}
-                onChange={(e) => updateBannerCell(cell.id, { text: e.target.value })}
-                onBlur={() => setEditingCellId(null)}
+            ) : (
+              <div
+                contentEditable={isEditing}
+                suppressContentEditableWarning
+                ref={(el) => {
+                  if (isEditing && el && document.activeElement !== el) {
+                    el.focus();
+                    if (typeof window !== 'undefined' && window.getSelection) {
+                      const selection = window.getSelection();
+                      const range = document.createRange();
+                      range.selectNodeContents(el);
+                      range.collapse(false);
+                      selection?.removeAllRanges();
+                      selection?.addRange(range);
+                    }
+                  }
+                }}
+                onBlur={(e) => {
+                  setEditingCellId(null);
+                  if (e.currentTarget.innerHTML !== cell.text) {
+                    updateBannerCell(cell.id, { text: e.currentTarget.innerHTML });
+                  }
+                }}
                 onKeyDown={(e) => { if (e.key === "Escape") setEditingCellId(null); }}
-                className="w-full h-full bg-transparent outline-none resize-none m-0 p-0 border-none"
+                className={`w-full outline-none border-none m-0 p-0 ${isEditing ? 'pointer-events-auto' : 'pointer-events-none'}`}
                 style={{
-                  fontFamily: font.fontFamily, fontSize: `${font.fontSize}px`, fontWeight: font.fontWeight, lineHeight: font.lineHeight, letterSpacing: `${font.letterSpacing}px`, textTransform: font.textTransform as any, textDecoration: font.textDecoration,
+                  fontFamily: font.fontFamily, 
+                  fontSize: `${font.fontSize}px`, 
+                  fontWeight: font.fontWeight, 
+                  lineHeight: font.lineHeight, 
+                  letterSpacing: `${font.letterSpacing}px`, 
+                  textTransform: font.textTransform as any, 
+                  textDecoration: font.textDecoration,
                   color: font.opacity < 100 ? hexToRgba(font.color, font.opacity) : font.color,
                   textAlign: font.textAlign as any,
+                  whiteSpace: "pre-wrap"
                 }}
+                dangerouslySetInnerHTML={{ __html: cell.text || '' }}
               />
-            ) : (
-              <span
-                className="pointer-events-none"
-                style={{
-                  fontFamily: font.fontFamily, fontSize: `${font.fontSize}px`, fontWeight: font.fontWeight, lineHeight: font.lineHeight, letterSpacing: `${font.letterSpacing}px`, textTransform: font.textTransform as any, textDecoration: font.textDecoration,
-                  color: font.opacity < 100 ? hexToRgba(font.color, font.opacity) : font.color,
-                  whiteSpace: "pre-wrap", textAlign: font.textAlign as any, width: "100%"
-                }}
-              >
-                {cell.text}
-              </span>
             )}
           </div>
         );

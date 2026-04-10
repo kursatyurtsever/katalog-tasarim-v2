@@ -1,7 +1,6 @@
-
 import { create } from "zustand";
 
-export type SelectionType = 'none' | 'slot' | 'layer' | 'bannerCell' | 'textElement';
+export type SelectionType = 'none' | 'slot' | 'layer' | 'bannerCell' | 'textElement' | 'footerCell';
 
 export interface SelectionState {
   type: SelectionType;
@@ -77,8 +76,7 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
       selectedPageNumber: null,
       selectedTextElement: newSelection.type === 'textElement' ? { slotId: newSelection.parentId || '', elementType: newSelection.textElementType || 'name' } : null,
       sidebarState: {
-        ...state.sidebarState,
-        activePanel: newSelection.type !== 'none' && newSelection.ids.length > 0 ? "selection" : state.sidebarState.activePanel
+        ...state.sidebarState
       }
     };
   }),
@@ -114,8 +112,7 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
       selectedPageNumber: null,
       selectedTextElement: null,
       sidebarState: {
-        ...state.sidebarState,
-        activePanel: newSelectionIds.length > 0 ? "selection" : state.sidebarState.activePanel
+        ...state.sidebarState
       }
     };
   }),

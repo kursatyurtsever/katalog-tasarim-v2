@@ -1,4 +1,3 @@
-
 import { create } from "zustand";
 import { useCatalogStore } from "./useCatalogStore";
 import type { CatalogPage } from "./useCatalogStore";

@@ -4,10 +4,12 @@ import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
 import {
   Image as ImageIcon,
-  Square, Cube, Copy, ClipboardText, Eraser, SlidersHorizontal,
+  Square, Cube, Copy, ClipboardText, Eraser,
   MagicWand, Intersect, Stack as Layers,
   TextT, TextAlignLeft, TextAlignCenter, TextAlignRight,
-  ArrowsOut
+  ArrowsOut,
+  SplitHorizontal,
+  TextB, TextItalic, TextUnderline, PaintBrush // DÜZELTİLDİ: TextBolder yerine TextB
 } from "@phosphor-icons/react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ColorOpacityPicker } from "./ColorOpacityPicker";
@@ -16,8 +18,8 @@ import { ShadowPicker } from "./ShadowPicker";
 import { useLayerStore } from "@/store/useLayerStore";
 import { v4 as uuidv4 } from "uuid";
 import { Layer } from "@/types/document";
+import { TypographyPicker } from "./TypographyPicker";
 
-// SHADCN UI
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -44,6 +46,7 @@ interface IconButtonProps {
   icon: React.ElementType;
   label: string;
   onClick?: (e: React.MouseEvent) => void;
+  onMouseDown?: (e: React.MouseEvent) => void;
   disabled?: boolean;
   danger?: boolean;
   isActive?: boolean;
@@ -54,7 +57,7 @@ interface IconButtonProps {
 }
 
 const IconButton = ({
-  icon: Icon, label, onClick, disabled = false, danger = false, isActive = false,
+  icon: Icon, label, onClick, onMouseDown, disabled = false, danger = false, isActive = false,
   popoverId, activePopover, onTogglePopover, popoverContent
 }: IconButtonProps) => {
   
@@ -85,6 +88,7 @@ const IconButton = ({
   return (
     <button
       onClick={onClick}
+      onMouseDown={onMouseDown}
       disabled={disabled}
       className={buttonClass}
       title={label}
@@ -94,24 +98,225 @@ const IconButton = ({
   );
 };
 
+const FooterImageUploadButton = ({ refCell, scope, updateFooterCellStore }: { refCell: any, scope: string|number, updateFooterCellStore: Function }) => {
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!refCell || !e.target.files?.[0]) return;
+        setIsUploading(true);
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("filename", `footer-logo-${Date.now()}.${file.name.split('.').pop()}`);
+    
+        try {
+          const res = await fetch("/api/upload", { method: "POST", body: formData });
+          if (res.ok) {
+            const data = await res.json();
+            updateFooterCellStore(scope, refCell.id, { image: `${data.path}?t=${Date.now()}`, text: '' }); 
+          }
+        } catch(err) {
+          alert("Hata: " + String(err));
+        } finally {
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    const handleRemoveImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        updateFooterCellStore(scope, refCell.id, { image: null });
+    }
+
+    return (
+        <>
+            <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+            <div className="flex items-center gap-0.5 relative">
+                <IconButton 
+                    icon={ImageIcon}
+                    label={isUploading ? "Yükleniyor..." : "Resim Ekle/Değiştir"}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading || !refCell}
+                />
+                {refCell?.image && (
+                     <IconButton 
+                        icon={Eraser}
+                        label="Resmi Sil"
+                        onClick={handleRemoveImage}
+                        danger
+                    />
+                )}
+            </div>
+        </>
+    );
+};
+
+
 export function ContextualBar() {
   const {
     globalSettings, setGlobalSettings, formas, activeTemplate,
     updateSlotImageSettings, updateSlotCustomSettings, toggleSlotCustomSettings,
     clearSlotSettings, copySlotSettings, pasteSlotSettings, setActiveFormaId,
-    toggleSlotRole, activeFormaId, copiedSlotSettings, mergeSelected, unmergeSlot, clearSlot
+    toggleSlotRole, activeFormaId, copiedSlotSettings,
+    setPageFooterMode,
+    updateFooterCellStore,
+    mergeFooterCellsStore,
+    unmergeFooterCellStore,
+    getActivePages,
   } = useCatalogStore();
 
   const {
     selection, selectedTextElement, setSelectedTextElement,
     contextualBarFormaId, contextualBarSelectedPages, setContextualBarFormaId, 
-    setContextualBarSelectedPages, setSidebarState
+    setContextualBarSelectedPages
   } = useUIStore();
 
   const {
     layers, addLayer, updateLayerProperties, setLayerMask, fitLayerToPages,
     selectLayers, selectPages
   } = useLayerStore();
+
+  const [activePopover, setActivePopover] = useState<string | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  
+  // YENİ: Renk seçimi için range (seçim koordinatları) hafızası
+  const [colorRange, setColorRange] = useState<Range | null>(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const [savedColors, setSavedColors] = useState<{ c: string; o: number }[]>([]);
+
+  useEffect(() => {
+    const loadColors = () => {
+      const saved = localStorage.getItem("pizza_saved_colors");
+      if (saved) {
+        try {
+          setSavedColors(JSON.parse(saved));
+        } catch (e) {}
+      } else {
+        setSavedColors([]);
+      }
+    };
+    loadColors();
+    window.addEventListener("pizza_colors_updated", loadColors);
+    return () => window.removeEventListener("pizza_colors_updated", loadColors);
+  }, []);
+
+  // Butonlardaki standart biçimlendirmeler için (Focus kaybetmeden uygular)
+  const applyInlineFormat = (e: React.MouseEvent, command: string, value?: string) => {
+    e.preventDefault(); // Div'in focus'unu kaybetmesini engeller
+    document.execCommand(command, false, value);
+  };
+
+  // Renk input'unu focus kaybetmeden tetiklemek için
+  const handleColorClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Div'in focus'unu kaybetmesini KESİN olarak engeller
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      setColorRange(sel.getRangeAt(0).cloneRange());
+    }
+    
+    // display: none engeline takılmamak ve mousedown preventDefault çakışmasını aşmak için setTimeout
+    setTimeout(() => {
+      if (colorInputRef.current) {
+        colorInputRef.current.click();
+      }
+    }, 10);
+  };
+
+  // Renk seçildiğinde hafızadaki seçimi geri yükleyip rengi uygular
+  const applyColorFormat = (colorValue: string) => {
+    if (colorRange) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(colorRange);
+      
+      document.execCommand('foreColor', false, colorValue);
+      
+      // ÖNEMLİ: Tarayıcı metin rengini değiştirdiğinde DOM'u günceller ve eski Range bozulabilir.
+      // Sürükleme sırasında seçimin kaybolmaması için yeni oluşan seçimi tekrar hafızaya alıyoruz.
+      if (sel && sel.rangeCount > 0) {
+        setColorRange(sel.getRangeAt(0).cloneRange());
+      }
+    }
+  };
+
+  const handleColorInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) => {
+    applyColorFormat(e.currentTarget.value);
+  };
+
+  // Metin İçi Biçimlendirme Araç Çubuğu Bloğu
+  const InlineRichTextToolbar = () => (
+    <div className="flex items-center bg-slate-100 border border-slate-200 rounded p-0.5 ml-2 shadow-inner">
+       <IconButton icon={TextB} label="Kalın (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'bold')} />
+       <IconButton icon={TextItalic} label="İtalik (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'italic')} />
+       <IconButton icon={TextUnderline} label="Altı Çizili (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'underline')} />
+       
+       {/* Renk Seçici Butonu */}
+       <div className="relative flex items-center justify-center ml-1">
+         <IconButton 
+            icon={PaintBrush} 
+            label="Metin Rengi" 
+            popoverId="text-color-picker"
+            activePopover={activePopover}
+            onTogglePopover={(id) => {
+              if (id) {
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0) {
+                  setColorRange(sel.getRangeAt(0).cloneRange());
+                }
+              }
+              setActivePopover(id);
+            }}
+            popoverContent={
+               <div 
+                 onMouseDown={(e) => {
+                    // Input alanları haricindeki tıklamalarda focus kaybolmasını engelle
+                    if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                       e.preventDefault(); 
+                    }
+                 }} 
+                 className="flex flex-col gap-3"
+               >
+                 <div className="flex items-center gap-2">
+                   <div className="w-10 h-10 rounded cursor-pointer border border-slate-300 shadow-sm relative overflow-hidden shrink-0">
+                     <input 
+                       type="color" 
+                       onChange={handleColorInputChange as any}
+                       onInput={handleColorInputChange as any}
+                       className="absolute -top-2.5 -left-2.5 w-15 h-15 cursor-pointer" 
+                       title="Yeni Renk Seç" 
+                     />
+                   </div>
+                   <div className="flex flex-col justify-center">
+                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Özel Renk</span>
+                     <span className="text-[9px] text-slate-400 leading-tight">Renk paletini aç</span>
+                   </div>
+                 </div>
+                 
+                 {savedColors.length > 0 && (
+                   <div className="pt-2 border-t border-slate-200">
+                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Kayıtlı Renkler</span>
+                     <div className="flex flex-wrap gap-1.5">
+                       {savedColors.map((sc, idx) => (
+                         <div 
+                           key={idx} 
+                           className="w-6 h-6 rounded cursor-pointer border border-slate-200 hover:border-blue-500 transition-colors relative overflow-hidden shadow-sm" 
+                           onClick={() => applyColorFormat(sc.c)} 
+                           title={`${sc.c} (%${sc.o})`}
+                         >
+                           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjY2NjIiAvPgo8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjY2NjIiAvPjwvc3ZnPg==')] opacity-30"></div>
+                           <div className="absolute inset-0 transition-opacity" style={{ backgroundColor: sc.c, opacity: sc.o / 100 }} />
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+               </div>
+            }
+         />
+       </div>
+    </div>
+  );
 
   const isGlobalApplyActive = false;
   const currentFormaScope = formas.find(f => f.id === (contextualBarFormaId ? parseInt(contextualBarFormaId) : undefined));
@@ -214,12 +419,8 @@ export function ContextualBar() {
   const activeForma = formas.find((f) => f.id === activeFormaId);
   const pages = activeForma?.pages || [];
 
-  const [activePopover, setActivePopover] = useState<string | null>(null);
-  const barRef = useRef<HTMLDivElement>(null);
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selectedSlot: any = null;
-  let selectedPage: any = null;
   let selectedPageNum = -1;
 
   const selectedSlotIds = selection.type === 'slot' ? selection.ids : [];
@@ -229,7 +430,6 @@ export function ContextualBar() {
       const slot = page.slots.find(s => s.id === selectedSlotIds[0]);
       if (slot) {
         selectedSlot = slot;
-        selectedPage = page;
         selectedPageNum = page.pageNumber;
         break;
       }
@@ -240,7 +440,6 @@ export function ContextualBar() {
     ? deepMerge(globalSettings, selectedSlot.customSettings)
     : globalSettings;
 
-  // BURAYI DEĞİŞTİRİYORUZ: Doğrudan küresel ayarlarla bağlantıyı kopartıyoruz.
   const imgEditMode = selectedSlot?.imageSettings?.editMode ?? false;
   const imgScale = selectedSlot?.imageSettings?.scale ?? 100;
 
@@ -269,7 +468,101 @@ export function ContextualBar() {
   }, []);
 
   // ==========================================
-  // 1. METİN ARAÇ ÇUBUĞU
+  // FOOTER & BANNER (Metin İçeren Serbest Hücreler)
+  // ==========================================
+  if (selection.type === 'footerCell' || selection.type === 'bannerCell') {
+    const isFooter = selection.type === 'footerCell';
+    const parentId = selection.parentId;
+    if (!parentId) return null;
+
+    let scope: number | 'global' = 'global';
+    let refCell: any = null;
+    let handleModeChange: any = null;
+    let footerMode = 'global';
+
+    if (isFooter) {
+        const pageNumber = parseInt(parentId.split('-')[1], 10);
+        const page = getActivePages().find(p => p.pageNumber === pageNumber);
+        if (!page) return null;
+        footerMode = page.footerMode || 'global';
+        scope = footerMode === 'global' ? 'global' : pageNumber;
+        const activeFooter = footerMode === 'custom' && page.customFooter ? page.customFooter : globalSettings.footer;
+        const cells = activeFooter?.cells || [];
+        const selectedCells = cells.filter(c => selection.ids.includes(c.id));
+        refCell = selectedCells.length > 0 ? selectedCells[0] : null;
+        handleModeChange = (mode: 'global' | 'custom' | 'hidden') => {
+            setPageFooterMode(page.pageNumber, mode);
+            useUIStore.getState().clearSelection();
+        };
+    }
+
+    return (
+      <div id="contextual-bar" ref={barRef} className="h-12 bg-transparent flex items-center justify-center px-4 gap-1.5 shrink-0 z-40 relative">
+        <div className="flex items-center gap-2 pr-2 mr-1">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+               {isFooter ? 'FOOTER' : 'HÜCRE'}
+            </span>
+            {isFooter && handleModeChange && (
+                <div className="flex gap-1 bg-white p-1 rounded border border-slate-200">
+                    <button onClick={() => handleModeChange('global')} className={`px-2 py-1 text-[9px] font-bold rounded ${footerMode === 'global' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}>Global</button>
+                    <button onClick={() => handleModeChange('custom')} className={`px-2 py-1 text-[9px] font-bold rounded ${footerMode === 'custom' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}>Özel</button>
+                    <button onClick={() => handleModeChange('hidden')} className={`px-2 py-1 text-[9px] font-bold rounded ${footerMode === 'hidden' ? 'bg-red-100 text-red-700' : 'text-slate-500 hover:bg-slate-100'}`}>Gizle</button>
+                </div>
+            )}
+        </div>
+        
+        {(!isFooter || footerMode !== 'hidden') && (
+          <>
+            <Divider />
+            <div className="flex items-center gap-1.5">
+              {isFooter && refCell && (
+                <>
+                  <ColorOpacityPicker 
+                      color={refCell.bgColor.c} 
+                      opacity={refCell.bgColor.o} 
+                      onChange={(c, o) => { selection.ids.forEach(id => updateFooterCellStore(scope, id, { bgColor: { c, o } })); }} 
+                  />
+                  <IconButton 
+                      icon={TextT}
+                      label="Genel Font Ayarları"
+                      popoverId="cellFontSettings"
+                      activePopover={activePopover}
+                      onTogglePopover={setActivePopover}
+                      isActive={activePopover === "cellFontSettings"}
+                      popoverContent={
+                          <div onPointerDownCapture={(e) => e.stopPropagation()} onMouseDownCapture={(e) => e.stopPropagation()}>
+                              <TypographyPicker 
+                                  title="Genel Hücre Fontu" 
+                                  value={refCell.font} 
+                                  onChange={(val) => { selection.ids.forEach(id => updateFooterCellStore(scope, id, { font: val })); }} 
+                              />
+                          </div>
+                      }
+                  />
+                </>
+              )}
+
+              {/* YENİ: Kelime Bazlı Inline Rich Text Biçimlendirme Araçları */}
+              <InlineRichTextToolbar />
+
+              {isFooter && refCell && (
+                  <>
+                    <Divider />
+                    <IconButton icon={Intersect} label="Birleştir" onClick={() => mergeFooterCellsStore(scope, selection.ids)} disabled={selection.ids.length < 2}/>
+                    <IconButton icon={SplitHorizontal} label="Ayır" onClick={() => unmergeFooterCellStore(scope, refCell.id)} disabled={!refCell || refCell.colSpan <= 1}/>
+                    <Divider />
+                    <FooterImageUploadButton refCell={refCell} scope={scope} updateFooterCellStore={updateFooterCellStore} />
+                  </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // ==========================================
+  // 1. ÜRÜN BİLGİSİ (İSİM / FİYAT) ARAÇ ÇUBUĞU
   // ==========================================
   if (selectedTextElement && selectedSlot) {
     const isName = selectedTextElement.elementType === 'name';
@@ -286,7 +579,7 @@ export function ContextualBar() {
     };
 
     return (
-      <div ref={barRef} className="h-12 bg-(--primary-light) flex items-center justify-center px-4 gap-2 shrink-0 z-40 relative">
+      <div id="contextual-bar" ref={barRef} className="h-12 bg-(--primary-light) flex items-center justify-center px-4 gap-2 shrink-0 z-40 relative">
         <div className="flex items-center gap-1.5 pr-2 mr-1">
           <TextT size={16} weight="bold" className="text-indigo-600" />
           <span className="text-[11px] font-black text-indigo-800 uppercase tracking-widest">
@@ -350,35 +643,20 @@ export function ContextualBar() {
           <button onClick={() => handleFontUpdate({ ...currentFont, verticalAlign: 'bottom' })} className={`px-2 py-1.5 text-[9px] font-bold transition-colors ${currentFont.verticalAlign === 'bottom' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`}>ALT</button>
         </div>
 
-        <Divider />
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (selectedSlot?.isCustom) {
-              setSidebarState("settings", "customCell", "price");
-            } else {
-              setSidebarState("settings", "price", null);
-            }
-            setActivePopover(null);
-          }}
-          className="h-8 text-[10px] font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-        >
-          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylar
-        </Button>
+        <InlineRichTextToolbar />
       </div>
     );
   }
 
   // ==========================================
-  // 2. HÜCRE ARAÇ ÇUBUĞU
+  // 2. ÜRÜN HÜCRESİ ARAÇ ÇUBUĞU
   // ==========================================
-  if (selectedSlotIds.length > 0) {
+  if (selectedSlotIds.length > 0 && selectedSlot?.role === 'product') {
     return (
-      <div ref={barRef} className="h-12 bg-transparent flex items-center justify-center px-4 gap-1.5 shrink-0 z-40 relative">
+      <div id="contextual-bar" ref={barRef} className="h-12 bg-transparent flex items-center justify-center px-4 gap-1.5 shrink-0 z-40 relative">
         <div className="flex items-center gap-2 pr-2 mr-1">
           <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-            {selectedSlotIds.length > 1 ? `${selectedSlotIds.length} HÜCRE` : 'HÜCRE'}
+            {selectedSlotIds.length > 1 ? `${selectedSlotIds.length} ÜRÜN HÜCRESİ` : 'ÜRÜN HÜCRESİ'}
           </span>
         </div>
         <Divider />
@@ -483,29 +761,8 @@ export function ContextualBar() {
         <Divider />
 
         <div className="flex items-center gap-0.5 relative">
-          {selectedSlot?.role === 'free' ? (
-            <IconButton icon={Cube} label="Ürün Alanına Çevir" onClick={() => toggleSlotRole('product')} isActive={false} />
-          ) : (
-            <IconButton icon={Layers} label="Serbest Alan Yap" onClick={() => toggleSlotRole('free')} isActive={false} />
-          )}
+          <IconButton icon={Layers} label="Serbest Alan Yap" onClick={() => toggleSlotRole('free')} isActive={false} />
         </div>
-
-        <Divider />
-
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (selectedSlot?.isCustom) {
-              setSidebarState("settings", "customCell", null);
-            } else {
-              setSidebarState("settings", "cell", null);
-            }
-          }}
-          className="h-8 text-[10px] font-bold"
-        >
-          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylar
-        </Button>
       </div>
     );
   }
@@ -514,7 +771,7 @@ export function ContextualBar() {
   // 3. ARKA PLAN ARAÇ ÇUBUĞU (VARSAYILAN)
   // ==========================================
   return (
-    <div ref={barRef} className="h-12 bg-transparent flex items-center justify-between px-4 shrink-0 z-40 relative">
+    <div id="contextual-bar" ref={barRef} className="h-12 bg-transparent flex items-center justify-between px-4 shrink-0 z-40 relative">
       <div className="flex flex-row items-center gap-4 w-full">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold text-slate-700">Tüm Broşür</span>
@@ -606,15 +863,6 @@ export function ContextualBar() {
           }}
           disabled={contextualBarSelectedPages.length === 0}
         />
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSidebarState("settings", "background", null)}
-          className="h-8 text-[10px] font-bold"
-        >
-          <SlidersHorizontal size={14} weight="bold" className="mr-1" /> Detaylı Ayarlar
-        </Button>
       </div>
     </div>
   );

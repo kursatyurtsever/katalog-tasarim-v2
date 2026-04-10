@@ -56,3 +56,8 @@ tsc*.txt
 # documents
 *.pdf
 *.xlsx
+
+# Code exports and AI inputs
+repomix-output.*
+proje_rontgeni_*.txt
+cline_deploy_instructions.txt
