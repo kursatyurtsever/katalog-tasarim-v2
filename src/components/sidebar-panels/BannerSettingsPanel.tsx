@@ -2,25 +2,120 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useBannerStore } from "@/store/useBannerStore";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { useUIStore } from "@/store/useUIStore";
 import { ColorOpacityPicker } from "../ColorOpacityPicker";
 import { TypographyPicker } from "../TypographyPicker";
 import { SpacingPicker } from "../SpacingPicker";
-import { uploadImage } from "@/lib/uploadAction";
+import { defaultTypography, defaultSpacing } from "@/store/useCatalogStore";
 
 export function BannerSettingsPanel() {
-  const { 
-    bannerSettings, selectedBannerCellIds, 
-    updateBannerCell, updateSelectedBannerCells, 
-    toggleBannerCellSelection, mergeBannerCells, unmergeBannerCell,
-    resetSelectedBannerCells // YENİ FONKSİYONU ÇAĞIRDIK
-  } = useBannerStore();
+  const { selection, toggleElementSelection, setSelection } = useUIStore();
+  const { getActivePages, updateSlotModuleData } = useCatalogStore();
 
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const selectedCells = bannerSettings.cells.filter(c => selectedBannerCellIds.includes(c.id));
+  // Slot ve Banner Data bulma
+  let slotId = null;
+  if (selection.type === 'slot' && selection.ids.length > 0) slotId = selection.ids[0];
+  if (selection.type === 'bannerCell' && selection.parentId) slotId = selection.parentId;
+
+  let instanceData: any = null;
+  let pageNumber: number | null = null;
+
+  if (slotId) {
+    const pages = getActivePages();
+    for (const page of pages) {
+      const slot = page.slots.find((s) => s.id === slotId);
+      if (slot && slot.role === 'free' && slot.moduleData?.type === 'banner') {
+        instanceData = slot.moduleData;
+        pageNumber = page.pageNumber;
+        break;
+      }
+    }
+  }
+
+  if (!instanceData) return <div className="p-4 text-xs text-slate-500">Lütfen bir banner modülü seçin.</div>;
+
+  const cells = instanceData.cells || [];
+  const selectedBannerCellIds = selection.type === 'bannerCell' && selection.parentId === slotId ? selection.ids : [];
+  
+  const selectedCells = cells.filter((c: any) => selectedBannerCellIds.includes(c.id));
   const refCell = selectedCells.length > 0 ? selectedCells[0] : null;
+
+  // --- LOCAL ACTIONS ---
+  const updateBannerCell = (cellId: string, updates: any) => {
+    if (!slotId || pageNumber === null) return;
+    const newCells = cells.map((c: any) => c.id === cellId ? { ...c, ...updates } : c);
+    updateSlotModuleData(pageNumber, slotId, { cells: newCells });
+  };
+
+  const updateSelectedBannerCells = (updates: any) => {
+    if (!slotId || pageNumber === null) return;
+    const newCells = cells.map((c: any) => selectedBannerCellIds.includes(c.id) ? { ...c, ...updates } : c);
+    updateSlotModuleData(pageNumber, slotId, { cells: newCells });
+  };
+
+  const toggleBannerCellSelection = (id: string, isMulti: boolean) => {
+    toggleElementSelection('bannerCell', id, isMulti, slotId);
+  };
+
+  const mergeBannerCells = () => {
+    if (selectedBannerCellIds.length < 2) return { success: false, error: "En az 2 hücre seçmelisiniz." };
+
+    const grid: (string | null)[][] = [];
+    const coords: Record<string, { r: number; c: number; w: number; h: number }> = {};
+    let r = 0, c = 0;
+    
+    cells.filter((cell: any) => !cell.hidden).forEach((cell: any) => {
+      let placed = false;
+      while (!placed) {
+        if (!grid[r]) grid[r] = Array(8).fill(null);
+        if (grid[r][c] === null) {
+          for (let ir = 0; ir < cell.rowSpan; ir++) {
+            if (!grid[r + ir]) grid[r + ir] = Array(8).fill(null);
+            for (let ic = 0; ic < cell.colSpan; ic++) grid[r + ir][c + ic] = cell.id;
+          }
+          coords[cell.id] = { r, c, w: cell.colSpan, h: cell.rowSpan };
+          placed = true;
+        }
+        if (!placed) { c++; if (c >= 8) { c = 0; r++; } }
+      }
+    });
+
+    let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity, totalArea = 0;
+    selectedBannerCellIds.forEach(id => {
+      const ci = coords[id];
+      if (ci) { 
+        minR = Math.min(minR, ci.r); maxR = Math.max(maxR, ci.r + ci.h - 1); 
+        minC = Math.min(minC, ci.c); maxC = Math.max(maxC, ci.c + ci.w - 1); 
+        totalArea += (ci.w * ci.h);
+      }
+    });
+
+    const expectedArea = (maxR - minR + 1) * (maxC - minC + 1);
+    if (totalArea !== expectedArea) return { success: false, error: "Hatalı Seçim: Yalnızca kare veya dikdörtgen formunda birleştirme yapabilirsiniz." };
+
+    const survivorId = grid[minR][minC];
+    if (!survivorId || !selectedBannerCellIds.includes(survivorId)) return { success: false, error: "Hücre yerleşimi hesaplanamadı." };
+
+    const newCells = [...cells];
+    const survivorIdx = newCells.findIndex(cell => cell.id === survivorId);
+    
+    newCells[survivorIdx] = { ...newCells[survivorIdx], colSpan: maxC - minC + 1, rowSpan: maxR - minR + 1 };
+
+    selectedBannerCellIds.filter(id => id !== survivorId).forEach(id => {
+      const idx = newCells.findIndex(cell => cell.id === id);
+      newCells[idx] = { ...newCells[idx], hidden: true, mergedInto: survivorId, text: "", image: null };
+    });
+
+    if (pageNumber && slotId) {
+      updateSlotModuleData(pageNumber, slotId, { cells: newCells });
+      setSelection({ ids: [survivorId] });
+    }
+    return { success: true };
+  };
 
   const handleMerge = () => {
     const result = mergeBannerCells();
@@ -28,9 +123,33 @@ export function BannerSettingsPanel() {
   };
 
   const handleUnmerge = () => {
-    if (refCell && (refCell.colSpan > 1 || refCell.rowSpan > 1)) {
-      unmergeBannerCell(refCell.id);
+    if (!refCell || refCell.colSpan === 1 && refCell.rowSpan === 1) return;
+    const newCells = [...cells];
+    const survivorIdx = newCells.findIndex(c => c.id === refCell.id);
+    if (survivorIdx === -1) return;
+
+    newCells[survivorIdx] = { ...newCells[survivorIdx], colSpan: 1, rowSpan: 1 };
+    newCells.forEach((c, i) => { if (c.mergedInto === refCell.id) newCells[i] = { ...c, hidden: false, mergedInto: null }; });
+
+    if (pageNumber && slotId) {
+      updateSlotModuleData(pageNumber, slotId, { cells: newCells });
     }
+  };
+
+  const resetSelectedBannerCells = () => {
+    if (selectedBannerCellIds.length === 0 || !pageNumber || !slotId) return;
+    const newCells = cells.map((c: any) => 
+      selectedBannerCellIds.includes(c.id) ? {
+        ...c,
+        text: "", 
+        image: null, 
+        font: { ...defaultTypography, fontSize: 14, fontWeight: "700", color: "#1e293b" },
+        padding: { ...defaultSpacing },
+        bgColor: { c: "#ffffff", o: 0 },
+        border: { t: 0, r: 0, b: 0, l: 0, linked: true, color: { c: "#e2e8f0", o: 100 }, style: "solid" }
+      } : c
+    );
+    updateSlotModuleData(pageNumber, slotId, { cells: newCells });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,11 +162,12 @@ export function BannerSettingsPanel() {
     formData.append("filename", `banner-${refCell!.id}-${Date.now()}.png`);
 
     try {
-      const result = await uploadImage(formData);
-      if (result.success) {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (res.ok) {
+        const result = await res.json();
         updateBannerCell(refCell!.id, { image: `${result.path}?t=${Date.now()}` });
       } else {
-        alert(`Resim yüklenemedi: ${result.error}`);
+        alert(`Resim yüklenemedi`);
       }
     } catch (err: any) {
       alert("Bağlantı hatası: " + err.message);
@@ -78,7 +198,7 @@ export function BannerSettingsPanel() {
         </div>
         
         <div className="grid grid-cols-8 gap-px bg-slate-200 border border-slate-200 p-px rounded-sm">
-          {bannerSettings.cells.filter(c => !c.hidden).map(cell => (
+          {cells.filter((c: any) => !c.hidden).map((cell: any) => (
             <div
               key={cell.id}
               onClick={(e) => toggleBannerCellSelection(cell.id, e.ctrlKey || e.shiftKey)}

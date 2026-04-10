@@ -1,11 +1,26 @@
 
 import { create } from "zustand";
 
+export type SelectionType = 'none' | 'slot' | 'layer' | 'bannerCell' | 'textElement';
+
+export interface SelectionState {
+  type: SelectionType;
+  ids: string[];
+  parentId?: string | null;
+  textElementType?: 'name' | 'price' | 'badge';
+}
+
 export interface UIState {
   isZoomed: boolean;
+  
+  // Eski seçim state'leri (Uyumluluk için geçici olarak var ama kullanılmamalı)
   selectedSlotIds: string[];
   selectedPageNumber: number | null;
   selectedTextElement: { slotId: string, elementType: 'name' | 'price' | 'badge' } | null;
+  
+  // YENİ SEÇİM STATE'İ
+  selection: SelectionState;
+
   sidebarState: { activePanel: string | null; activeTab: string | null; activeSubTab: string | null };
   contextualBarFormaId: string | null;
   contextualBarSelectedPages: number[];
@@ -14,10 +29,17 @@ export interface UIState {
 
 export interface UIActions {
   toggleZoom: () => void;
+  
+  // YENİ SEÇİM AKSİYONLARI
+  setSelection: (selection: Partial<SelectionState>) => void;
+  toggleElementSelection: (type: SelectionType, id: string, isMulti: boolean, parentId?: string | null) => void;
+  
+  // Eski aksiyonlar (Geçiş süreci için)
   toggleSlotSelection: (id: string, isMulti: boolean) => void;
   clearSelection: () => void;
   setSelectedPage: (pageNumber: number | null) => void;
   setSelectedTextElement: (element: { slotId: string, elementType: 'name' | 'price' | 'badge' } | null) => void;
+  
   setSidebarState: (panel: string | null, tab?: string | null, subTab?: string | null) => void;
   setContextualBarFormaId: (id: string | null) => void;
   setContextualBarSelectedPages: (pages: number[]) => void;
@@ -33,9 +55,12 @@ const initialSidebarState = {
 
 export const useUIStore = create<UIState & UIActions>()((set, get) => ({
   isZoomed: false,
-  selectedSlotIds: [],
-  selectedPageNumber: null,
-  selectedTextElement: null,
+  selectedSlotIds: [], // deprecated
+  selectedPageNumber: null, // deprecated
+  selectedTextElement: null, // deprecated
+  
+  selection: { type: 'none', ids: [] },
+
   sidebarState: initialSidebarState,
   contextualBarFormaId: "1",
   contextualBarSelectedPages: [],
@@ -43,48 +68,97 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
 
   toggleZoom: () => set((state) => ({ isZoomed: !state.isZoomed })),
 
-toggleSlotSelection: (id, isMulti) => set((state) => {
-    let newSelectedIds = [];
-    if (isMulti) {
-      if (state.selectedSlotIds.includes(id)) newSelectedIds = state.selectedSlotIds.filter((x) => x !== id);
-      else newSelectedIds = [...state.selectedSlotIds, id];
-    } else {
-      newSelectedIds = [id];
-    }
-    return { 
-      selectedSlotIds: newSelectedIds,
+  setSelection: (selectionUpdates) => set((state) => {
+    const newSelection = { ...state.selection, ...selectionUpdates } as SelectionState;
+    return {
+      selection: newSelection,
+      // Geriye dönük uyumluluk için senkronize edelim
+      selectedSlotIds: newSelection.type === 'slot' ? newSelection.ids : [],
       selectedPageNumber: null,
-      selectedTextElement: null,
-      sidebarState: { 
-        ...state.sidebarState, 
-        activePanel: newSelectedIds.length > 0 ? "selection" : state.sidebarState.activePanel 
+      selectedTextElement: newSelection.type === 'textElement' ? { slotId: newSelection.parentId || '', elementType: newSelection.textElementType || 'name' } : null,
+      sidebarState: {
+        ...state.sidebarState,
+        activePanel: newSelection.type !== 'none' && newSelection.ids.length > 0 ? "selection" : state.sidebarState.activePanel
       }
     };
   }),
 
+  toggleElementSelection: (type, id, isMulti, parentId = null) => set((state) => {
+    let newSelectionIds: string[] = [];
+    
+    // Eğer başka tipte bir eleman seçiliyse veya selection null ise baştan başlat
+    if (state.selection.type !== type || state.selection.parentId !== parentId) {
+      newSelectionIds = [id];
+    } else {
+      if (isMulti) {
+        if (state.selection.ids.includes(id)) {
+          newSelectionIds = state.selection.ids.filter(x => x !== id);
+        } else {
+          newSelectionIds = [...state.selection.ids, id];
+        }
+      } else {
+        newSelectionIds = [id];
+      }
+    }
+    
+    const newSelection: SelectionState = {
+      type: newSelectionIds.length === 0 ? 'none' : type,
+      ids: newSelectionIds,
+      parentId
+    };
+
+    return {
+      selection: newSelection,
+      // Eski yapıyı besle (Geriye dönük uyumluluk)
+      selectedSlotIds: newSelection.type === 'slot' ? newSelection.ids : [],
+      selectedPageNumber: null,
+      selectedTextElement: null,
+      sidebarState: {
+        ...state.sidebarState,
+        activePanel: newSelectionIds.length > 0 ? "selection" : state.sidebarState.activePanel
+      }
+    };
+  }),
+
+  toggleSlotSelection: (id, isMulti) => {
+    get().toggleElementSelection('slot', id, isMulti);
+  },
+
   clearSelection: () => set(() => ({ 
+    selection: { type: 'none', ids: [] },
     selectedSlotIds: [],
     selectedPageNumber: null,
     selectedTextElement: null,
   })),
 
-  setSelectedPage: (pageNumber) => set((state) => {
-    const updates: Partial<UIState> = {
+  setSelectedPage: (pageNumber) => {
+    if (pageNumber === null) {
+      set({ selectedPageNumber: null, selection: { type: 'none', ids: [] }, selectedSlotIds: [] });
+      return;
+    }
+    set({
       selectedPageNumber: pageNumber,
       selectedSlotIds: [],
-      selectedTextElement: null,
-    };
+      selection: { type: 'none', ids: [] },
+      contextualBarSelectedPages: [pageNumber]
+    });
+  },
 
-    if (pageNumber !== null) {
-      updates.contextualBarSelectedPages = [pageNumber];
-      // This part requires access to `formas` from `useCatalogStore`.
-      // We'll handle this interaction after all stores are created.
+  setSelectedTextElement: (element) => {
+    if (!element) {
+      set({ selectedTextElement: null, selection: { type: 'none', ids: [] } });
+    } else {
+      set({ 
+        selectedTextElement: element,
+        selection: { 
+          type: 'textElement', 
+          ids: [`${element.slotId}-${element.elementType}`], 
+          parentId: element.slotId, 
+          textElementType: element.elementType 
+        }
+      });
     }
-
-    return updates;
-  }),
-
-  setSelectedTextElement: (element) => set({ selectedTextElement: element }),
+  },
 
   setContextualBarFormaId: (id) => set({ contextualBarFormaId: id }),
   setContextualBarSelectedPages: (pages) => set({ contextualBarSelectedPages: pages }),

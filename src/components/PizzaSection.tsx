@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useRef, useState } from 'react';
-import { usePizzaStore } from '../store/usePizzaStore';
 import { useUIStore } from '@/store/useUIStore';
-import { useBannerStore } from '@/store/useBannerStore';
+import { useCatalogStore } from '@/store/useCatalogStore';
 import { TypographyData } from './TypographyPicker';
 import { BorderRadiusData } from './BorderRadiusPicker';
 import { SpacingData } from './SpacingPicker';
@@ -13,15 +12,18 @@ export function PizzaSection({ instanceData, slotId, pageNumber }: { instanceDat
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   
-  // İleride instance tabanlı olacak ama şimdilik uygulamanın çökmemesi için Global Store kullanıyoruz.
-  const { title, colors, fonts, tableLineWidth, radiuses, spacings, shadows, isSelected, selectPizza } = usePizzaStore();
-  
+  const { title, colors, fonts, tableLineWidth, radiuses, spacings, shadows } = instanceData;
+  const updateSlotModuleData = useCatalogStore((state) => state.updateSlotModuleData);
+
+  const selection = useUIStore((state) => state.selection);
+  const isSelected = selection.type === 'slot' && selection.ids.includes(slotId || "");
+
+  const toggleSlotSelection = useUIStore((state) => state.toggleSlotSelection);
   const clearCatalogSelection = useUIStore((state) => state.clearSelection);
-  const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageUrl(URL.createObjectURL(e.target.files[0])); 
+    if (e.target.files && e.target.files[0] && slotId && pageNumber) {
+      updateSlotModuleData(pageNumber, slotId, { imageUrl: URL.createObjectURL(e.target.files[0]) });
     }
   };
 
@@ -110,7 +112,7 @@ export function PizzaSection({ instanceData, slotId, pageNumber }: { instanceDat
           }}
           ref={(el) => {
             // Açılır açılmaz imleci hücrenin en sonuna odakla
-            if (el && document.activeElement !== el) {
+            if (el && document.activeElement !== el && window.getSelection) {
               el.focus();
               if (typeof window !== 'undefined') {
                 const selection = window.getSelection();
@@ -148,13 +150,13 @@ export function PizzaSection({ instanceData, slotId, pageNumber }: { instanceDat
       <EditableText
         initialValue={size}
         font={fonts.sizes}
-        className="flex-1 min-h-[22px] w-full border-solid"
+        className="flex-1 min-h-5.5 w-full border-solid"
         style={{ padding: getPaddingStyle(spacings.cell), borderBottomWidth: `${tableLineWidth}px`, backgroundColor: hexToRgba(colors.cellBg.c, colors.cellBg.o), borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}
       />
       <EditableText
         initialValue={price}
         font={fonts.prices}
-        className="flex-1 min-h-[22px] w-full"
+        className="flex-1 min-h-5.5 w-full"
         style={{ padding: getPaddingStyle(spacings.cell), backgroundColor: hexToRgba(colors.cellPriceBg.c, colors.cellPriceBg.o) }}
       />
     </div>
@@ -165,37 +167,35 @@ export function PizzaSection({ instanceData, slotId, pageNumber }: { instanceDat
       <EditableText
         initialValue={title}
         font={fonts.sizes}
-        className="flex-1 whitespace-pre-wrap min-h-[30px] w-full border-solid"
+        className="flex-1 whitespace-pre-wrap min-h-7.5 w-full border-solid"
         style={{ padding: getPaddingStyle(spacings.cell), borderBottomWidth: `${tableLineWidth}px`, backgroundColor: hexToRgba(colors.cellBg.c, colors.cellBg.o), borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o) }}
       />
       <EditableText
         initialValue={price}
         font={fonts.prices}
-        className="flex-1 min-h-[22px] w-full"
+        className="flex-1 min-h-5.5 w-full"
         style={{ padding: getPaddingStyle(spacings.cell), backgroundColor: hexToRgba(colors.cellPriceBg.c, colors.cellPriceBg.o) }}
       />
     </div>
   );
 
   return (
-    <div 
-      id="pizza-section"
-      onClick={(e) => {
-        e.stopPropagation();
-        // Sadece seçili değilse işlemi yap (Yeniden çizimi/Re-render'ı engeller)
-        if (!isSelected) {
-          clearCatalogSelection();
-          clearBannerSelection();
-          selectPizza();
-        }
-      }}
-      className={`w-full h-full flex flex-col transition-all duration-200 cursor-pointer border-[2px] ${isSelected ? 'z-30' : 'hover:border-blue-300'}`} 
-      style={{ padding: getPaddingStyle(spacings.container), backgroundColor: hexToRgba(colors.bg.c, colors.bg.o), borderColor: isSelected ? 'transparent' : hexToRgba(colors.border.c, colors.border.o), borderRadius: getRadiusStyle(radiuses.container), boxShadow: isSelected ? `0 0 0 4px #3b82f6, ${getShadowStyle(shadows.container)}` : getShadowStyle(shadows.container) }}
-    >
+      <div 
+        id="pizza-section"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isSelected && slotId) {
+            clearCatalogSelection();
+            toggleSlotSelection(slotId, e.ctrlKey || e.shiftKey);
+          }
+        }}
+        className={`w-full h-full flex flex-col transition-all duration-200 cursor-pointer border-2 ${isSelected ? 'z-30' : 'hover:border-blue-300'}`} 
+        style={{ padding: getPaddingStyle(spacings.container), backgroundColor: hexToRgba(colors.bg.c, colors.bg.o), borderColor: isSelected ? 'transparent' : hexToRgba(colors.border.c, colors.border.o), borderRadius: getRadiusStyle(radiuses.container), boxShadow: isSelected ? `0 0 0 4px #3b82f6, ${getShadowStyle(shadows.container)}` : getShadowStyle(shadows.container) }}
+      >
       
       <div className="w-full shrink-0 border-b-2 pb-2 flex" style={{ borderColor: hexToRgba(colors.border.c, colors.border.o) }}>
         <EditableText
-          initialValue={title}
+          initialValue={title || "PIZZA-MENÜ"}
           font={fonts.title}
           className="w-full"
         />
@@ -204,7 +204,7 @@ export function PizzaSection({ instanceData, slotId, pageNumber }: { instanceDat
       <div className="flex flex-row gap-[5mm] flex-1 min-h-0 mt-[10mm]">
         
         {/* SOL KOLON */}
-        <div className="flex flex-col gap-[6mm] flex-[3] h-full">
+        <div className="flex flex-col gap-[6mm] flex-3 h-full">
           {/* TABLO 1 */}
           <div className="flex flex-col overflow-hidden flex-1 border-solid" style={{ borderWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableBg.c, colors.tableBg.o), borderRadius: getRadiusStyle(radiuses.table), boxShadow: getShadowStyle(shadows.table) }}>
             <EditableText
@@ -255,7 +255,7 @@ export function PizzaSection({ instanceData, slotId, pageNumber }: { instanceDat
         </div>
 
         {/* SAĞ KOLON */}
-        <div className="flex flex-col gap-[4mm] flex-[5] h-full">
+        <div className="flex flex-col gap-[4mm] flex-5 h-full">
           {/* TABLO 3 */}
           <div className="flex flex-col overflow-hidden shrink-0 border-solid" style={{ borderWidth: `${tableLineWidth}px`, borderColor: hexToRgba(colors.tableLine.c, colors.tableLine.o), backgroundColor: hexToRgba(colors.tableBg.c, colors.tableBg.o), borderRadius: getRadiusStyle(radiuses.table), boxShadow: getShadowStyle(shadows.table) }}>
             <div className="grid grid-cols-3">
@@ -267,16 +267,16 @@ export function PizzaSection({ instanceData, slotId, pageNumber }: { instanceDat
 
           {/* RESİM ALANI */}
           <div 
-            data-hide-on-export={!imageUrl ? "true" : undefined}
-            className="flex-1 border-[2px] border-dashed flex items-center justify-center relative group cursor-pointer overflow-hidden min-h-0"
+            data-hide-on-export={!instanceData.imageUrl ? "true" : undefined}
+            className="flex-1 border-2 border-dashed flex items-center justify-center relative group cursor-pointer overflow-hidden min-h-0"
             style={{ borderColor: hexToRgba(colors.imgBorder.c, colors.imgBorder.o), backgroundColor: hexToRgba(colors.imgBg.c, colors.imgBg.o), borderRadius: getRadiusStyle(radiuses.image), boxShadow: getShadowStyle(shadows.image) }}
             onClick={(e) => {
               e.stopPropagation();
               fileInputRef.current?.click();
             }}
           >
-            {imageUrl ? (
-              <img src={imageUrl} alt="Pizza Kartonu" className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300" />
+            {instanceData.imageUrl ? (
+              <img src={instanceData.imageUrl} alt="Pizza Kartonu" className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300" />
             ) : (
               <div className="text-slate-400 font-bold text-[14px] flex flex-col items-center">
                 <span className="text-3xl mb-1">+</span>

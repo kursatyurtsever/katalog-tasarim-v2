@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Katalog Tasarım V2
 
-## Getting Started
+Bu proje, kullanıcıların kendi kataloglarını, menülerini (pizza, vb.) veya afişlerini görsel bir arayüz ile oluşturup düzenleyebilmelerine olanak tanıyan, React ve Next.js tabanlı özel bir tasarım uygulamasıdır.
 
-First, run the development server:
+Projeye ait ayarlar ve tasarımlar Zustand kullanılarak tarayıcı tarafında (persist middleware ile) saklanabilir, farklı bileşenler ile özelleştirilebilir bir deneyim sunulur.
+
+## Özellikler
+
+- Dinamik Grid (hücre) tabanlı tasarım alanı
+- Özelleştirilebilir arka plan, sınır, gölge ve tipografi ayarları
+- Zustand ile durum yönetimi (Banner, Katalog, Pizza, UI vb.)
+- Tamamen Dockerize edilmiş altyapı
+
+## Geliştirme Ortamı Kurulumu
+
+Projeyi yerel ortamınızda çalıştırmak için aşağıdaki adımları izleyebilirsiniz.
+
+### Önkoşullar
+- Node.js (v18+)
+- npm veya yarn
+
+### Kurulum Adımları
+1. Bağımlılıkları yükleyin:
+   ```bash
+   npm install
+   ```
+
+2. Geliştirme sunucusunu başlatın:
+   ```bash
+   npm run dev
+   ```
+
+3. Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini ziyaret ederek uygulamayı görüntüleyin.
+
+## Docker ile Dağıtım (Deployment)
+
+Proje üretim ortamında (production) çalışmaya uygun bir Docker altyapısına sahiptir. Projenin kök dizininde bulunan `docker-compose.yml` dosyası, Next.js uygulamasını ayağa kaldırmak ve yüklenen resim dosyalarını sunucuda kalıcı hale getirmek için yapılandırılmıştır.
+
+### Dağıtım Adımları
+
+Uygulamayı Docker ile arka planda başlatmak için:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker-compose up -d --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Konfigürasyon Bilgileri:**
+- Varsayılan olarak uygulama **3001** portundan dışarı açılır (örn. `http://localhost:3001`).
+- Kalıcı resim yüklemeleri için host makinedeki `./public/images/products` dizini konteyner içerisindeki `/app/public/images/products` dizinine bağlanır (volume map).
+- `NEXT_PUBLIC_BASE_URL` değişkeni, API çağrıları veya yönlendirmeler için projenin yayında olduğu alan adına (domain/IP) göre ayarlanmıştır.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Servisi durdurmak için:
+```bash
+docker-compose down
+```

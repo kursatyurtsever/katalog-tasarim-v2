@@ -3,9 +3,9 @@ import { create } from "zustand";
 import { useCatalogStore } from "./useCatalogStore";
 import type { CatalogPage } from "./useCatalogStore";
 
-function cloneDeep<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value));
-}
+
+// @ts-ignore
+const cloneDeep = <T>(value: T): T => ((typeof structuredClone === "function" ? structuredClone(value) : (JSON.parse(JSON.stringify(value)) as any)) as any);
 
 export interface HistoryState {
   past: CatalogPage[][];

@@ -3,7 +3,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useCatalogStore } from "../../store/useCatalogStore";
 import { useLayerStore } from "../../store/useLayerStore";
-import { useBannerStore } from "../../store/useBannerStore";
 
 import * as XLSX from "xlsx";
 
@@ -21,7 +20,6 @@ export function ProductManagement() {
   const handleExportProject = () => {
     const catalogState = useCatalogStore.getState();
     const layerState = useLayerStore.getState();
-    const bannerState = useBannerStore.getState();
 
     const projectData = {
       catalog: {
@@ -31,10 +29,7 @@ export function ProductManagement() {
         productPool: catalogState.productPool,
         masterProductPool: catalogState.masterProductPool,
       },
-      layers: layerState.layers,
-      banner: {
-        bannerSettings: bannerState.bannerSettings
-      }
+      layers: layerState.layers
     };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData));
@@ -56,10 +51,17 @@ export function ProductManagement() {
         const projectData = JSON.parse(evt.target?.result as string);
         
         if (projectData.catalog) {
+          // BURAYI DEĞİŞTİRİYORUZ: Eski projelerden gelen hatalı global resim ayarlarını sıfırlıyoruz
+          const loadedGlobalSettings = projectData.catalog.globalSettings || {};
+          loadedGlobalSettings.imageScale = 100;
+          loadedGlobalSettings.imagePosX = 0;
+          loadedGlobalSettings.imagePosY = 0;
+          loadedGlobalSettings.imageEditMode = false;
+
           useCatalogStore.setState({
             activeTemplate: projectData.catalog.activeTemplate,
             formas: projectData.catalog.formas,
-            globalSettings: projectData.catalog.globalSettings,
+            globalSettings: loadedGlobalSettings,
             productPool: projectData.catalog.productPool || [],
             masterProductPool: projectData.catalog.masterProductPool || [],
           });
@@ -67,10 +69,6 @@ export function ProductManagement() {
         
         if (projectData.layers) {
           useLayerStore.setState({ layers: projectData.layers });
-        }
-        
-        if (projectData.banner) {
-          useBannerStore.setState({ bannerSettings: projectData.banner.bannerSettings });
         }
         
         alert("Proje başarıyla yüklendi!");

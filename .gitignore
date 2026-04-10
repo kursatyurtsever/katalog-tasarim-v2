@@ -50,3 +50,9 @@ __pycache__/
 
 *.code-workspace
 
+tsc*.txt
+*errors*.txt
+
+# documents
+*.pdf
+*.xlsx

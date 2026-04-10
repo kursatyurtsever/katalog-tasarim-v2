@@ -99,11 +99,11 @@ export function ContextualBar() {
     globalSettings, setGlobalSettings, formas, activeTemplate,
     updateSlotImageSettings, updateSlotCustomSettings, toggleSlotCustomSettings,
     clearSlotSettings, copySlotSettings, pasteSlotSettings, setActiveFormaId,
-    toggleSlotRole, activeFormaId, copiedSlotSettings
+    toggleSlotRole, activeFormaId, copiedSlotSettings, mergeSelected, unmergeSlot, clearSlot
   } = useCatalogStore();
 
   const {
-    selectedSlotIds, selectedTextElement, setSelectedTextElement,
+    selection, selectedTextElement, setSelectedTextElement,
     contextualBarFormaId, contextualBarSelectedPages, setContextualBarFormaId, 
     setContextualBarSelectedPages, setSidebarState
   } = useUIStore();
@@ -219,13 +219,17 @@ export function ContextualBar() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selectedSlot: any = null;
+  let selectedPage: any = null;
   let selectedPageNum = -1;
+
+  const selectedSlotIds = selection.type === 'slot' ? selection.ids : [];
 
   if (selectedSlotIds.length > 0) { 
     for (const page of pages) {
       const slot = page.slots.find(s => s.id === selectedSlotIds[0]);
       if (slot) {
         selectedSlot = slot;
+        selectedPage = page;
         selectedPageNum = page.pageNumber;
         break;
       }
@@ -236,9 +240,9 @@ export function ContextualBar() {
     ? deepMerge(globalSettings, selectedSlot.customSettings)
     : globalSettings;
 
-  // DÜZELTME: Doğrudan küresel ayarlarla bağlantıyı kurar. (Lokal yoks Global'e düşer)
-  const imgEditMode = selectedSlot?.imageSettings?.editMode ?? activeSettings.imageEditMode ?? false;
-  const imgScale = selectedSlot?.imageSettings?.scale ?? activeSettings.imageScale ?? 100;
+  // BURAYI DEĞİŞTİRİYORUZ: Doğrudan küresel ayarlarla bağlantıyı kopartıyoruz.
+  const imgEditMode = selectedSlot?.imageSettings?.editMode ?? false;
+  const imgScale = selectedSlot?.imageSettings?.scale ?? 100;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSettingUpdate = (updates: any) => {

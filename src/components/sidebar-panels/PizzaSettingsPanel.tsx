@@ -7,11 +7,69 @@ import { TypographyPicker } from "../TypographyPicker";
 import { BorderRadiusPicker } from "../BorderRadiusPicker";
 import { SpacingPicker } from "../SpacingPicker";
 import { ShadowPicker } from "../ShadowPicker";
-import { usePizzaStore } from "../../store/usePizzaStore";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { useUIStore } from "@/store/useUIStore";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export function PizzaSettingsPanel() {
-  const { colors, fonts, radiuses, spacings, shadows, tableLineWidth, updateColor, updateFont, updateRadius, updateSpacing, updateShadow, updateTableLineWidth } = usePizzaStore();
+  const { selectedSlotIds } = useUIStore();
+  const { getActivePages, updateSlotModuleData } = useCatalogStore();
+
+  const slotId = selectedSlotIds[0];
+  let instanceData: any = null;
+  let pageNumber: number | null = null;
+
+  if (slotId) {
+    const pages = getActivePages();
+    for (const page of pages) {
+      const slot = page.slots.find((s) => s.id === slotId);
+      if (slot && slot.role === 'free' && slot.moduleData?.type === 'pizza') {
+        instanceData = slot.moduleData;
+        pageNumber = page.pageNumber;
+        break;
+      }
+    }
+  }
+
+  if (!instanceData) return <div className="p-4 text-xs text-slate-500">Lütfen bir pizza modülü seçin.</div>;
+
+  const { colors, fonts, radiuses, spacings, shadows, tableLineWidth } = instanceData;
+
+  const updateColor = (key: string, c: string, o: number) => {
+    if (pageNumber && slotId) {
+      updateSlotModuleData(pageNumber, slotId, { colors: { [key]: { c, o } } });
+    }
+  };
+
+  const updateFont = (key: string, val: any) => {
+    if (pageNumber && slotId) {
+      updateSlotModuleData(pageNumber, slotId, { fonts: { [key]: val } });
+    }
+  };
+
+  const updateRadius = (key: string, val: any) => {
+    if (pageNumber && slotId) {
+      updateSlotModuleData(pageNumber, slotId, { radiuses: { [key]: val } });
+    }
+  };
+
+  const updateSpacing = (key: string, val: any) => {
+    if (pageNumber && slotId) {
+      updateSlotModuleData(pageNumber, slotId, { spacings: { [key]: val } });
+    }
+  };
+
+  const updateShadow = (key: string, val: any) => {
+    if (pageNumber && slotId) {
+      updateSlotModuleData(pageNumber, slotId, { shadows: { [key]: val } });
+    }
+  };
+
+  const updateTableLineWidth = (val: number) => {
+    if (pageNumber && slotId) {
+      updateSlotModuleData(pageNumber, slotId, { tableLineWidth: val });
+    }
+  };
 
   return (
     <Accordion className="w-full">

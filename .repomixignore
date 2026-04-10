@@ -1,0 +1,6 @@
+# Eski log ve hata çıktılarını AI'dan gizle
+*error*.txt
+tsc*.txt
+build-output.txt
+proje_rontgeni*.txt
+ozet.py

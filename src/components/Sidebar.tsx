@@ -6,10 +6,9 @@ import { GlobalCellSettings } from "./sidebar-panels/GlobalCellSettings";
 import { GlobalPriceSettings } from "./sidebar-panels/GlobalPriceSettings";
 import { CustomCellSettings } from "./sidebar-panels/CustomCellSettings";
 import { ProductInfoSettings } from "./sidebar-panels/ProductInfoSettings";
-import { PizzaSettingsPanel } from "./sidebar-panels/PizzaSettingsPanel";
 import { TemplateSettingsPanel } from "./sidebar-panels/TemplateSettingsPanel";
-import { BannerSettingsPanel } from "./sidebar-panels/BannerSettingsPanel";
 import { BackgroundSettingsPanel } from "./sidebar-panels/BackgroundSettingsPanel";
+import { ModuleRegistry } from "@/lib/moduleRegistry";
 import { GlobalGridSettings } from "./sidebar-panels/GlobalGridSettings";
 import { useUIStore } from "@/store/useUIStore";
 import { useCatalogStore } from "@/store/useCatalogStore";
@@ -23,7 +22,7 @@ import {
 } from "@phosphor-icons/react";
 
 export function Sidebar() {
-  const { sidebarState, setSidebarState, editingContent, selectedSlotIds } = useUIStore();
+  const { sidebarState, setSidebarState, editingContent, selection } = useUIStore();
   const { formas, activeFormaId } = useCatalogStore();
 
   const activeForma = formas.find(f => f.id === activeFormaId);
@@ -31,6 +30,8 @@ export function Sidebar() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selectedSlot: any = null;
+  const selectedSlotIds = selection.type === 'slot' ? selection.ids : (selection.type === 'bannerCell' && selection.parentId ? [selection.parentId] : []);
+  
   if (selectedSlotIds.length > 0) {
     for (const p of pages) {
       const s = p.slots.find(slot => slot.id === selectedSlotIds[0]);
@@ -92,14 +93,20 @@ export function Sidebar() {
 
           <h3 className="section-title mt-6 mb-3">Sürüklenebilir Modüller</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div draggable onDragStart={(e) => e.dataTransfer.setData("newModuleType", "banner")} className="bg-(--bg-panel) p-4 rounded-xl border border-(--border-color) shadow-sm hover:border-primary cursor-grab flex flex-col items-center gap-2 transition-all">
-              <Megaphone size={28} weight="duotone" className="text-primary" />
-              <span className="ui-text-small font-semibold">Banner (Izgara)</span>
-            </div>
-            <div draggable onDragStart={(e) => e.dataTransfer.setData("newModuleType", "pizza")} className="bg-(--bg-panel) p-4 rounded-xl border border-(--border-color) shadow-sm hover:border-orange-500 cursor-grab flex flex-col items-center gap-2 transition-all">
-              <Pizza size={28} weight="duotone" className="text-orange-500" />
-              <span className="ui-text-small font-semibold">Pizza Menüsü</span>
-            </div>
+            {Object.values(ModuleRegistry).map((module) => {
+              const Icon = module.icon;
+              return (
+                <div 
+                  key={module.id} 
+                  draggable 
+                  onDragStart={(e) => e.dataTransfer.setData("newModuleType", module.id)} 
+                  className={`bg-(--bg-panel) p-4 rounded-xl border border-(--border-color) shadow-sm ${module.borderHoverClass} cursor-grab flex flex-col items-center gap-2 transition-all`}
+                >
+                  <Icon size={28} weight="duotone" className={module.colorClass} />
+                  <span className="ui-text-small font-semibold">{module.label}</span>
+                </div>
+              );
+            })}
           </div>
         </TabsContent>
 
@@ -124,24 +131,26 @@ export function Sidebar() {
                   </Accordion>
                 </>
               )}
-              {selectedSlot?.role === 'free' && selectedSlot?.moduleData?.type === 'banner' && (
-                <>
-                  <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg flex items-center gap-2 shadow-sm">
-                    <Megaphone size={20} weight="fill" className="text-purple-600" />
-                    <span className="text-[11px] font-bold text-purple-800 tracking-wider">Banner Modülü Seçili</span>
-                  </div>
-                  <BannerSettingsPanel />
-                </>
-              )}
-              {selectedSlot?.role === 'free' && selectedSlot?.moduleData?.type === 'pizza' && (
-                <>
-                  <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg flex items-center gap-2 shadow-sm">
-                    <Pizza size={20} weight="fill" className="text-orange-600" />
-                    <span className="text-[11px] font-bold text-orange-800 tracking-wider">Pizza Menüsü Seçili</span>
-                  </div>
-                  <PizzaSettingsPanel />
-                </>
-              )}
+              {selectedSlot?.role === 'free' && selectedSlot?.moduleData?.type && ModuleRegistry[selectedSlot.moduleData.type] ? (
+                (() => {
+                  const module = ModuleRegistry[selectedSlot.moduleData.type];
+                  const SidebarPanel = module.sidebarComponent;
+                  const Icon = module.icon;
+                  return (
+                    <>
+                      <div className={`${module.bgColorClass} border ${module.borderColorClass} p-3 rounded-lg flex items-center gap-2 shadow-sm`}>
+                        <Icon size={20} weight="fill" className={module.colorClass} />
+                        <span className={`text-[11px] font-bold ${module.colorClass.replace('text-', 'text-')} tracking-wider`}>{module.label} Seçili</span>
+                      </div>
+                      <SidebarPanel />
+                    </>
+                  );
+                })()
+              ) : selectedSlot?.role === 'free' && selectedSlot?.moduleData?.type ? (
+                <div className="bg-red-50 border border-red-200 p-3 rounded-lg flex items-center gap-2 shadow-sm text-red-500 font-bold text-[11px]">
+                  Bilinmeyen Modül: {selectedSlot.moduleData.type}
+                </div>
+              ) : null}
             </div>
           )}
         </TabsContent>

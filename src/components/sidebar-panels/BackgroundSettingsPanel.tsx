@@ -2,7 +2,6 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { uploadImage } from "@/lib/uploadAction";
 import { ColorOpacityPicker } from "../ColorOpacityPicker";
 import { useLayerStore } from "@/store/useLayerStore";
 import { useCatalogStore } from "@/store/useCatalogStore";
@@ -234,8 +233,9 @@ export function BackgroundSettingsPanel() {
     formData.append("filename", `overlay-${Date.now()}.${file.name.split(".").pop()}`);
 
     try {
-      const result = await uploadImage(formData);
-      if (result.success) {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (res.ok) {
+        const result = await res.json();
         // Batch Apply Resim: Seçili tüm gruplara aynı resmi yay
         targetGroups.forEach(group => {
           syncGroupBackground(group, 'overlay', {

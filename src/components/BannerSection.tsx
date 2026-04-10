@@ -1,8 +1,7 @@
 "use client";
 
-import { useBannerStore, BannerCell } from "@/store/useBannerStore";
 import { useUIStore } from "@/store/useUIStore";
-import { usePizzaStore } from "@/store/usePizzaStore";
+import { useCatalogStore } from "@/store/useCatalogStore";
 import { useEffect, useState } from "react";
 
 function hexToRgba(hex: string, opacity: number) {
@@ -16,11 +15,21 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
   
 
   const clearCatalogSelection = useUIStore((state) => state.clearSelection);
-  const clearPizzaSelection = usePizzaStore((state) => state.clearSelection);
+  const toggleElementSelection = useUIStore((state) => state.toggleElementSelection);
+  const selection = useUIStore((state) => state.selection);
   
-  // İleride instance tabanlı olacak ama şimdilik uygulamanın çökmemesi için Global Store kullanıyoruz.
-  const { bannerSettings, undo, selectedBannerCellIds, toggleBannerCellSelection, updateBannerCell } = useBannerStore();
-  const { cells } = bannerSettings;
+  const selectedBannerCellIds = selection.type === 'bannerCell' && selection.parentId === slotId ? selection.ids : [];
+
+  const updateSlotModuleData = useCatalogStore((state) => state.updateSlotModuleData);
+  const undo = useCatalogStore((state) => state.undo);
+
+  const { cells } = instanceData || { cells: [] };
+
+  const updateBannerCell = (cellId: string, updates: any) => {
+    if (!slotId || pageNumber === undefined) return;
+    const newCells = cells.map((c: any) => c.id === cellId ? { ...c, ...updates } : c);
+    updateSlotModuleData(pageNumber, slotId, { cells: newCells });
+  };
 
   // Çift tıklandığında hangi hücrenin düzenlendiğini tutacağımız yerel state
   const [editingCellId, setEditingCellId] = useState<string | null>(null);
@@ -36,7 +45,9 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, editingCellId]);
 
-  const visibleCells = cells.filter((c: BannerCell) => !c.hidden);
+  if (!cells || cells.length === 0) return null;
+
+  const visibleCells = cells.filter((c: any) => !c.hidden);
 
   return (
     <div 
@@ -46,7 +57,7 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
         gridTemplateRows: "repeat(4, minmax(0, 1fr))",
       }}
     >
-      {visibleCells.map((cell: BannerCell) => {
+      {visibleCells.map((cell: any) => {
         const font = cell.font;
         const pad = cell.padding;
         const b = cell.border;
@@ -66,17 +77,14 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
             onClick={(e) => {
               e.stopPropagation();
               if (!isEditing) {
-                clearCatalogSelection();
-                clearPizzaSelection();
-                toggleBannerCellSelection(cell.id, e.ctrlKey || e.shiftKey);
+                toggleElementSelection('bannerCell', cell.id, e.ctrlKey || e.shiftKey, slotId);
               }
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
-              clearCatalogSelection();
               setEditingCellId(cell.id);
               if (!isSelected) {
-                toggleBannerCellSelection(cell.id, false); // Çift tıklanınca otomatik seçili hale de gelsin
+                toggleElementSelection('bannerCell', cell.id, false, slotId);
               }
             }}
             className={`flex box-border relative overflow-hidden cursor-pointer transition-all ${isSelected && !isEditing ? 'ring-2 ring-inset ring-blue-500 z-10' : 'z-0'}`}

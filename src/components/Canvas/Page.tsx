@@ -13,6 +13,7 @@ export function Page({ pageNumber }: { pageNumber: number }) {
   const activeFormaId = useCatalogStore((state) => state.activeFormaId);
   const template = useCatalogStore((state) => state.activeTemplate);
   const gridGap = useCatalogStore((state) => state.globalSettings?.gridGap ?? 0);
+  const defaultGrid = useCatalogStore((state) => state.globalSettings?.defaultGrid);
   const updatePageFooter = useCatalogStore((state) => state.updatePageFooter);
   const mergeSelected = useCatalogStore((state) => state.mergeSelected);
   const unmergeSlot = useCatalogStore((state) => state.unmergeSlot);
@@ -64,44 +65,31 @@ export function Page({ pageNumber }: { pageNumber: number }) {
 
 const [mt, mr, mb, ml] = pageConfig.safeZone;
   
-const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState().globalSettings.defaultGrid?.cols || 4;
-  const configuredRows = currentPage.gridSettings?.rows || useCatalogStore.getState().globalSettings.defaultGrid?.rows || 4;
+  const totalColumns = currentPage.gridSettings?.cols || defaultGrid?.cols || 4;
+  const configuredRows = currentPage.gridSettings?.rows || defaultGrid?.rows || 4;
   
   const totalRows = Math.max(configuredRows, Math.ceil(currentPage.slots.length / totalColumns));
 
-  const previousVisibleCount = formas
-    .flatMap(f => f.pages)
-    .filter(p => p.pageNumber < pageNumber)
-    .reduce((sum, p) => sum + p.slots.filter(s => s.role === 'product' && !s.hidden).length, 0);
-
-  const renderSlots = (startIndex: number) => {
-    const grid: boolean[][] = [];
-    let r = Math.floor(startIndex / totalColumns), c = startIndex % totalColumns;
-
+  const renderSlots = () => {
     return currentPage.slots.map((slot, idx) => {
-      if (idx < startIndex || slot.hidden) return null;
-      let placed = false, startR = r, startC = c;
-      while (!placed) {
-        if (!grid[r]) grid[r] = [];
-        if (!grid[r][c]) {
-          let canFit = (c + slot.colSpan <= totalColumns);
-          if (canFit) {
-            for (let ir = 0; ir < slot.rowSpan; ir++) {
-              if (!grid[r + ir]) grid[r + ir] = [];
-              for (let ic = 0; ic < slot.colSpan; ic++) { if (grid[r + ir][c + ic]) { canFit = false; break; } }
-              if (!canFit) break;
-            }
-          }
-          if (canFit) {
-            for (let ir = 0; ir < slot.rowSpan; ir++) { for (let ic = 0; ic < slot.colSpan; ic++) grid[r + ir][c + ic] = true; }
-            startR = r; startC = c; placed = true;
-          }
-        }
-        if (!placed) { c++; if (c >= totalColumns) { c = 0; r++; } }
-      }
-      const currentSlotIndexInPage = currentPage.slots.slice(0, idx).filter(s => s.role === 'product' && !s.hidden).length;
-      const globalNumber = (slot.role === 'product' && !slot.hidden) ? previousVisibleCount + currentSlotIndexInPage + 1 : 0;
-      return <Slot key={slot.id} slot={slot} pageNumber={pageNumber} slotIndex={idx} globalNumber={globalNumber} onContextMenu={handleContextMenu} gridPosition={{ colStart: startC + 1, rowStart: startR + 1 }} totalRows={totalRows} totalColumns={totalColumns} />;
+      if (slot.hidden) return null;
+      
+      const gridPosition = slot.gridPosition || { colStart: 1, rowStart: 1 };
+      const globalNumber = slot.globalNumber || 0;
+      
+      return (
+        <Slot 
+          key={slot.id} 
+          slot={slot} 
+          pageNumber={pageNumber} 
+          slotIndex={idx} 
+          globalNumber={globalNumber} 
+          onContextMenu={handleContextMenu} 
+          gridPosition={gridPosition} 
+          totalRows={totalRows} 
+          totalColumns={totalColumns} 
+        />
+      );
     });
   };
 
@@ -136,7 +124,7 @@ const totalColumns = currentPage.gridSettings?.cols || useCatalogStore.getState(
         }}
       >
         <div className="safe-zone absolute z-10 flex flex-col pointer-events-none" style={{ top: `${mt}mm`, right: `${mr}mm`, bottom: "30mm", left: `${ml}mm` }}>
-            <div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{renderSlots(0)}</div>
+            <div className="grid flex-1 min-h-0 min-w-0 w-full h-full relative z-0" style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))`, gap: `${gridGap}mm` }}>{renderSlots()}</div>
         </div>
         <div className="absolute w-full flex items-end gap-5 z-50" style={{ bottom: "10mm", left: "0", paddingLeft: "10mm", paddingRight: "10mm", height: "12mm" }}>
           

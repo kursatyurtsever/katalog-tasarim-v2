@@ -2,10 +2,7 @@
 
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
-import { useBannerStore } from "@/store/useBannerStore";
-import { usePizzaStore } from "@/store/usePizzaStore";
-import { BannerSection } from "./BannerSection";
-import { PizzaSection } from "./PizzaSection";
+import { ModuleRegistry } from "@/lib/moduleRegistry";
 import { useState, useEffect, forwardRef } from "react";
 import { TypographyData } from "./TypographyPicker";
 import { BorderRadiusData } from "./BorderRadiusPicker";
@@ -77,9 +74,6 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
     setSelectedTextElement, selectedTextElement, 
     editingContent, setEditingContent
   } = useUIStore();
-  
-  const clearBannerSelection = useBannerStore((state) => state.clearBannerSelection);
-  const clearPizzaSelection = usePizzaStore((state) => state.clearSelection);
 
   const [isOver, setIsOver] = useState(false);
 
@@ -104,10 +98,11 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
     : globalSettings;
 
   const imgSettings = slot.imageSettings || {};
-  const isImgEditMode = imgSettings.editMode ?? finalSettings.imageEditMode ?? false;
-  const currentPosX = imgSettings.posX ?? finalSettings.imagePosX ?? 0;
-  const currentPosY = imgSettings.posY ?? finalSettings.imagePosY ?? 0;
-  const currentScale = imgSettings.scale ?? finalSettings.imageScale ?? 100;
+  // BURAYI DEĞİŞTİRİYORUZ: Eski global ayarlara düşmesini engelliyoruz
+  const isImgEditMode = imgSettings.editMode ?? false;
+  const currentPosX = imgSettings.posX ?? 0;
+  const currentPosY = imgSettings.posY ?? 0;
+  const currentScale = imgSettings.scale ?? 100;
 
   useEffect(() => {
     if (!imgDrag.isDragging) return;
@@ -219,8 +214,6 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
         if (editingContent?.slotId === slot.id) return;
         if (editingContent) setEditingContent(null);
 
-        clearBannerSelection();
-        clearPizzaSelection();
         disableAllImageEditModes();
         
         toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
@@ -265,8 +258,16 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
             </div>
           ) : (
             <div className={`absolute inset-0 ${editingContent?.slotId === slot.id ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-              {slot.moduleData.type === 'banner' && <BannerSection instanceData={slot.moduleData} slotId={slot.id} pageNumber={pageNumber} />}
-              {slot.moduleData.type === 'pizza' && <PizzaSection instanceData={slot.moduleData} slotId={slot.id} pageNumber={pageNumber} />}
+              {slot.moduleData?.type && ModuleRegistry[slot.moduleData.type] ? (
+                 (() => {
+                   const CanvasComponent = ModuleRegistry[slot.moduleData.type].canvasComponent;
+                   return <CanvasComponent instanceData={slot.moduleData} slotId={slot.id} pageNumber={pageNumber} />;
+                 })()
+              ) : slot.moduleData?.type ? (
+                 <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500 font-bold border border-red-200">
+                    Bilinmeyen Modül: {slot.moduleData.type}
+                 </div>
+              ) : null}
             </div>
           )}
         </div>

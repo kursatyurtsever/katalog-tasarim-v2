@@ -1,4 +1,6 @@
 
+"use client";
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Template1, availableTemplates } from "@/lib/templates";
@@ -13,6 +15,7 @@ import { SpacingData } from "@/components/SpacingPicker";
 import { ShadowData } from "@/components/ShadowPicker";
 import { useHistoryStore } from "./useHistoryStore";
 import { useUIStore } from "./useUIStore";
+import { ModuleRegistry } from "@/lib/moduleRegistry";
 
 export type DeepPartial<T> = T extends object ? {
     [P in keyof T]?: DeepPartial<T[P]>;
@@ -101,6 +104,8 @@ export interface Slot {
   };
   role?: 'product' | 'free';
   moduleData?: any;
+  gridPosition?: { colStart: number; rowStart: number };
+  globalNumber?: number;
 }
 
 export interface CatalogPage {
@@ -109,6 +114,7 @@ export interface CatalogPage {
   slots: Slot[];
   footerText: string;
   footerLogo: string | null;
+  headerData?: { logoUrl: string; title: string; date: string; no: string };
   gridSettings?: { rows: number; cols: number }; // EKLENDİ (Sayfaya özel ezilebilir grid)
 }
 
@@ -138,6 +144,7 @@ export interface CatalogActions {
   setGlobalSettings: (settings: DeepPartial<CatalogSettings>) => void;
   updateGlobalSettings: (settings: any) => void;
   updatePageFooter: (pageNumber: number, data: Partial<{ footerText: string; footerLogo: string | null }>) => void;
+  updatePageHeader: (pageNumber: number, data: Partial<{ logoUrl: string; title: string; date: string; no: string }>) => void;
   swapSlotContents: (sourcePageNumber: number, sourceIndex: number, targetPageNumber: number, targetIndex: number) => void;
   setProductPool: (products: ProductInfo[]) => void;
   setMasterProductPool: (products: ProductInfo[]) => void;
@@ -171,6 +178,7 @@ export interface CatalogActions {
   applyPageGridChange: (pageNumber: number) => void;
   revertToGlobalGrid: (pageNumber: number) => void;
   updateSelectedSlotsImageSettings: (settings: any) => void;
+  updateSlotModuleData: (pageNumber: number, slotId: string, updates: any) => void;
 }
 
 const initialGlobalSettings: CatalogSettings = {
@@ -267,9 +275,9 @@ function buildPagesForTemplate(template: BrochureTemplate): CatalogPage[] {
   }));
 }
 
-function cloneDeep<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value));
-}
+
+// @ts-ignore
+const cloneDeep = <T>(value: T): T => ((typeof structuredClone === "function" ? structuredClone(value) : (JSON.parse(JSON.stringify(value)) as any)) as any);
 
 function buildFormasForTemplate(template: BrochureTemplate): Forma[] {
   const pages = buildPagesForTemplate(template);
@@ -298,6 +306,69 @@ function buildFormasForTemplate(template: BrochureTemplate): Forma[] {
 }
 
 function isObject(item: any) { return (item && typeof item === 'object' && !Array.isArray(item)); }
+
+function recalculateLayout(formas: Forma[], defaultGrid: { rows: number, cols: number }) {
+  let globalNumberCounter = 0;
+  
+  const newFormas = cloneDeep(formas);
+
+  newFormas.forEach(forma => {
+    forma.pages.forEach(page => {
+      const totalColumns = page.gridSettings?.cols || defaultGrid.cols;
+      
+      const grid: boolean[][] = [];
+      let r = 0, c = 0;
+
+      page.slots.forEach((slot: Slot) => {
+        if (slot.hidden) {
+          slot.gridPosition = undefined;
+          slot.globalNumber = undefined;
+          return;
+        }
+
+        let placed = false;
+        let startR = r, startC = c;
+        
+        while (!placed) {
+          if (!grid[r]) grid[r] = [];
+          if (!grid[r][c]) {
+            let canFit = (c + slot.colSpan <= totalColumns);
+            if (canFit) {
+              for (let ir = 0; ir < slot.rowSpan; ir++) {
+                if (!grid[r + ir]) grid[r + ir] = [];
+                for (let ic = 0; ic < slot.colSpan; ic++) {
+                  if (grid[r + ir][c + ic]) { canFit = false; break; }
+                }
+                if (!canFit) break;
+              }
+            }
+            if (canFit) {
+              for (let ir = 0; ir < slot.rowSpan; ir++) {
+                for (let ic = 0; ic < slot.colSpan; ic++) grid[r + ir][c + ic] = true;
+              }
+              startR = r; startC = c; placed = true;
+            }
+          }
+          if (!placed) {
+            c++; if (c >= totalColumns) { c = 0; r++; }
+          }
+        }
+        
+        slot.gridPosition = { colStart: startC + 1, rowStart: startR + 1 };
+        
+        if (slot.role === 'product') {
+          globalNumberCounter++;
+          slot.globalNumber = globalNumberCounter;
+        } else {
+          slot.globalNumber = undefined;
+        }
+      });
+    });
+  });
+  
+  return newFormas;
+}
+
 function deepMerge(target: any, source: any) {
   if (!target) return source;
   if (!source) return target;
@@ -393,9 +464,10 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       setActiveTemplate: (templateId) => {
         const tmpl = availableTemplates.find((t) => t.id === templateId);
         if (!tmpl) return;
+        const newFormas = buildFormasForTemplate(tmpl);
         set({
           activeTemplate: tmpl,
-          formas: buildFormasForTemplate(tmpl),
+          formas: recalculateLayout(newFormas, initialGlobalSettings.defaultGrid),
           activeFormaId: 1,
           activeTab: "outer",
         });
@@ -413,7 +485,16 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       updatePageFooter: (pageNum, data) => {
           const { getActivePages, setActivePages } = get();
           const newPages = getActivePages().map((p) => p.pageNumber === pageNum ? { ...p, ...data } : p);
-          setActivePages(newPages);
+          setActivePages(newPages as any);
+      },
+
+      updatePageHeader: (pageNum, data) => {
+          const { getActivePages, setActivePages } = get();
+          const newPages = getActivePages().map((p) => p.pageNumber === pageNum ? { 
+            ...p, 
+            headerData: { ...(p.headerData || { logoUrl: "", title: "SELBSTABHOLER - ANGEBOT", date: "", no: "41" }), ...data } 
+          } : p);
+          setActivePages(newPages as any);
       },
       
       setProductPool: (products) => set({ productPool: products }),
@@ -456,7 +537,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           }
         });
         
-        set({ formas: newFormas });
+        set({ formas: recalculateLayout(newFormas, get().globalSettings.defaultGrid) });
       },
 
       clearProducts: () => {
@@ -475,7 +556,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const { saveState, clearHistory } = useHistoryStore.getState();
         saveState(cloneDeep(getActivePages()));
         set({
-          formas: buildFormasForTemplate(activeTemplate),
+          formas: recalculateLayout(buildFormasForTemplate(activeTemplate), initialGlobalSettings.defaultGrid),
           activeFormaId: 1,
           activeTab: "outer",
           globalSettings: cloneDeep(initialGlobalSettings),
@@ -503,7 +584,12 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         sourceSlot.imageSettings = targetSlot.imageSettings;
         targetSlot.imageSettings = tempImgSettings;
 
-        setActivePages(newPages);
+        
+        const newFormas = get().formas.map((forma) =>
+          forma.id === get().activeFormaId ? { ...forma, pages: newPages } : forma
+        );
+        
+        set({ formas: recalculateLayout(newFormas, get().globalSettings.defaultGrid) });
       },
 
       mergeSelected: (pageNumber, targetSlotId) => {
@@ -591,7 +677,11 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newPages = [...currentPages];
         newPages[pageIndex] = { ...page, slots: newSlots };
         
-setActivePages(newPages);
+        const newFormas = get().formas.map((forma) =>
+          forma.id === get().activeFormaId ? { ...forma, pages: newPages } : forma
+        );
+        
+        set({ formas: recalculateLayout(newFormas, get().globalSettings.defaultGrid) });
         clearSelection();
 
         return { success: true };
@@ -617,7 +707,11 @@ setActivePages(newPages);
         const newPages = [...currentPages];
         newPages[pageIndex] = { ...page, slots: newSlots };
         
-setActivePages(newPages);
+        const newFormas = get().formas.map((forma) =>
+          forma.id === get().activeFormaId ? { ...forma, pages: newPages } : forma
+        );
+        
+        set({ formas: recalculateLayout(newFormas, get().globalSettings.defaultGrid) });
         clearSelection();
       },
 
@@ -631,7 +725,7 @@ setActivePages(newPages);
 
         const newPages = cloneDeep(currentPages);
         selectedSlotIds.forEach(id => {
-          newPages.forEach(p => p.slots.forEach(s => { if (s.id === id) { s.isCustom = enabled; if (enabled && !s.customSettings) s.customSettings = JSON.parse(JSON.stringify(globalSettings)); } }));
+          newPages.forEach(p => p.slots.forEach(s => { if (s.id === id) { s.isCustom = enabled; if (enabled && !s.customSettings) s.customSettings = (JSON.parse(JSON.stringify(globalSettings)) as any); } }));
         });
 
         setActivePages(newPages);
@@ -667,7 +761,7 @@ setActivePages(newPages);
           }
         }));
 
-        set({ copiedSlotSettings: settingsToCopy ? JSON.parse(JSON.stringify(settingsToCopy)) : null });
+        set({ copiedSlotSettings: settingsToCopy ? (JSON.parse(JSON.stringify(settingsToCopy)) as any) : null });
       },
 
       pasteSlotSettings: () => {
@@ -685,7 +779,7 @@ setActivePages(newPages);
           newPages.forEach(p => p.slots.forEach(s => {
             if (s.id === id) {
               s.isCustom = true;
-              const copied = JSON.parse(JSON.stringify(copiedSlotSettings));
+              const copied = (JSON.parse(JSON.stringify(copiedSlotSettings)) as any);
               copied.imageEditMode = false;
               if (copied.badge) copied.badge.isFreePosition = false;
               s.customSettings = copied;
@@ -835,9 +929,9 @@ setActivePages(newPages);
         if (selectedSlotIds.length === 0) return;
 
         const currentPages = getActivePages();
-        saveState(JSON.parse(JSON.stringify(currentPages)));
+        saveState((JSON.parse(JSON.stringify(currentPages)) as any));
 
-        const newPages = JSON.parse(JSON.stringify(currentPages));
+        const newPages = (JSON.parse(JSON.stringify(currentPages)) as any);
         selectedSlotIds.forEach(id => {
           newPages.forEach((p: any) => p.slots.forEach((s: any) => {
             if (s.id === id) {
@@ -846,7 +940,7 @@ setActivePages(newPages);
               if (role === 'free') {
                 s.product = null;
                 s.isCustom = true;
-                s.customSettings = JSON.parse(JSON.stringify(get().globalSettings));
+                s.customSettings = (JSON.parse(JSON.stringify(get().globalSettings)) as any);
                 if (s.customSettings) {
                     s.customSettings.spacings.cell = { t: 0, r: 0, b: 0, l: 0, linked: true };
                     s.customSettings.borderWidth = 0;
@@ -862,7 +956,10 @@ setActivePages(newPages);
           }));
         });
 
-        setActivePages(newPages);
+        const newFormas = get().formas.map((forma) =>
+          forma.id === get().activeFormaId ? { ...forma, pages: newPages } : forma
+        );
+        set({ formas: recalculateLayout(newFormas, get().globalSettings.defaultGrid) });
         // Rol değiştikten sonra seçim kalsın ki kullanıcı anında farkı görsün.
       },
 
@@ -870,9 +967,9 @@ setActivePages(newPages);
         const { getActivePages, setActivePages } = get();
         const { saveState } = useHistoryStore.getState();
         const currentPages = getActivePages();
-        saveState(JSON.parse(JSON.stringify(currentPages)));
+        saveState((JSON.parse(JSON.stringify(currentPages)) as any));
 
-        const newPages = JSON.parse(JSON.stringify(currentPages));
+        const newPages = (JSON.parse(JSON.stringify(currentPages)) as any);
         const page = newPages.find((p: any) => p.pageNumber === pageNumber);
         if (!page) return;
         const slot = page.slots.find((s: any) => s.id === slotId);
@@ -880,31 +977,10 @@ setActivePages(newPages);
 
         if (moduleType === null) {
           slot.moduleData = null;
-        } else if (moduleType === 'banner') {
-          // Banner başlangıç verisi (instance)
-          slot.moduleData = {
-            type: 'banner',
-            cells: Array.from({ length: 32 }, (_, i) => ({
-              id: `banner-inst-${i}`,
-              text: "",
-              colSpan: 1,
-              rowSpan: 1,
-              hidden: false,
-              mergedInto: null,
-              font: { fontFamily: "Inter", fontWeight: "700", fontSize: 14, lineHeight: 1.2, letterSpacing: 0, textAlign: "center", verticalAlign: "middle", textTransform: "none", textDecoration: "none", color: "#1e293b", opacity: 100, decimalScale: 100 },
-              padding: { t: 0, r: 0, b: 0, l: 0, linked: true },
-              bgColor: { c: "#ffffff", o: 0 },
-              border: { t: 0, r: 0, b: 0, l: 0, linked: true, color: { c: "#e2e8f0", o: 100 }, style: "solid" },
-              image: null
-            }))
-          };
-        } else if (moduleType === 'pizza') {
-          // Pizza başlangıç verisi (instance)
-          slot.moduleData = {
-            type: 'pizza',
-            title: "Pizzakartons KRAFT !!!",
-            prices: Array(19).fill("")
-          };
+        } else if (ModuleRegistry[moduleType]) {
+          slot.moduleData = ModuleRegistry[moduleType].initialData();
+        } else {
+          slot.moduleData = null;
         }
         setActivePages(newPages);
       },
@@ -969,7 +1045,7 @@ const currentGrid = p.gridSettings || globalSettings.defaultGrid || { rows: 4, c
           });
         });
 
-set({ formas: newFormas });
+        set({ formas: recalculateLayout(newFormas, globalSettings.defaultGrid) });
       },
 
       applyPageGridChange: (pageNumber) => {
@@ -989,7 +1065,20 @@ const currentGrid = page.gridSettings || globalSettings.defaultGrid || { rows: 4
           }
         });
 
-set({ formas: newFormas });
+        set({ formas: recalculateLayout(newFormas, globalSettings.defaultGrid) });
+      },
+
+      
+      updateSlotModuleData: (pageNumber, slotId, updates) => {
+        const { getActivePages, setActivePages } = get();
+        const newPages = getActivePages().map((p) => p.pageNumber === pageNumber ? {
+          ...p,
+          slots: p.slots.map(s => s.id === slotId ? {
+            ...s,
+            moduleData: typeof updates === "object" && updates !== null ? { ...(s.moduleData || {}), ...updates } : updates
+          } : s)
+        } : p);
+        setActivePages(newPages as any);
       },
 
       revertToGlobalGrid: (pageNumber) => {
@@ -1018,8 +1107,13 @@ merge: (persisted, current) => {
           mergedGlobal.defaultGrid = { rows: 4, cols: 4 };
         }
 
+        // BURAYI DEĞİŞTİRİYORUZ: Global ayarlardaki resim ölçeklerini zorla %100 yapıyoruz
         const normalizedGlobalSettings: CatalogSettings = {
           ...mergedGlobal,
+          imageScale: 100, 
+          imagePosX: 0,
+          imagePosY: 0,
+          imageEditMode: false,
         };
 
         let formas = incoming.formas || base.formas || buildFormasForTemplate(base.activeTemplate || Template1);
@@ -1032,10 +1126,12 @@ merge: (persisted, current) => {
           );
         }
 
+        const finalFormas = recalculateLayout(formas.map(normalizeForma), normalizedGlobalSettings.defaultGrid);
+
         return {
           ...base,
           ...incoming,
-          formas: formas.map(normalizeForma),
+          formas: finalFormas,
           activeFormaId: incoming.activeFormaId || base.activeFormaId || 1,
           activeTab: incoming.activeTab || (incoming.activeFormaId === 2 ? "inner" : "outer"),
           globalSettings: normalizedGlobalSettings,

@@ -1,22 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useCatalogStore } from "@/store/useCatalogStore";
 
 /**
  * Sayfa 1 başlığı: logo, kırmızı SELBSTABHOLER - ANGEBOT, tarih, 41 numarası, alt slogan.
  */
-export function Header() {
-  const [header, setHeader] = useState({
+
+export function Header({ pageNumber = 1 }: { pageNumber?: number }) {
+  const page = useCatalogStore((state) => state.getActivePages().find((p) => p.pageNumber === pageNumber));
+  const updatePageHeader = useCatalogStore((state) => state.updatePageHeader);
+
+  const header = page?.headerData || {
     logoUrl: "",
     title: "SELBSTABHOLER - ANGEBOT",
     date: "",
     no: "41",
-  });
+  };
+
+  const handleChange = (key: keyof typeof header, value: string) => {
+    updatePageHeader(pageNumber, { [key]: value });
+  };
 
   return (
     <div className="header shrink-0 mb-2 flex flex-col border border-slate-400 bg-white text-black">
       <div className="flex h-20 border-b border-slate-400">
-        <div className="relative flex flex-[4] items-center justify-center border-r border-slate-400 p-2">
+        <div className="relative flex flex-4 items-center justify-center border-r border-slate-400 p-2">
           {header.logoUrl ? (
             <img
               src={header.logoUrl}
@@ -27,7 +35,7 @@ export function Header() {
             <span className="text-xs text-slate-400">Logo</span>
           )}
         </div>
-        <div className="flex flex-[3] flex-col overflow-hidden border-r border-slate-400">
+        <div className="flex flex-3 flex-col overflow-hidden border-r border-slate-400">
           <div
             id="header-b-container"
             className="relative flex flex-1 items-center justify-center overflow-hidden border-b border-slate-400 bg-blue-800 px-2 font-bold text-white"
@@ -44,7 +52,7 @@ export function Header() {
               type="text"
               id="header-date"
               value={header.date}
-              onChange={(e) => setHeader((prev) => ({ ...prev, date: e.target.value }))}
+              onChange={(e) => handleChange("date", e.target.value)}
               className="w-full border-none bg-transparent text-center font-bold text-red-700 outline-none"
               style={{ fontSize: "16px" }}
             />
@@ -55,7 +63,7 @@ export function Header() {
             type="text"
             id="header-no"
             value={header.no}
-            onChange={(e) => setHeader((prev) => ({ ...prev, no: e.target.value }))}
+            onChange={(e) => handleChange("no", e.target.value)}
             className="w-full border-none bg-transparent text-center font-black text-white outline-none placeholder-white"
             style={{ fontSize: "36px" }}
           />

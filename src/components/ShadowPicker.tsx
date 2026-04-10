@@ -83,7 +83,7 @@ export function ShadowPicker({ title = "Gölge Ayarları (Drop Shadow)", value, 
           </div>
 
           {/* Renk ve Saydamlık */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 bg-white p-2 rounded border border-slate-100">
+          <div className="flex items-center justify-between pt-2 bg-white p-2 rounded border border-slate-100">
             <span className="text-[10px] font-bold text-slate-700">Gölge Rengi & Saydamlık</span>
             <ColorOpacityPicker
               color={value.color}

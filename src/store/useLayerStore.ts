@@ -6,7 +6,6 @@ import { useCatalogStore } from './useCatalogStore';
 
 interface LayerState {
   layers: Layer[];
-  selectedLayerIds: string[];
   selectedPageIds: string[];
 }
 
@@ -31,7 +30,6 @@ interface LayerActions {
 
 export const useLayerStore = create<LayerState & LayerActions>((set, get) => ({
   layers: [],
-  selectedLayerIds: [],
   selectedPageIds: [],
 
   addLayer: (layer) =>
@@ -39,11 +37,22 @@ export const useLayerStore = create<LayerState & LayerActions>((set, get) => ({
       layers: [...state.layers, { ...layer, visible: layer.visible ?? true }],
     })),
 
-  removeLayer: (layerId) =>
+  removeLayer: (layerId) => {
     set((state) => ({
       layers: state.layers.filter((layer) => layer.id !== layerId),
-      selectedLayerIds: state.selectedLayerIds.filter(id => id !== layerId)
-    })),
+    }));
+    
+    // UI Store'daki seçimi de temizle
+    const uiSelection = useUIStore.getState().selection;
+    if (uiSelection.type === 'layer' && uiSelection.ids.includes(layerId)) {
+      const newIds = uiSelection.ids.filter(id => id !== layerId);
+      if (newIds.length === 0) {
+        useUIStore.getState().clearSelection();
+      } else {
+        useUIStore.getState().setSelection({ ids: newIds });
+      }
+    }
+  },
 
   updateLayerBounds: (layerId, newBounds) =>
     set((state) => ({
@@ -113,7 +122,13 @@ export const useLayerStore = create<LayerState & LayerActions>((set, get) => ({
     });
   },
 
-  selectLayers: (layerIds) => set(() => ({ selectedLayerIds: layerIds })),
+  selectLayers: (layerIds) => {
+    if (layerIds.length === 0) {
+      useUIStore.getState().clearSelection();
+    } else {
+      useUIStore.getState().setSelection({ type: 'layer', ids: layerIds });
+    }
+  },
 
   moveLayer: (layerId, direction) =>
     set((state) => {
@@ -190,7 +205,7 @@ export const useLayerStore = create<LayerState & LayerActions>((set, get) => ({
     if (!sourceLayer) return;
 
     const newLayer: Layer = {
-      ...JSON.parse(JSON.stringify(sourceLayer)),
+      ...(JSON.parse(JSON.stringify(sourceLayer)) as any),
       id: uuidv4(),
       name: `${sourceLayer.name || 'Katman'} (Kopya)`,
       bounds: {
@@ -202,8 +217,8 @@ export const useLayerStore = create<LayerState & LayerActions>((set, get) => ({
 
     set((state) => ({
       layers: [...state.layers, newLayer],
-      selectedLayerIds: [newLayer.id]
     }));
+    useUIStore.getState().setSelection({ type: 'layer', ids: [newLayer.id] });
   },
 
   reorderLayers: (newLayers) => set(() => ({ layers: newLayers })),
