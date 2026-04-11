@@ -129,8 +129,9 @@ const [mt, mr, mb, ml] = pageConfig.safeZone;
       )}
       <div
         id={`page-${currentPage.id}`}
-        className={`physical-page relative shrink-0 shadow-lg border-r border-dashed border-slate-300 last:border-r-0 ${isSelected ? "ring-2 ring-blue-500" : ""}`}
-        style={pageStyle}
+        className={`physical-page relative shrink-0 border-r border-dashed border-slate-300 last:border-r-0 overflow-hidden ${isSelected ? "ring-2 ring-blue-500" : ""}`}
+        style={{...pageStyle, borderRightStyle: 'dashed'}}
+        data-hide-border-on-export="true"
         onClick={(e) => {
           setEditingContent(null);
           if (e.target === e.currentTarget) {

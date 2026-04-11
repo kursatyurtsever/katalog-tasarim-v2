@@ -29,19 +29,14 @@ export function CustomCellSettings() {
     }
   }, [sidebarState.activePanel, sidebarState.activeTab, sidebarState.activeSubTab]);
 
-  let globalNumberCounter = 0;
   let selectedGlobalNumber: number | null = null;
   let selectedSlot: any = null;
   
   pages.forEach(p => {
-    let startIdx = p.pageNumber === 1 ? 4 : p.pageNumber === 6 ? 8 : 0;
-    p.slots.forEach((s, idx) => {
-      if (idx >= startIdx && !s.hidden) {
-        globalNumberCounter++;
-        if (selectedSlotIds.length === 1 && s.id === selectedSlotIds[0]) {
-          selectedGlobalNumber = globalNumberCounter;
-          selectedSlot = s;
-        }
+    p.slots.forEach(s => {
+      if (selectedSlotIds.length === 1 && s.id === selectedSlotIds[0]) {
+        selectedSlot = s;
+        selectedGlobalNumber = s.globalNumber || null;
       }
     });
   });

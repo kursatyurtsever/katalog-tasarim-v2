@@ -357,8 +357,6 @@ function buildFormasForTemplate(template: BrochureTemplate): Forma[] {
 function isObject(item: any) { return (item && typeof item === 'object' && !Array.isArray(item)); }
 
 function recalculateLayout(formas: Forma[], defaultGrid: { rows: number, cols: number }) {
-  let globalNumberCounter = 0;
-  
   const newFormas = cloneDeep(formas);
 
   newFormas.forEach(forma => {
@@ -404,14 +402,21 @@ function recalculateLayout(formas: Forma[], defaultGrid: { rows: number, cols: n
         }
         
         slot.gridPosition = { colStart: startC + 1, rowStart: startR + 1 };
-        
-        if (slot.role === 'product') {
-          globalNumberCounter++;
-          slot.globalNumber = globalNumberCounter;
-        } else {
-          slot.globalNumber = undefined;
-        }
       });
+    });
+  });
+
+  // YENİ MANTIK: Sayfaları mantıksal Sayfa Numarasına (pageNumber) göre sırala ve numaralandır.
+  const allPages = newFormas.flatMap(f => f.pages).sort((a, b) => a.pageNumber - b.pageNumber);
+  let globalNumberCounter = 1;
+
+  allPages.forEach(page => {
+    page.slots.forEach(slot => {
+      if (!slot.hidden && slot.role === 'product') {
+        slot.globalNumber = globalNumberCounter++;
+      } else {
+        slot.globalNumber = undefined;
+      }
     });
   });
   

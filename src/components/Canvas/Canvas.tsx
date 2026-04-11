@@ -73,7 +73,7 @@ export function Canvas() {
           clearCatalogSelection();
           disableAllImageEditModes();
         }}
-        className={`canvas relative shadow-2xl transition-transform duration-200 ${isZoomed ? "mx-auto mt-20 mb-8" : "absolute top-1/2 left-1/2 origin-center"}`}
+        className={`canvas relative transition-transform duration-200 ${isZoomed ? "mx-auto mt-20 mb-8" : "absolute top-1/2 left-1/2 origin-center"}`}
         style={{
           boxSizing: "border-box",
           width: `${totalWidthMm}mm`,

@@ -24,32 +24,33 @@ export function ProductInfoSettings() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const allProductSlots = useMemo(() => {
-    const allPages = formas.flatMap(f => f.pages).sort((a, b) => a.pageNumber - b.pageNumber);
-    const slotsWithPage = allPages.flatMap(p => 
-      p.slots
-        .filter(s => s.role === 'product' && !s.hidden)
-        .map(s => ({ ...s, pageNumber: p.pageNumber }))
-    );
-    return slotsWithPage;
-  }, [formas]);
-
   const { selectedSlot, selectedPageNumber, selectedGlobalNumber } = useMemo(() => {
     if (selectedSlotIds.length !== 1) {
       return { selectedSlot: null, selectedPageNumber: null, selectedGlobalNumber: null };
     }
     const selectedId = selectedSlotIds[0];
-    const slotIndex = allProductSlots.findIndex(s => s.id === selectedId);
-    if (slotIndex === -1) {
-        return { selectedSlot: null, selectedPageNumber: null, selectedGlobalNumber: null };
+    
+    let foundSlot = null;
+    let foundPageNum = null;
+
+    for (const f of formas) {
+      for (const p of f.pages) {
+        const s = p.slots.find(slot => slot.id === selectedId);
+        if (s) {
+          foundSlot = s;
+          foundPageNum = p.pageNumber;
+          break;
+        }
+      }
+      if (foundSlot) break;
     }
-    const slot = allProductSlots[slotIndex];
+    
     return {
-      selectedSlot: slot,
-      selectedPageNumber: slot.pageNumber,
-      selectedGlobalNumber: slotIndex + 1,
+      selectedSlot: foundSlot,
+      selectedPageNumber: foundPageNum,
+      selectedGlobalNumber: foundSlot?.globalNumber || null,
     };
-  }, [selectedSlotIds, allProductSlots]);
+  }, [selectedSlotIds, formas]);
 
   let profit = 0;
   let hasCost = false;

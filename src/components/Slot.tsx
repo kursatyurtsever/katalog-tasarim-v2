@@ -310,7 +310,7 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
          ...freeSlotStyles
        }}
     >
-      <div className="absolute top-0 left-0 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none z-50">{globalNumber}</div>
+      <div data-hide-on-export="true" className="absolute top-0 left-0 p-1 text-[11px] font-black text-slate-400/50 pointer-events-none z-50">{globalNumber}</div>
 
       {slot.role === 'free' && (
         <div className="w-full h-full flex flex-col relative z-20 overflow-hidden pointer-events-auto rounded-[inherit]">

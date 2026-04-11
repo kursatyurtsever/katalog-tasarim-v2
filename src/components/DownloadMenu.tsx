@@ -3,22 +3,24 @@
 import { useState } from "react";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useUIStore } from "@/store/useUIStore";
+import { useLayerStore } from "@/store/useLayerStore";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
-import { CaretDown, DownloadSimple, FilePdf } from "@phosphor-icons/react";
+import { CaretDown, DownloadSimple, FilePdf, Image as ImageIcon } from "@phosphor-icons/react";
 
 export function DownloadMenu() {
   const [isExporting, setIsExporting] = useState(false);
 
   const clearSelection = useUIStore((state) => state.clearSelection);
 
-  const handleExport = async (format: "pdf") => {
+  const handleExport = async (format: "pdf" | "png" | "jpeg") => {
     setIsExporting(true);
     
     clearSelection(); 
 
     const catalogStore = useCatalogStore.getState();
+    const layerStore = useLayerStore.getState();
     const formaIds = catalogStore.formas.map(f => f.id);
 
     if (formaIds.length === 0) {
@@ -33,7 +35,12 @@ export function DownloadMenu() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ formaIds })
+        body: JSON.stringify({ 
+          formaIds,
+          format,
+          catalogState: catalogStore,
+          layerState: layerStore
+        })
       });
 
       if (!response.ok) {
@@ -45,7 +52,7 @@ export function DownloadMenu() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Katalog-Projesi-${Date.now()}.pdf`;
+      link.download = `Katalog-Projesi-${Date.now()}.${format}`;
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -78,6 +85,16 @@ export function DownloadMenu() {
             <DropdownMenuItem onClick={() => handleExport("pdf")} className="flex items-center gap-3 p-3 cursor-pointer rounded-lg hover:bg-(--primary-light) focus:bg-(--primary-light) transition-colors group">
               <div className="w-8 h-8 bg-red-50 text-red-500 rounded-md flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-colors"><FilePdf size={18} weight="fill" /></div>
               <div className="flex flex-col"><span className="ui-text">PDF Belgesi</span><span className="ui-text-small text-[9px]">Yüksek Kalite Baskı</span></div>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem onClick={() => handleExport("png")} className="flex items-center gap-3 p-3 cursor-pointer rounded-lg hover:bg-(--primary-light) focus:bg-(--primary-light) transition-colors group mt-1">
+              <div className="w-8 h-8 bg-blue-50 text-blue-500 rounded-md flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors"><ImageIcon size={18} weight="fill" /></div>
+              <div className="flex flex-col"><span className="ui-text">PNG Görseli</span><span className="ui-text-small text-[9px]">Şeffaf Arkaplan</span></div>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => handleExport("jpeg")} className="flex items-center gap-3 p-3 cursor-pointer rounded-lg hover:bg-(--primary-light) focus:bg-(--primary-light) transition-colors group mt-1">
+              <div className="w-8 h-8 bg-green-50 text-green-500 rounded-md flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-colors"><ImageIcon size={18} weight="fill" /></div>
+              <div className="flex flex-col"><span className="ui-text">JPEG Görseli</span><span className="ui-text-small text-[9px]">Yüksek Kalite</span></div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenuPortal>
