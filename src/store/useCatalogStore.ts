@@ -54,6 +54,11 @@ export interface ProductInfo {
   [key: string]: unknown;
 }
 
+export interface TempPoolProduct extends ProductInfo {
+  originalPage?: number;
+  originalSlotId?: string;
+}
+
 export interface CatalogSettings {
   defaultGrid: { rows: number; cols: number }; // EKLENDİ
   gridGap: number;
@@ -152,6 +157,7 @@ export interface CatalogState {
   activeTab: "outer" | "inner";
   productPool: ProductInfo[]; 
   masterProductPool: ProductInfo[]; 
+  tempProductPool: TempPoolProduct[];
   globalSettings: CatalogSettings;
   copiedSlotSettings: DeepPartial<CatalogSettings> | null;
 }
@@ -205,6 +211,12 @@ export interface CatalogActions {
   revertToGlobalGrid: (pageNumber: number) => void;
   updateSelectedSlotsImageSettings: (settings: any) => void;
   updateSlotModuleData: (pageNumber: number, slotId: string, updates: any) => void;
+  addToTempPool: (product: ProductInfo, originalPage?: number, originalSlotId?: string) => void;
+  removeFromTempPool: (sku: string) => void;
+  clearTempPool: () => void;
+  moveSlotToTempPool: (pageNumber: number, slotId: string) => void;
+  dumpPageToTempPool: (pageNumber: number) => void;
+  returnProductFromTempPool: (sku: string) => void;
 }
 
 export const defaultFooterCells = (): FooterCell[] => [
@@ -429,8 +441,112 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       formas: buildFormasForTemplate(Template1),
       productPool: [],
       masterProductPool: [],
+      tempProductPool: [],
       globalSettings: cloneDeep(initialGlobalSettings),
       copiedSlotSettings: null,
+
+      addToTempPool: (product, originalPage, originalSlotId) => {
+        const { saveState } = useHistoryStore.getState();
+        saveState(cloneDeep(get().getActivePages()), cloneDeep(get().tempProductPool));
+        set((state) => {
+          if (!product || !product.sku) return state;
+          const filtered = state.tempProductPool.filter(p => p.sku !== product.sku);
+          return { tempProductPool: [{ ...product, originalPage, originalSlotId }, ...filtered] };
+        });
+      },
+      removeFromTempPool: (sku) => {
+        const { saveState } = useHistoryStore.getState();
+        saveState(cloneDeep(get().getActivePages()), cloneDeep(get().tempProductPool));
+        set(state => ({ tempProductPool: state.tempProductPool.filter(p => p.sku !== sku) }));
+      },
+      clearTempPool: () => {
+        const { saveState } = useHistoryStore.getState();
+        saveState(cloneDeep(get().getActivePages()), cloneDeep(get().tempProductPool));
+        set({ tempProductPool: [] });
+      },
+      moveSlotToTempPool: (pageNumber: number, slotId: string) => {
+        const { getActivePages, setActivePages, tempProductPool } = get();
+        const { saveState } = useHistoryStore.getState();
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages), cloneDeep(tempProductPool));
+
+        const newPages = cloneDeep(currentPages);
+        const page = newPages.find(p => p.pageNumber === pageNumber);
+        let productToMove = null;
+        if (page) { 
+            const slot = page.slots.find(s => s.id === slotId); 
+            if (slot && slot.product) {
+                productToMove = slot.product;
+                slot.product = null; 
+            } 
+        }
+        
+        if (productToMove) {
+            const filtered = tempProductPool.filter(p => p.sku !== productToMove.sku);
+            set({ tempProductPool: [{ ...productToMove, originalPage: pageNumber, originalSlotId: slotId }, ...filtered] });
+        }
+        setActivePages(newPages);
+      },
+      dumpPageToTempPool: (pageNumber) => {
+        const { getActivePages, setActivePages, tempProductPool } = get();
+        const { saveState } = useHistoryStore.getState();
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages), cloneDeep(tempProductPool));
+
+        const newPages = cloneDeep(currentPages);
+        const page = newPages.find(p => p.pageNumber === pageNumber);
+        if (!page) return;
+
+        const newTempPool = [...tempProductPool];
+        page.slots.forEach(slot => {
+          if (slot.role === 'product' && slot.product) {
+            const productToMove = slot.product;
+            slot.product = null;
+            const existingIndex = newTempPool.findIndex(p => p.sku === productToMove.sku);
+            if (existingIndex >= 0) newTempPool.splice(existingIndex, 1);
+            newTempPool.unshift({ ...productToMove, originalPage: pageNumber, originalSlotId: slot.id });
+          }
+        });
+        
+        set({ tempProductPool: newTempPool });
+        setActivePages(newPages);
+      },
+      returnProductFromTempPool: (sku) => {
+        const { tempProductPool, getActivePages, setActivePages } = get();
+        const { saveState } = useHistoryStore.getState();
+        
+        const currentPages = getActivePages();
+        saveState(cloneDeep(currentPages), cloneDeep(tempProductPool));
+
+        const productIndex = tempProductPool.findIndex(p => p.sku === sku);
+        if (productIndex === -1) return;
+        const product = tempProductPool[productIndex];
+        if (!product.originalPage || !product.originalSlotId) return;
+
+        const newPages = cloneDeep(currentPages);
+        const page = newPages.find(p => p.pageNumber === product.originalPage);
+        let existingProductInSlot = null;
+
+        if (page) {
+          const slot = page.slots.find(s => s.id === product.originalSlotId);
+          if (slot) {
+            existingProductInSlot = slot.product;
+            slot.product = product;
+          }
+        }
+
+        const newTempPool = [...tempProductPool];
+        newTempPool.splice(productIndex, 1);
+
+        if (existingProductInSlot) {
+            const existingIndex = newTempPool.findIndex(p => p.sku === existingProductInSlot.sku);
+            if (existingIndex >= 0) newTempPool.splice(existingIndex, 1);
+            newTempPool.unshift({ ...existingProductInSlot, originalPage: product.originalPage, originalSlotId: product.originalSlotId });
+        }
+
+        set({ tempProductPool: newTempPool });
+        setActivePages(newPages);
+      },
 
       getActivePages: () => {
         const state = get();
@@ -445,29 +561,8 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         set({ formas: newFormas });
       },
 
-      undo: () => {
-        const { past, future } = useHistoryStore.getState();
-        const { getActivePages, setActivePages } = get();
-        const currentPages = getActivePages();
-        if (past.length > 0) {
-            const previousState = past[past.length - 1];
-            const newPast = past.slice(0, past.length - 1);
-            useHistoryStore.setState({ past: newPast, future: [currentPages, ...future] });
-            setActivePages(previousState);
-        }
-      },
-
-      redo: () => {
-        const { past, future } = useHistoryStore.getState();
-        const { getActivePages, setActivePages } = get();
-        const currentPages = getActivePages();
-        if (future.length > 0) {
-            const nextState = future[0];
-            const newFuture = future.slice(1);
-            useHistoryStore.setState({ past: [...past, currentPages], future: newFuture });
-            setActivePages(nextState);
-        }
-      },
+      undo: () => useHistoryStore.getState().undo(),
+      redo: () => useHistoryStore.getState().redo(),
 
       disableAllImageEditModes: () => {
         const { getActivePages, setActivePages } = get();
@@ -724,6 +819,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
           if (!isNaN(posValue) && posValue > 0 && posValue <= allValidSlots.length) {
             const autoImage = product.image || (product.sku ? `/images/products/${product.sku}.png` : null);
             allValidSlots[posValue - 1].product = { ...product, image: autoImage || product.image };
+            if (product.sku) get().removeFromTempPool(product.sku);
           }
         });
         
@@ -783,12 +879,12 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
       },
 
       mergeSelected: (pageNumber, targetSlotId) => {
-        const { getActivePages, setActivePages } = get();
+        const { getActivePages, setActivePages, tempProductPool } = get();
         const { saveState } = useHistoryStore.getState();
         const { selectedSlotIds, clearSelection } = useUIStore.getState();
 
         const currentPages = getActivePages();
-        saveState(cloneDeep(currentPages));
+        saveState(cloneDeep(currentPages), cloneDeep(tempProductPool));
 
         const pageIndex = currentPages.findIndex((p) => p.pageNumber === pageNumber);
         if (pageIndex < 0) return { success: false, error: "Sayfa bulunamadı." };
@@ -850,6 +946,23 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         if (!survivorId || !selected.includes(survivorId)) return { success: false, error: "Hücre yerleşimi hesaplanamadı." };
 
         const newSlots = [...page.slots];
+        
+        // YENİ MANTIK: Birleşen ancak saklanmayan (hedef ürün dışındaki) ürünleri havuza aktar
+        const productsToPool: any[] = [];
+        selected.forEach(id => {
+          const idx = newSlots.findIndex(s => s.id === id);
+          if (idx !== -1 && newSlots[idx].product) {
+            // Eğer sağ tıkla seçilen asıl ürün değilse havuza atılacaklar listesine ekle
+            if (!targetProduct || newSlots[idx].product?.sku !== targetProduct.sku) {
+              productsToPool.push({
+                product: newSlots[idx].product,
+                originalPage: pageNumber,
+                originalSlotId: id
+              });
+            }
+          }
+        });
+
         const survivorIdx = newSlots.findIndex(s => s.id === survivorId);
         
         newSlots[survivorIdx] = { 
@@ -870,6 +983,17 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const newFormas = get().formas.map((forma) =>
           forma.id === get().activeFormaId ? { ...forma, pages: newPages } : forma
         );
+
+        // Toplanan ürünleri State'deki tempPool'a yerleştir
+        let newTempPool = [...tempProductPool];
+        if (productsToPool.length > 0) {
+            productsToPool.forEach(item => {
+                const existingIndex = newTempPool.findIndex(p => p.sku === item.product.sku);
+                if (existingIndex >= 0) newTempPool.splice(existingIndex, 1);
+                newTempPool.unshift({ ...item.product, originalPage: item.originalPage, originalSlotId: item.originalSlotId });
+            });
+            set({ tempProductPool: newTempPool });
+        }
         
         set({ formas: recalculateLayout(newFormas, get().globalSettings.defaultGrid) });
         clearSelection();
@@ -1025,6 +1149,7 @@ export const useCatalogStore = create<CatalogState & CatalogActions>()(
         const page = newPages.find(p => p.pageNumber === pageNumber);
         if (page) { const slot = page.slots.find(s => s.id === slotId); if (slot) slot.product = product; }
         setActivePages(newPages);
+        if (product && product.sku) { get().removeFromTempPool(product.sku); }
       },
 
       updateSlotProduct: (pageNumber, slotId, updates) => {
@@ -1329,6 +1454,7 @@ merge: (persisted, current) => {
           activeFormaId: incoming.activeFormaId || base.activeFormaId || 1,
           activeTab: incoming.activeTab || (incoming.activeFormaId === 2 ? "inner" : "outer"),
           globalSettings: normalizedGlobalSettings,
+          tempProductPool: incoming.tempProductPool || [],
         };
       },
     }

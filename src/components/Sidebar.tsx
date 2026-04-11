@@ -31,7 +31,7 @@ export function Sidebar() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selectedSlot: any = null;
-  const selectedSlotIds = selection.type === 'slot' ? selection.ids : (selection.type === 'bannerCell' && selection.parentId ? [selection.parentId] : []);
+  const selectedSlotIds = selection.type === 'slot' ? selection.ids : ((selection.type === 'bannerCell' || selection.type === 'textElement') && selection.parentId ? [selection.parentId] : []);
   
   if (selectedSlotIds.length > 0) {
     for (const p of pages) {

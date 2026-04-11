@@ -34,6 +34,21 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
   // Çift tıklandığında hangi hücrenin düzenlendiğini tutacağımız yerel state
   const [editingCellId, setEditingCellId] = useState<string | null>(null);
 
+  // YENİ: Dışarı tıklama denetimi eklendi
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!editingCellId) return;
+      const target = e.target as HTMLElement;
+      if (target.closest(`#banner-${editingCellId}`)) return;
+      if (target.closest('#contextual-bar')) return;
+      if (target.closest('[data-slot="popover-content"]')) return;
+      
+      setEditingCellId(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [editingCellId]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Sadece input veya textarea'da değilken Ctrl+Z çalışsın
@@ -123,7 +138,6 @@ export function BannerSection({ instanceData, slotId, pageNumber }: { instanceDa
                   }
                 }}
                 onBlur={(e) => {
-                  setEditingCellId(null);
                   if (e.currentTarget.innerHTML !== cell.text) {
                     updateBannerCell(cell.id, { text: e.currentTarget.innerHTML });
                   }

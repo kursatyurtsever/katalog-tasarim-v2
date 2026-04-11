@@ -4,6 +4,7 @@ import { Canvas } from "@/components/Canvas";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar"; 
 import { ContextualBar } from "@/components/ContextualBar"; // Yeni dinamik şeridimiz
+import { TempPoolBar } from "@/components/TempPoolBar";
 
 export default function Home() {
   return (
@@ -15,6 +16,12 @@ export default function Home() {
       
       {/* 3. Alt Kısım: Dinamik Bar + Broşür + Yan Panel */}
       <div className="flex-1 flex flex-row min-h-0">
+        {/* Sol Alan: Yedek Havuz */}
+        <div className="pt-4 pl-4 pb-4 h-full shrink-0 flex relative z-1000">
+          <div className="rounded-xl shadow-xl h-full flex flex-col relative z-1000">
+            <TempPoolBar />
+          </div>
+        </div>
         
         {/* Sol ve Orta Alan (Broşür Kısmı) */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 relative items-center">

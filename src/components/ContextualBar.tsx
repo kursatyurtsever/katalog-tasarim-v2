@@ -70,7 +70,7 @@ const IconButton = ({
 
   if (popoverId && popoverContent) {
     return (
-      <Popover open={activePopover === popoverId} onOpenChange={(open) => onTogglePopover && onTogglePopover(open ? popoverId : null)}>
+      <Popover modal={false} open={activePopover === popoverId} onOpenChange={(open) => onTogglePopover && onTogglePopover(open ? popoverId : null)}>
         <PopoverTrigger 
           disabled={disabled}
           className={buttonClass}
@@ -207,36 +207,36 @@ export function ContextualBar() {
     document.execCommand(command, false, value);
   };
 
-  // Renk input'unu focus kaybetmeden tetiklemek için
-  const handleColorClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Div'in focus'unu kaybetmesini KESİN olarak engeller
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      setColorRange(sel.getRangeAt(0).cloneRange());
+  // Focus kaybını önlemek için yardımcı fonksiyon
+  const preventFocusLoss = (e: React.MouseEvent | React.PointerEvent) => {
+    if ((e.target as HTMLElement).tagName !== 'INPUT') {
+       e.preventDefault();
     }
-    
-    // display: none engeline takılmamak ve mousedown preventDefault çakışmasını aşmak için setTimeout
-    setTimeout(() => {
-      if (colorInputRef.current) {
-        colorInputRef.current.click();
-      }
-    }, 10);
   };
 
-  // Renk seçildiğinde hafızadaki seçimi geri yükleyip rengi uygular
   const applyColorFormat = (colorValue: string) => {
-    if (colorRange) {
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(colorRange);
-      
-      document.execCommand('foreColor', false, colorValue);
-      
-      // ÖNEMLİ: Tarayıcı metin rengini değiştirdiğinde DOM'u günceller ve eski Range bozulabilir.
-      // Sürükleme sırasında seçimin kaybolmaması için yeni oluşan seçimi tekrar hafızaya alıyoruz.
-      if (sel && sel.rangeCount > 0) {
-        setColorRange(sel.getRangeAt(0).cloneRange());
-      }
+    if (!colorRange) return;
+    
+    // Range'in içinde bulunduğu contentEditable elementi bul ve focus ver
+    let container = colorRange.startContainer as HTMLElement;
+    if (container.nodeType === Node.TEXT_NODE) container = container.parentElement!;
+    const editableEl = container.closest('[contenteditable="true"]') as HTMLElement | null;
+    if (editableEl) editableEl.focus();
+    
+    // Seçimi geri yükle
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(colorRange);
+    }
+    
+    // Rengi uygula
+    document.execCommand('foreColor', false, colorValue);
+    
+    // Güncel range'i tekrar kaydet
+    const selAfter = window.getSelection();
+    if (selAfter && selAfter.rangeCount > 0) {
+      setColorRange(selAfter.getRangeAt(0).cloneRange());
     }
   };
 
@@ -246,10 +246,14 @@ export function ContextualBar() {
 
   // Metin İçi Biçimlendirme Araç Çubuğu Bloğu
   const InlineRichTextToolbar = () => (
-    <div className="flex items-center bg-slate-100 border border-slate-200 rounded p-0.5 ml-2 shadow-inner">
-       <IconButton icon={TextB} label="Kalın (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'bold')} />
-       <IconButton icon={TextItalic} label="İtalik (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'italic')} />
-       <IconButton icon={TextUnderline} label="Altı Çizili (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'underline')} />
+    <div 
+      className="flex items-center bg-slate-100 border border-slate-200 rounded p-0.5 ml-2 shadow-inner"
+      onMouseDown={preventFocusLoss}
+      onPointerDown={preventFocusLoss}
+    >
+       <IconButton icon={TextB} label="Kalın (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'bold')} onClick={(e) => applyInlineFormat(e, 'bold')} />
+       <IconButton icon={TextItalic} label="İtalik (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'italic')} onClick={(e) => applyInlineFormat(e, 'italic')} />
+       <IconButton icon={TextUnderline} label="Altı Çizili (Seçili Metin)" onMouseDown={(e) => applyInlineFormat(e, 'underline')} onClick={(e) => applyInlineFormat(e, 'underline')} />
        
        {/* Renk Seçici Butonu */}
        <div className="relative flex items-center justify-center ml-1">
@@ -269,24 +273,38 @@ export function ContextualBar() {
             }}
             popoverContent={
                <div 
-                 onMouseDown={(e) => {
-                    // Input alanları haricindeki tıklamalarda focus kaybolmasını engelle
-                    if ((e.target as HTMLElement).tagName !== 'INPUT') {
-                       e.preventDefault(); 
-                    }
-                 }} 
+                 onMouseDown={preventFocusLoss}
+                 onPointerDown={preventFocusLoss}
                  className="flex flex-col gap-3"
                >
                  <div className="flex items-center gap-2">
-                   <div className="w-10 h-10 rounded cursor-pointer border border-slate-300 shadow-sm relative overflow-hidden shrink-0">
+                   {/* Gizli input ve görünür label taktiği ile focus korunarak işletim sistemi renk paleti açılır */}
+                   <label
+                     onMouseDown={(e) => {
+                       e.preventDefault();
+                       const sel = window.getSelection();
+                       if (sel && sel.rangeCount > 0) {
+                         const range = sel.getRangeAt(0).cloneRange();
+                         setColorRange(range);
+                         // 50ms sonra tekrar kaydet, focus geçişi sonrası da geçerli olsun
+                         setTimeout(() => setColorRange(range), 50);
+                       }
+                     }}
+                     onPointerDown={(e) => e.preventDefault()}
+                     className="w-10 h-10 rounded cursor-pointer border border-slate-300 shadow-sm relative overflow-hidden shrink-0 flex items-center justify-center bg-white"
+                     title="Yeni Renk Seç"
+                   >
                      <input 
                        type="color" 
                        onChange={handleColorInputChange as any}
                        onInput={handleColorInputChange as any}
-                       className="absolute -top-2.5 -left-2.5 w-15 h-15 cursor-pointer" 
-                       title="Yeni Renk Seç" 
+                       onBlur={(e) => applyColorFormat(e.currentTarget.value)}
+                       className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" 
                      />
-                   </div>
+                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                       <span className="text-[18px]">🎨</span>
+                     </div>
+                   </label>
                    <div className="flex flex-col justify-center">
                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Özel Renk</span>
                      <span className="text-[9px] text-slate-400 leading-tight">Renk paletini aç</span>
@@ -300,8 +318,11 @@ export function ContextualBar() {
                        {savedColors.map((sc, idx) => (
                          <div 
                            key={idx} 
+                           onMouseDown={() => {
+                             applyColorFormat(sc.c);
+                           }}
+                           onPointerDown={(e) => e.preventDefault()}
                            className="w-6 h-6 rounded cursor-pointer border border-slate-200 hover:border-blue-500 transition-colors relative overflow-hidden shadow-sm" 
-                           onClick={() => applyColorFormat(sc.c)} 
                            title={`${sc.c} (%${sc.o})`}
                          >
                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjY2NjIiAvPgo8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjY2NjIiAvPjwvc3ZnPg==')] opacity-30"></div>
@@ -423,9 +444,9 @@ export function ContextualBar() {
   let selectedSlot: any = null;
   let selectedPageNum = -1;
 
-  const selectedSlotIds = selection.type === 'slot' ? selection.ids : [];
+const selectedSlotIds = selection.type === 'slot' ? selection.ids : ((selection.type === 'textElement' || selection.type === 'bannerCell') && selection.parentId ? [selection.parentId] : []);
 
-  if (selectedSlotIds.length > 0) { 
+  if (selectedSlotIds.length > 0) {
     for (const page of pages) {
       const slot = page.slots.find(s => s.id === selectedSlotIds[0]);
       if (slot) {

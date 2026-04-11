@@ -16,14 +16,28 @@ export function FooterRenderer({ pageNumber, safeZone }: { pageNumber: number, s
   const { selection, toggleElementSelection } = useUIStore();
 
   const [editingCellId, setEditingCellId] = useState<string | null>(null);
+  const didFocusRef = React.useRef(false);
 
   useEffect(() => {
+    if (!editingCellId) {
+      didFocusRef.current = false;
+    }
+    
     const handleClickOutside = (e: MouseEvent) => {
       if (!editingCellId) return;
       const target = e.target as HTMLElement;
       // Hücrenin kendisine veya araç çubuğuna tıklandıysa çıkma
       if (target.closest(`#footer-${editingCellId}`)) return;
       if (target.closest('#contextual-bar')) return;
+      // YENİ: Renk seçici gibi popover içeriklerine tıklandığında da çıkma
+      if (
+        target.closest('[data-slot="popover-content"]') ||
+        target.closest('[data-radix-popover-content]') ||
+        target.closest('[data-radix-popper-content-wrapper]') ||
+        target.closest('.z-99999') ||
+        target.closest('.z-\\[99999\\]')
+      ) return;
+      
       setEditingCellId(null);
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -121,7 +135,8 @@ export function FooterRenderer({ pageNumber, safeZone }: { pageNumber: number, s
                 suppressContentEditableWarning
                 ref={(el) => {
                   // Düzenleme moduna girildiğinde otomatik odaklan ve imleci sona al
-                  if (isEditing && el && document.activeElement !== el) {
+                  if (isEditing && el && !didFocusRef.current) {
+                    didFocusRef.current = true;
                     el.focus();
                     if (typeof window !== 'undefined' && window.getSelection) {
                       const selection = window.getSelection();

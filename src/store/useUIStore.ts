@@ -11,6 +11,7 @@ export interface SelectionState {
 
 export interface UIState {
   isZoomed: boolean;
+  isTempPoolOpen: boolean;
   
   // Eski seçim state'leri (Uyumluluk için geçici olarak var ama kullanılmamalı)
   selectedSlotIds: string[];
@@ -28,6 +29,8 @@ export interface UIState {
 
 export interface UIActions {
   toggleZoom: () => void;
+  toggleTempPool: () => void;
+  setTempPoolOpen: (isOpen: boolean) => void;
   
   // YENİ SEÇİM AKSİYONLARI
   setSelection: (selection: Partial<SelectionState>) => void;
@@ -54,6 +57,7 @@ const initialSidebarState = {
 
 export const useUIStore = create<UIState & UIActions>()((set, get) => ({
   isZoomed: false,
+  isTempPoolOpen: false,
   selectedSlotIds: [], // deprecated
   selectedPageNumber: null, // deprecated
   selectedTextElement: null, // deprecated
@@ -66,6 +70,8 @@ export const useUIStore = create<UIState & UIActions>()((set, get) => ({
   editingContent: null,
 
   toggleZoom: () => set((state) => ({ isZoomed: !state.isZoomed })),
+  toggleTempPool: () => set((state) => ({ isTempPoolOpen: !state.isTempPoolOpen })),
+  setTempPoolOpen: (isOpen) => set(() => ({ isTempPoolOpen: isOpen })),
 
   setSelection: (selectionUpdates) => set((state) => {
     const newSelection = { ...state.selection, ...selectionUpdates } as SelectionState;

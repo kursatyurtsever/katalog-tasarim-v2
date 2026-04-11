@@ -76,8 +76,10 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
   } = useUIStore();
 
   const [isOver, setIsOver] = useState(false);
+  const [editingField, setEditingField] = useState<'name' | 'price' | null>(null);
 
   const [imgDrag, setImgDrag] = useState({ isDragging: false, startX: 0, startY: 0, initialPosX: 0, initialPosY: 0, currentX: 0, currentY: 0 });
+  const [editingText, setEditingText] = useState<'name' | 'price' | null>(null);
 
   function deepMerge(target: any, source: any) {
     if (!target || !source) return target || source;
@@ -145,6 +147,19 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
     }
 
     if (slot.role !== 'free') {
+      const sourceTempPoolSku = e.dataTransfer.getData("sourceTempPoolSku");
+      if (sourceTempPoolSku) {
+        const tempPool = useCatalogStore.getState().tempProductPool;
+        const tempProduct = tempPool.find(p => p.sku === sourceTempPoolSku);
+        if (tempProduct) {
+           if (slot.product) {
+             useCatalogStore.getState().addToTempPool(slot.product, pageNumber, slot.id);
+           }
+           useCatalogStore.getState().setSlotProduct(pageNumber, slot.id, tempProduct);
+        }
+        return;
+      }
+
       const newProductData = e.dataTransfer.getData("newProductFromSidebar");
       if (newProductData) { setSlotProduct(pageNumber, slot.id, JSON.parse(newProductData)); return; }
       const sPage = parseInt(e.dataTransfer.getData("sourcePage")), sIndex = parseInt(e.dataTransfer.getData("sourceIndex"));
@@ -228,7 +243,57 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
       }}
       onContextMenu={(e) => onContextMenu(e, slot)} 
       draggable={!!slot.product && !isSelected && !isImgEditMode} 
-      onDragStart={(e) => { e.dataTransfer.setData("sourcePage", String(pageNumber)); e.dataTransfer.setData("sourceIndex", String(slotIndex)); }} 
+      onDragStart={(e) => {
+        e.dataTransfer.setData("sourcePage", String(pageNumber));
+        e.dataTransfer.setData("sourceIndex", String(slotIndex));
+
+        if (slot.product) {
+          const dragEl = document.createElement("div");
+          dragEl.style.width = "100px";
+          dragEl.style.height = "120px";
+          dragEl.style.backgroundColor = "white";
+          dragEl.style.border = "2px solid #cbd5e1";
+          dragEl.style.borderRadius = "8px";
+          dragEl.style.display = "flex";
+          dragEl.style.flexDirection = "column";
+          dragEl.style.alignItems = "center";
+          dragEl.style.justifyContent = "center";
+          dragEl.style.padding = "8px";
+          dragEl.style.position = "absolute";
+          dragEl.style.top = "-1000px";
+          dragEl.style.left = "-1000px";
+          dragEl.style.zIndex = "-9999";
+
+          if (slot.product.image) {
+            const img = document.createElement("img");
+            img.src = slot.product.image;
+            img.style.width = "70px";
+            img.style.height = "70px";
+            img.style.objectFit = "contain";
+            img.style.marginBottom = "4px";
+            dragEl.appendChild(img);
+          }
+
+          const text = document.createElement("div");
+          text.textContent = slot.product.name;
+          text.style.fontSize = "10px";
+          text.style.fontWeight = "bold";
+          text.style.color = "#334155";
+          text.style.textAlign = "center";
+          text.style.width = "100%";
+          text.style.overflow = "hidden";
+          text.style.whiteSpace = "nowrap";
+          text.style.textOverflow = "ellipsis";
+          dragEl.appendChild(text);
+
+          document.body.appendChild(dragEl);
+          e.dataTransfer.setDragImage(dragEl, 50, 60);
+
+          setTimeout(() => {
+            if (document.body.contains(dragEl)) document.body.removeChild(dragEl);
+          }, 0);
+        }
+      }}
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }} 
        onDragLeave={() => setIsOver(false)} 
        onDrop={handleDrop} 
@@ -300,11 +365,46 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
               toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
               setSelectedTextElement({ slotId: slot.id, elementType: 'price' });
             }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setEditingText('price');
+            }}
           >
-            <div className="flex items-start pointer-events-none"><span style={{ lineHeight: "0.8" }}>{splitPrice(slot.product.price).main},</span><span style={{ fontSize: `${finalSettings.fonts.price.decimalScale}%`, verticalAlign: "top", lineHeight: "1em", marginLeft: "2px" }}>{splitPrice(slot.product.price).decimal}</span></div>
+            {editingText === 'price' ? (
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                className="w-full h-full flex items-center justify-center text-center outline-none bg-white/90 text-black rounded"
+                style={{ cursor: 'text' }}
+                onBlur={(e) => {
+                  updateSlotProduct(pageNumber, slot.id, { price: e.currentTarget.innerText });
+                  setEditingText(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.currentTarget.blur(); }
+                }}
+                ref={el => {
+                  if (el && document.activeElement !== el) {
+                    el.focus();
+                    if (typeof window !== 'undefined' && window.getSelection) {
+                      const selection = window.getSelection();
+                      const range = document.createRange();
+                      range.selectNodeContents(el);
+                      range.collapse(false);
+                      selection?.removeAllRanges();
+                      selection?.addRange(range);
+                    }
+                  }
+                }}
+              >
+                {slot.product.price}
+              </div>
+            ) : (
+              <div className="flex items-start pointer-events-none"><span style={{ lineHeight: "0.8" }}>{splitPrice(slot.product.price).main},</span><span style={{ fontSize: `${finalSettings.fonts.price.decimalScale}%`, verticalAlign: "top", lineHeight: "1em", marginLeft: "2px" }}>{splitPrice(slot.product.price).decimal}</span></div>
+            )}
           </div>
 
-          <div className="flex-1 flex items-center justify-center min-h-0 min-w-0 mb-2 mt-6 pointer-events-auto relative z-10 overflow-hidden">
+          <div title={slot.product.sku} className="flex-1 flex items-center justify-center min-h-0 min-w-0 mb-2 mt-6 pointer-events-auto relative z-10 overflow-hidden">
             {slot.product.image ? (
               <img src={slot.product.image} onMouseDown={handleImgMouseDown} draggable={false} className="max-w-full max-h-full object-contain select-none" style={{ transform: `translate(${displayX}px, ${displayY}px) scale(${displayScale})`, cursor: isImgEditMode ? 'grab' : 'default' }} />
             ) : (
@@ -312,15 +412,55 @@ export const Slot = forwardRef<HTMLDivElement, SlotProps>(({ slot, pageNumber, s
             )}
           </div>
           
-          <div className="shrink-0 w-full flex pointer-events-auto relative z-20" style={{ height: "3em", ...getFontStyle({ ...finalSettings.fonts.productName, fontSize: finalSettings.fonts.productName.fontSize * clampedScale }) }}>
+          <div className="shrink-0 w-full flex pointer-events-auto relative z-20" style={{ height: `${3 * (finalSettings.fonts.productName.lineHeight || 1.2)}em`, ...getFontStyle({ ...finalSettings.fonts.productName, fontSize: finalSettings.fonts.productName.fontSize * clampedScale }) }}>
             <div 
-              className={`line-clamp-2 w-full outline-none transition-all ${
-                selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'name' ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-blue-300'
+              className={`w-full h-full outline-none transition-all ${
+                editingText === 'name' ? 'bg-white/90 text-black z-50 ring-2 ring-blue-500 overflow-hidden whitespace-pre-wrap rounded cursor-text' : 'line-clamp-3 whitespace-pre-wrap hover:ring-1 hover:ring-blue-300'
+              } ${
+                selectedTextElement?.slotId === slot.id && selectedTextElement?.elementType === 'name' && editingText !== 'name' ? 'ring-2 ring-blue-500' : ''
               }`} 
+              contentEditable={editingText === 'name'}
+              suppressContentEditableWarning
               onClick={(e) => {
                 e.stopPropagation();
-                toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
-                setSelectedTextElement({ slotId: slot.id, elementType: 'name' });
+                if (editingText !== 'name') {
+                  toggleSlotSelection(slot.id, e.ctrlKey || e.metaKey);
+                  setSelectedTextElement({ slotId: slot.id, elementType: 'name' });
+                }
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setEditingText('name');
+              }}
+              onBlur={(e) => {
+                updateSlotProduct(pageNumber, slot.id, { name: e.currentTarget.innerText });
+                setEditingText(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { 
+                  e.preventDefault(); 
+                  e.currentTarget.blur(); 
+                } else if (e.key === 'Enter') {
+                  // En fazla 3 satıra (2 adet Enter'a) izin ver
+                  const text = e.currentTarget.innerText || "";
+                  const newlines = (text.match(/\n/g) || []).length;
+                  if (newlines >= 2) {
+                    e.preventDefault();
+                  }
+                }
+              }}
+              ref={el => {
+                if (editingText === 'name' && el && document.activeElement !== el) {
+                  el.focus();
+                  if (typeof window !== 'undefined' && window.getSelection) {
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(el);
+                    range.collapse(false);
+                    selection?.removeAllRanges();
+                    selection?.addRange(range);
+                  }
+                }
               }}
             >
               {slot.product.name}

@@ -19,6 +19,7 @@ export function Page({ pageNumber }: { pageNumber: number }) {
   const mergeSelected = useCatalogStore((state) => state.mergeSelected);
   const unmergeSlot = useCatalogStore((state) => state.unmergeSlot);
   const clearSlot = useCatalogStore((state) => state.clearSlot);
+  const moveSlotToTempPool = useCatalogStore((state) => state.moveSlotToTempPool);
   const selectPages = useLayerStore((state) => state.selectPages);
   const selectedPageIds = useLayerStore((state) => state.selectedPageIds);
   const setEditingContent = useUIStore((state) => state.setEditingContent);
@@ -30,9 +31,16 @@ export function Page({ pageNumber }: { pageNumber: number }) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; slot: SlotType; canMerge: boolean; canUnmerge: boolean; hasProduct: boolean } | null>(null);
 
   useEffect(() => {
-    const handleWindowClick = () => setContextMenu(null);
-    window.addEventListener("click", handleWindowClick);
-    return () => window.removeEventListener("click", handleWindowClick);
+    const handleWindowClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Tıklanan yer menünün kendisi değilse menüyü kapat
+      if (!target.closest('#context-menu-container')) {
+        setContextMenu(null);
+      }
+    };
+    // capture: true kullanarak diğer elemanların stopPropagation çağrılarını aşıyoruz
+    window.addEventListener("mousedown", handleWindowClick, { capture: true });
+    return () => window.removeEventListener("mousedown", handleWindowClick, { capture: true });
   }, []);
 
   const handleContextMenu = (e: React.MouseEvent, slot: SlotType) => {
@@ -105,10 +113,18 @@ const [mt, mr, mb, ml] = pageConfig.safeZone;
   return (
     <>
       {contextMenu && createPortal(
-        <div className="fixed z-9999 bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-37.5" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+        <div id="context-menu-container" className="fixed z-99999 bg-white border border-slate-300 shadow-2xl rounded-md py-1 min-w-37.5" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
           {contextMenu.canMerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50" onClick={() => { mergeSelected(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreleri Birleştir</button>}
-          {contextMenu.canUnmerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-red-50" onClick={() => { unmergeSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreyi Dağıt</button>}
-          {contextMenu.hasProduct && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50" onClick={() => { clearSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Temizle</button>}
+          {contextMenu.canUnmerge && <button className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={() => { unmergeSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Hücreyi Dağıt</button>}
+          {contextMenu.hasProduct && (
+            <>
+              <button className="w-full text-left px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50" onClick={() => { 
+                moveSlotToTempPool(pageNumber, contextMenu.slot.id);
+                setContextMenu(null); 
+              }}>Havuza Gönder</button>
+              <button className="w-full text-left px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50" onClick={() => { clearSlot(pageNumber, contextMenu.slot.id); setContextMenu(null); }}>Temizle</button>
+            </>
+          )}
         </div>, document.body
       )}
       <div
